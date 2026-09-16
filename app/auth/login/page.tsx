@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -34,6 +35,29 @@ export default function LoginPage() {
     router.push("/")
     router.refresh()
   }
+  async function handleForgotPassword() {
+  if (!email) {
+    setError("Enter your email address first.")
+    return
+  }
+
+  setError(null)
+  setResetLoading(true)
+
+  const supabase = createClient()
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/auth/reset-password`,
+  })
+
+  if (error) {
+    setError(error.message)
+  } else {
+    setError("Check your email for a password reset link.")
+  }
+
+  setResetLoading(false)
+}
 
   return (
     <Card className="rounded-2xl">
@@ -64,6 +88,14 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
             />
+            <button
+  type="button"
+  onClick={handleForgotPassword}
+  disabled={resetLoading}
+  className="text-sm text-brand-red hover:underline text-left"
+>
+  {resetLoading ? "Sending reset link..." : "Forgot your password?"}
+</button>
           </div>
           {error && (
             <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
