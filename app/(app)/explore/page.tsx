@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getFollowingSet, getRecentPosts, getSessionUser, getSuggestedProfiles, getTrendingHashtags, searchPosts, searchProfiles } from "@/lib/queries"
 import { ArrowRight, Compass, Hash, MessageCircle, Newspaper, PlaySquare, Radio, SearchX, Sparkles, Users, Video } from "lucide-react"
 
+export const dynamic = "force-dynamic"
+
 const discoveryCards = [
   { label: "People", description: "Discover creators, voices and people to follow", icon: Users, href: "/explore?q=people" },
   { label: "Communities", description: "Join conversations and communities on WIGOD", icon: Users, href: "/community" },
@@ -38,10 +40,10 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
 }
 
 async function DiscoveryHome({ currentUserId }: { currentUserId: string | null }) {
-  const [trending, recent, people] = await Promise.all([
+  const [people, trending, recent] = await Promise.all([
+    getSuggestedProfiles(currentUserId, 6),
     getTrendingHashtags(8),
     getRecentPosts(currentUserId, 12),
-    getSuggestedProfiles(currentUserId, 6),
   ])
   const followingSet = await getFollowingSet(currentUserId, people.map((profile) => profile.id))
 
@@ -60,9 +62,9 @@ async function DiscoveryHome({ currentUserId }: { currentUserId: string | null }
         </div>
       </section>
 
-      <section className="border-b border-border px-4 py-5">
-        <div className="mb-3 flex items-center justify-between"><div><h2 className="flex items-center gap-2 font-serif text-base font-bold"><Users className="size-4 text-brand-green" /> People to discover</h2><p className="text-xs text-muted-foreground">Find people and creators you may want to follow.</p></div><Link href="/explore?q=people" className="text-xs font-semibold text-brand-green">See all</Link></div>
-        {people.length === 0 ? <div className="rounded-xl border border-dashed border-border px-4 py-6 text-center"><Users className="mx-auto mb-2 size-5 text-muted-foreground" /><p className="text-sm font-medium">No new people to suggest yet</p><p className="mt-1 text-xs text-muted-foreground">More creators will appear as people join WIGOD.</p></div> : <div className="grid gap-2 md:grid-cols-2">{people.map((profile) => <UserCard key={profile.id} profile={profile} currentUserId={currentUserId} isFollowing={followingSet.has(profile.id)} />)}</div>}
+      <section className="border-b border-border bg-secondary/10 px-4 py-5">
+        <div className="mb-3 flex items-center justify-between"><div><h2 className="flex items-center gap-2 font-serif text-base font-bold"><Users className="size-4 text-brand-green" /> People &amp; creators</h2><p className="text-xs text-muted-foreground">Discover people on WIGOD and follow the voices you want in your feed.</p></div><Link href="/explore?q=people" className="text-xs font-semibold text-brand-green">See all</Link></div>
+        {people.length === 0 ? <div className="rounded-xl border border-dashed border-border bg-background px-4 py-6 text-center"><Users className="mx-auto mb-2 size-5 text-muted-foreground" /><p className="text-sm font-medium">No new people to suggest yet</p><p className="mt-1 text-xs text-muted-foreground">More creators will appear as people join WIGOD.</p></div> : <div className="grid gap-2 md:grid-cols-2">{people.map((profile) => <UserCard key={profile.id} profile={profile} currentUserId={currentUserId} isFollowing={followingSet.has(profile.id)} />)}</div>}
       </section>
 
       <section className="border-b border-border px-4 py-5">
