@@ -48,10 +48,11 @@ export function LiveStatus({ fallbackVideoId, fallbackTitle, channelId }: { fall
   }, [])
 
   const live = status?.live ?? null
-  const videoId = live?.videoId ?? fallbackVideoId
+  const apiConfigured = status?.configured ?? false
+  const videoId = live?.videoId ?? (apiConfigured ? undefined : fallbackVideoId)
   const title = live?.title ?? fallbackTitle
 
-  if (live || fallbackVideoId || loading) {
+  if (live || (!apiConfigured && fallbackVideoId) || loading) {
     return (
       <div>
         {live ? (
