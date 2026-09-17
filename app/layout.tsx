@@ -1,17 +1,11 @@
 import { Analytics } from "@vercel/analytics/next"
 import type { Metadata, Viewport } from "next"
-import { Libre_Franklin, Source_Serif_4 } from "next/font/google"
+import { Inter } from "next/font/google"
 import "./globals.css"
 
-const franklin = Libre_Franklin({
+const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
-  display: "swap",
-})
-
-const sourceSerif = Source_Serif_4({
-  subsets: ["latin"],
-  variable: "--font-serif",
   display: "swap",
 })
 
@@ -33,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`light ${franklin.variable} ${sourceSerif.variable}`}>
+    <html lang="en" className={`light ${inter.variable}`}>
       <body className="font-sans antialiased">
         {children}
         {process.env.NODE_ENV === "production" && <Analytics />}
