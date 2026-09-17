@@ -1,9 +1,11 @@
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
-const OFFICIAL_LOGO = "/1000276350.png"
+// The official logo was uploaded at the repository root. Use its public raw
+// GitHub asset URL until the binary can be moved into /public/branding.
+const OFFICIAL_LOGO = "https://raw.githubusercontent.com/africa-beyond-social/africa-beyond-social-build/stage-1-home-feed/1000276350.png"
 
-/** Official Africa & Beyond artwork. The source artwork is kept unchanged. */
+/** Official Africa & Beyond logo asset. */
 export function BrandMark({ className }: { className?: string }) {
   return (
     <span className={cn("relative inline-flex shrink-0 overflow-hidden", className)}>
@@ -11,8 +13,9 @@ export function BrandMark({ className }: { className?: string }) {
         src={OFFICIAL_LOGO}
         alt="Africa & Beyond"
         fill
-        sizes="(max-width: 767px) 120px, 180px"
+        sizes="(max-width: 768px) 120px, 180px"
         className="object-contain"
+        unoptimized
         priority
       />
     </span>
@@ -27,11 +30,16 @@ export function BrandWordmark({
   showTagline?: boolean
 }) {
   return (
-    <div className={cn("flex min-w-0 flex-col", className)}>
-      <BrandMark className="h-16 w-[170px]" />
-      <span className="mt-1 text-[0.62rem] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-        {showTagline ? "People. Places. Perspectives." : "Social"}
-      </span>
+    <div className={cn("flex items-center gap-3", className)}>
+      <BrandMark className="h-14 w-28 lg:h-16 lg:w-36" />
+      <div className="flex min-w-0 flex-col leading-none">
+        <span className="text-[0.95rem] font-extrabold tracking-tight text-foreground">
+          AFRICA &amp; BEYOND SOCIAL
+        </span>
+        <span className="mt-1 text-[0.65rem] font-medium tracking-normal text-muted-foreground">
+          {showTagline ? "People. Places. Perspectives." : "Social"}
+        </span>
+      </div>
     </div>
   )
 }
