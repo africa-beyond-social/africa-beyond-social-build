@@ -32,7 +32,7 @@ export function PostComposer({ profile, onPosted, autoFocus = false, placeholder
   async function submit() {
     if (!canPost) return
     setLoading(true)
-    const result = await createPost(content, mediaUrl.trim() || null)
+    const result = await createPost(content)
     setLoading(false)
     if (!result.ok) { toast.error(result.error); return }
     setContent("")
@@ -52,7 +52,7 @@ export function PostComposer({ profile, onPosted, autoFocus = false, placeholder
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
           <div className="flex items-center gap-1">
             <button type="button" onClick={() => { const url = window.prompt("Paste an image or video URL"); if (url) setMediaUrl(url.trim()) }} className="rounded-full p-2 text-brand-green hover:bg-brand-green/10" aria-label="Add photo or video"><ImagePlus className="size-5" /></button>
-            <span className="text-[11px] text-muted-foreground"><Video className="mr-1 inline size-3.5" />Photo/video URL for now</span>
+            <span className="text-[11px] text-muted-foreground"><Video className="mr-1 inline size-3.5" />Media attachment preview</span>
           </div>
           <div className="flex items-center gap-3"><span className={cn("text-xs tabular-nums", over ? "font-semibold text-destructive" : remaining <= 20 ? "text-brand-red" : "text-muted-foreground")}>{remaining}</span><Button onClick={submit} disabled={!canPost} size="lg" className="rounded-full px-6">{loading ? "Posting…" : "Post"}</Button></div>
         </div>
