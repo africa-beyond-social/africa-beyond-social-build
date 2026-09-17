@@ -33,8 +33,12 @@ export const africanCountries: ExplorePlace[] = [
 
 export const africanCities: ExplorePlace[] = [
   "Harare", "Bulawayo", "Johannesburg", "Cape Town", "Lusaka", "Gaborone", "Maputo", "Windhoek",
-  "Nairobi", "Kampala", "Dar es Salaam", "Addis Ababa", "Kigali", "Cairo", "Casablanca", "Algiers",
-  "Lagos", "Accra", "Abidjan", "Dakar", "Abuja", "Kinshasa", "Luanda", "Antananarivo",
+  "Maseru", "Mbabane", "Manzini", "Lilongwe", "Blantyre", "Lobamba", "Nairobi", "Kampala",
+  "Dar es Salaam", "Dodoma", "Arusha", "Mogadishu", "Hargeisa", "Addis Ababa", "Asmara", "Djibouti City",
+  "Kigali", "Bujumbura", "Juba", "Khartoum", "Cairo", "Alexandria", "Tripoli", "Tunis", "Algiers",
+  "Casablanca", "Rabat", "Dakar", "Banjul", "Conakry", "Freetown", "Monrovia", "Accra", "Lomé",
+  "Abuja", "Lagos", "Kumasi", "Abidjan", "Ouagadougou", "Bamako", "Niamey", "Yaoundé", "Douala",
+  "Bangui", "Libreville", "Brazzaville", "Kinshasa", "Luanda", "Antananarivo", "Port Louis",
 ].map((name) => ({ name, slug: slugify(name), search: name }))
 
 export const worldRegions: ExploreRegion[] = [
@@ -43,6 +47,7 @@ export const worldRegions: ExploreRegion[] = [
   { name: "Asia-Pacific", description: "Asia, Oceania and the Pacific", slug: "asia-pacific", search: "Asia Pacific" },
   { name: "North America", description: "United States, Canada and the wider region", slug: "north-america", search: "North America" },
   { name: "Latin America & Caribbean", description: "Stories from Latin America and the Caribbean", slug: "latin-america-caribbean", search: "Latin America Caribbean" },
+  { name: "African Diaspora", description: "African communities, heritage and voices around the world", slug: "african-diaspora", search: "African Diaspora" },
   { name: "Global", description: "Conversations that connect Africa with the world", slug: "global", search: "Global" },
 ]
 
