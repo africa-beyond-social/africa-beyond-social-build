@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/page-header"
 import { FeedList, EmptyState } from "@/components/feed-list"
 import { LiveEventCard } from "@/components/live-event-card"
 import { LiveStatus } from "@/components/live-status"
+import { YouTubeUpcomingEvent } from "@/components/youtube-upcoming-event"
 import { getUpcomingLiveEvents } from "@/lib/live"
 import { getRecentPosts, getSessionUser, searchPosts } from "@/lib/queries"
 
@@ -85,15 +86,16 @@ export default async function LivePage({ searchParams }: { searchParams: Promise
       <section className="border-b border-border px-4 py-5">
         <div className="mb-3 flex items-center gap-2">
           <Radio className="size-4 text-brand-green" />
-          <div><h2 className="font-serif text-base font-bold">Upcoming events</h2><p className="text-xs text-muted-foreground">Scheduled programmes stored in the Africa & Beyond Live database</p></div>
-        </div>
-        {events.length > 0 ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {events.map((event) => <LiveEventCard key={event.id} title={event.title} start={event.start_at} location={event.location ?? undefined} />)}
+          <div>
+            <h2 className="font-serif text-base font-bold">Upcoming broadcasts & events</h2>
+            <p className="text-xs text-muted-foreground">YouTube broadcasts are detected automatically. Other programmes can be scheduled in the control room.</p>
           </div>
-        ) : (
-          <LiveEventCard title={fallbackEventTitle} start={fallbackEventStart} location={fallbackEventLocation} />
-        )}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <YouTubeUpcomingEvent />
+          {events.map((event) => <LiveEventCard key={event.id} title={event.title} start={event.start_at} location={event.location ?? undefined} />)}
+          {events.length === 0 && !fallbackEventStart ? null : events.length === 0 ? <LiveEventCard title={fallbackEventTitle} start={fallbackEventStart} location={fallbackEventLocation} /> : null}
+        </div>
       </section>
 
       <section className="border-b border-border px-4 py-5">
