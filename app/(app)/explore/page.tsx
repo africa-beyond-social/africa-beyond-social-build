@@ -14,6 +14,7 @@ import {
 } from "@/lib/queries"
 import {
   ArrowRight,
+  Building2,
   Globe2,
   Hash,
   MapPin,
@@ -35,18 +36,23 @@ const regions = [
 ]
 
 const countries = [
-  "Zimbabwe",
-  "South Africa",
-  "Zambia",
-  "Botswana",
-  "Mozambique",
-  "Malawi",
-  "Namibia",
-  "Kenya",
-  "Tanzania",
-  "Nigeria",
-  "Ghana",
-  "Rwanda",
+  "Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi", "Cabo Verde", "Cameroon",
+  "Central African Republic", "Chad", "Comoros", "Democratic Republic of the Congo", "Djibouti", "Egypt",
+  "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia", "Gabon", "The Gambia", "Ghana", "Guinea",
+  "Guinea-Bissau", "Côte d'Ivoire", "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi",
+  "Mali", "Mauritania", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger", "Nigeria",
+  "Republic of the Congo", "Rwanda", "São Tomé and Príncipe", "Senegal", "Seychelles", "Sierra Leone",
+  "Somalia", "South Africa", "South Sudan", "Sudan", "Tanzania", "Togo", "Tunisia", "Uganda",
+  "Zambia", "Zimbabwe",
+]
+
+const quickLinks = [
+  { label: "Countries", description: "Discover African countries", icon: MapPin, query: "country" },
+  { label: "Regions", description: "Explore Africa by region", icon: Globe2, query: "region" },
+  { label: "Cities", description: "Discover African cities", icon: Building2, query: "city" },
+  { label: "News", description: "Follow African news conversations", icon: Newspaper, query: "news" },
+  { label: "Media", description: "Find videos, photos and media", icon: Video, query: "media" },
+  { label: "Live", description: "Explore live conversations", icon: Radio, query: "live" },
 ]
 
 const exploreLinks = [
@@ -65,9 +71,16 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
   return (
     <div>
       <PageHeader title="EXPLORE AFRICA" subtitle="People. Places. Perspectives." />
-      <div className="border-b border-border bg-background px-4 py-3">
+
+      <section className="border-b border-border bg-secondary/20 px-4 py-4">
+        <div className="mb-2">
+          <h2 className="font-serif text-lg font-bold">Search Africa</h2>
+          <p className="text-xs text-muted-foreground">
+            Find countries, people, posts and conversations across the continent.
+          </p>
+        </div>
         <SearchBar initialQuery={query} />
-      </div>
+      </section>
 
       {query ? (
         <SearchResults query={query} currentUserId={currentUserId} />
@@ -89,27 +102,23 @@ async function AfricaExplore({ currentUserId }: { currentUserId: string | null }
             <Globe2 className="size-5" />
           </div>
           <div>
-            <h2 className="font-serif text-xl font-bold">Explore Africa</h2>
-            <p className="mt-1 text-sm leading-5 text-muted-foreground">
-              Navigate countries, regions, stories, media and communities from one place.
+            <h2 className="font-serif text-xl font-bold">Africa at a glance</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-5 text-muted-foreground">
+              One place to discover countries, regions, cities, stories, media, live conversations and communities.
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {[
-            { label: "Countries", icon: MapPin },
-            { label: "Regions", icon: Globe2 },
-            { label: "News", icon: Newspaper },
-            { label: "Live", icon: Radio },
-          ].map(({ label, icon: Icon }) => (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          {quickLinks.map(({ label, description, icon: Icon, query }) => (
             <Link
               key={label}
-              href={`/explore?q=${encodeURIComponent(label)}`}
-              className="flex items-center gap-2 rounded-xl border border-border bg-background/80 px-3 py-3 text-sm font-semibold transition-colors hover:bg-secondary"
+              href={`/explore?q=${encodeURIComponent(query)}`}
+              className="group rounded-xl border border-border bg-background/80 p-3 transition-colors hover:bg-secondary"
             >
-              <Icon className="size-4 text-brand-green" />
-              {label}
+              <Icon className="mb-2 size-4 text-brand-green" />
+              <p className="text-sm font-semibold">{label}</p>
+              <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">{description}</p>
             </Link>
           ))}
         </div>
@@ -143,19 +152,17 @@ async function AfricaExplore({ currentUserId }: { currentUserId: string | null }
       <section className="border-b border-border px-4 py-5">
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <h2 className="font-serif text-base font-bold">Countries</h2>
-            <p className="text-xs text-muted-foreground">Jump into country conversations</p>
+            <h2 className="font-serif text-base font-bold">Countries of Africa</h2>
+            <p className="text-xs text-muted-foreground">Explore conversations by country</p>
           </div>
-          <Link href="/explore?q=country" className="text-xs font-semibold text-brand-green hover:underline">
-            View all
-          </Link>
+          <span className="text-xs text-muted-foreground">54 countries</span>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
           {countries.map((country) => (
             <Link
               key={country}
               href={`/explore?q=${encodeURIComponent(country)}`}
-              className="rounded-full border border-border bg-secondary/40 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-secondary"
+              className="rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-secondary"
             >
               {country}
             </Link>
@@ -164,7 +171,10 @@ async function AfricaExplore({ currentUserId }: { currentUserId: string | null }
       </section>
 
       <section className="border-b border-border px-4 py-5">
-        <h2 className="mb-3 font-serif text-base font-bold">Explore by interest</h2>
+        <div className="mb-3">
+          <h2 className="font-serif text-base font-bold">Explore by interest</h2>
+          <p className="text-xs text-muted-foreground">Follow the conversations that matter to you</p>
+        </div>
         <div className="grid gap-2 sm:grid-cols-2">
           {exploreLinks.map(({ label, description, icon: Icon, query }) => (
             <Link
@@ -179,18 +189,28 @@ async function AfricaExplore({ currentUserId }: { currentUserId: string | null }
                 <p className="font-semibold">{label}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
               </div>
+              <ArrowRight className="ml-auto mt-1 size-4 shrink-0 text-muted-foreground" />
             </Link>
           ))}
         </div>
       </section>
 
       <section className="border-b border-border px-4 py-5">
-        <h2 className="mb-3 flex items-center gap-2 font-serif text-base font-bold">
-          <TrendingUp className="size-4 text-brand-red" />
-          Trending across Africa
-        </h2>
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 font-serif text-base font-bold">
+              <TrendingUp className="size-4 text-brand-red" />
+              Trending across Africa
+            </h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">What people are talking about right now</p>
+          </div>
+        </div>
         {trending.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No trends yet. Add a #hashtag to your posts to start a trend.</p>
+          <div className="rounded-xl border border-dashed border-border px-4 py-6 text-center">
+            <Hash className="mx-auto mb-2 size-5 text-muted-foreground" />
+            <p className="text-sm font-medium">No trends yet</p>
+            <p className="mt-1 text-xs text-muted-foreground">Add a #hashtag to a post to start a trend.</p>
+          </div>
         ) : (
           <div className="grid gap-1 sm:grid-cols-2">
             {trending.map((t, i) => (
@@ -215,9 +235,12 @@ async function AfricaExplore({ currentUserId }: { currentUserId: string | null }
         )}
       </section>
 
-      <div className="px-4 py-4">
+      <section className="px-4 py-5">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="font-serif text-base font-bold">Latest across Africa</h2>
+          <div>
+            <h2 className="font-serif text-base font-bold">Latest across Africa</h2>
+            <p className="text-xs text-muted-foreground">Recent conversations from the community</p>
+          </div>
           <Link href="/explore?q=news" className="text-xs font-semibold text-brand-green hover:underline">
             Explore more
           </Link>
@@ -233,7 +256,7 @@ async function AfricaExplore({ currentUserId }: { currentUserId: string | null }
             />
           }
         />
-      </div>
+      </section>
     </div>
   )
 }
