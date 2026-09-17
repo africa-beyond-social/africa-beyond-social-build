@@ -10,9 +10,9 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "Africa & Beyond Social",
+  title: "WIGOD",
   description:
-    "Africa & Beyond Social — a professional African social network for short posts, conversations, and community. From Africa, to the world.",
+    "WIGOD — a global social platform for conversations, communities, media and live broadcasting.",
   generator: "v0.app",
 }
 
