@@ -70,7 +70,7 @@ async function GlobalExplore({ currentUserId }: { currentUserId: string | null }
       </section>
 
       <section id="cities" className="scroll-mt-16 border-b border-border px-4 py-5">
-        <div className="mb-3 flex items-center justify-between"><div><h2 className="font-serif text-base font-bold">African cities</h2><p className="text-xs text-muted-foreground">Discover conversations from major cities</p></div><span className="text-xs text-muted-foreground">More cities can be added</span></div>
+        <div className="mb-3 flex items-center justify-between"><div><h2 className="font-serif text-base font-bold">African cities</h2><p className="text-xs text-muted-foreground">Discover conversations from major cities</p></div><span className="text-xs text-muted-foreground">{africanCities.length} cities</span></div>
         <div className="flex flex-wrap gap-2">{africanCities.map((city) => <Link key={city.slug} href={`/explore/cities/${city.slug}`} className="rounded-full border border-border bg-background px-3 py-1.5 text-sm font-medium hover:bg-secondary">{city.name}</Link>)}</div>
       </section>
 
@@ -91,5 +91,38 @@ async function GlobalExplore({ currentUserId }: { currentUserId: string | null }
 async function SearchResults({ query, currentUserId }: { query: string; currentUserId: string | null }) {
   const [profiles, posts] = await Promise.all([searchProfiles(query), searchPosts(query, currentUserId)])
   const followingSet = await getFollowingSet(currentUserId, profiles.map((p) => p.id))
-  return <Tabs defaultValue="posts"><TabsList variant="line" className="w-full justify-start rounded-none border-b border-border px-4"><TabsTrigger value="posts">Posts ({posts.length})</TabsTrigger><TabsTrigger value="people">People ({profiles.length})</TabsTrigger></TabsList><TabsContent value="posts"><FeedList posts={posts} currentUserId={currentUserId} empty={<EmptyState icon={<SearchX className="size-6" />} title="No posts found" description={`We couldn't find any posts matching "${query}".`} />} /></TabsContent><TabsContent value="people">{profiles.length === 0 ? <EmptyState icon={<SearchX className="size-6" />} title="No people found" description={`We couldn't find anyone matching "${query}".`} /> : profiles.map((p) => <UserCard key={p.id} profile={p} currentUserId={currentUserId} isFollowing={followingSet.has(p.id)} />)}</TabsContent></Tabs>
+  const q = query.toLowerCase()
+  const placeResults = [
+    ...africaRegions.filter((item) => item.name.toLowerCase().includes(q)).map((item) => ({ ...item, kind: "African region", href: `/explore/regions/${item.slug}` })),
+    ...africanCountries.filter((item) => item.name.toLowerCase().includes(q)).map((item) => ({ ...item, kind: "African country", href: `/explore/countries/${item.slug}` })),
+    ...africanCities.filter((item) => item.name.toLowerCase().includes(q)).map((item) => ({ ...item, kind: "African city", href: `/explore/cities/${item.slug}` })),
+    ...worldRegions.filter((item) => item.name.toLowerCase().includes(q)).map((item) => ({ ...item, kind: "World region", href: `/explore/world/${item.slug}` })),
+  ]
+
+  return (
+    <Tabs defaultValue={placeResults.length > 0 ? "places" : "posts"}>
+      <TabsList variant="line" className="w-full justify-start rounded-none border-b border-border px-4">
+        {placeResults.length > 0 && <TabsTrigger value="places">Places ({placeResults.length})</TabsTrigger>}
+        <TabsTrigger value="posts">Posts ({posts.length})</TabsTrigger>
+        <TabsTrigger value="people">People ({profiles.length})</TabsTrigger>
+      </TabsList>
+      {placeResults.length > 0 && (
+        <TabsContent value="places" className="px-4 py-4">
+          <div className="grid gap-2 sm:grid-cols-2">
+            {placeResults.map((place) => (
+              <Link key={`${place.kind}-${place.slug}`} href={place.href} className="group rounded-xl border border-border p-4 transition-colors hover:bg-secondary">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-brand-green"><Globe2 className="size-4" /></div>
+                  <div className="min-w-0 flex-1"><p className="font-semibold">{place.name}</p><p className="text-xs text-muted-foreground">{place.kind}</p></div>
+                  <ArrowRight className="size-4 text-muted-foreground" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </TabsContent>
+      )}
+      <TabsContent value="posts"><FeedList posts={posts} currentUserId={currentUserId} empty={<EmptyState icon={<SearchX className="size-6" />} title="No posts found" description={`We couldn't find any posts matching "${query}".`} />} /></TabsContent>
+      <TabsContent value="people">{profiles.length === 0 ? <EmptyState icon={<SearchX className="size-6" />} title="No people found" description={`We couldn't find anyone matching "${query}".`} /> : profiles.map((p) => <UserCard key={p.id} profile={p} currentUserId={currentUserId} isFollowing={followingSet.has(p.id)} />)}</TabsContent>
+    </Tabs>
+  )
 }
