@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { CalendarDays, Globe2, MessageCircle, Radio, Tv } from "lucide-react"
+import { Globe2, MessageCircle, Radio, Tv } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { FeedList, EmptyState } from "@/components/feed-list"
 import { LiveEventCard } from "@/components/live-event-card"
@@ -22,6 +22,7 @@ export default async function LivePage({ searchParams }: { searchParams: Promise
   const posts = query ? await searchPosts(query, currentUserId) : await getRecentPosts(currentUserId, 24)
 
   const liveVideoId = process.env.NEXT_PUBLIC_LIVE_YOUTUBE_VIDEO_ID
+  const liveChannelId = process.env.NEXT_PUBLIC_LIVE_YOUTUBE_CHANNEL_ID
   const liveTitle = process.env.NEXT_PUBLIC_LIVE_TITLE?.trim() || "Africa & Beyond TV — Live"
   const eventStart = process.env.NEXT_PUBLIC_LIVE_EVENT_START?.trim()
   const eventTitle = process.env.NEXT_PUBLIC_LIVE_EVENT_TITLE?.trim() || "Next Africa & Beyond live event"
@@ -60,7 +61,7 @@ export default async function LivePage({ searchParams }: { searchParams: Promise
           </div>
           <span className="hidden rounded-full border border-border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground sm:inline-flex">YouTube Live</span>
         </div>
-        <LivePlayer videoId={liveVideoId} title={liveTitle} />
+        <LivePlayer videoId={liveVideoId} channelId={liveChannelId} title={liveTitle} />
       </section>
 
       <section className="grid gap-3 border-b border-border px-4 py-5 sm:grid-cols-3">
@@ -73,7 +74,7 @@ export default async function LivePage({ searchParams }: { searchParams: Promise
         <div className="rounded-2xl border border-border p-4">
           <Radio className="size-5 text-brand-green" />
           <h3 className="mt-3 text-sm font-bold">Live broadcasts</h3>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">When a YouTube Live broadcast is configured, visitors can watch it directly from this page.</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">The page connects to the Africa & Beyond TV live channel automatically, with a specific video ID available when needed.</p>
         </div>
         <LiveEventCard title={eventTitle} start={eventStart} location={eventLocation} />
       </section>
