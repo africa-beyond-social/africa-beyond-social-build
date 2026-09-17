@@ -39,52 +39,67 @@ alter table public.messages enable row level security;
 drop policy if exists "Conversation members can view conversations" on public.conversations;
 create policy "Conversation members can view conversations"
   on public.conversations for select
-  using (exists (
-    select 1 from public.conversation_members cm
-    where cm.conversation_id = conversations.id and cm.user_id = auth.uid()
-  ));
+  using (exists (select 1 from public.conversation_members cm where cm.conversation_id = conversations.id and cm.user_id = auth.uid()));
 
 drop policy if exists "Authenticated users can create conversations" on public.conversations;
 create policy "Authenticated users can create conversations"
-  on public.conversations for insert
-  with check (auth.uid() is not null);
+  on public.conversations for insert with check (auth.uid() is not null);
 
 drop policy if exists "Members can view membership" on public.conversation_members;
 create policy "Members can view membership"
   on public.conversation_members for select
-  using (user_id = auth.uid() or exists (
-    select 1 from public.conversation_members cm
-    where cm.conversation_id = conversation_members.conversation_id and cm.user_id = auth.uid()
-  ));
+  using (user_id = auth.uid() or exists (select 1 from public.conversation_members cm where cm.conversation_id = conversation_members.conversation_id and cm.user_id = auth.uid()));
 
 drop policy if exists "Users can add themselves to conversations" on public.conversation_members;
 create policy "Users can add themselves to conversations"
-  on public.conversation_members for insert
-  with check (user_id = auth.uid());
+  on public.conversation_members for insert with check (user_id = auth.uid());
 
 drop policy if exists "Members can update their read state" on public.conversation_members;
 create policy "Members can update their read state"
-  on public.conversation_members for update
-  using (user_id = auth.uid())
-  with check (user_id = auth.uid());
+  on public.conversation_members for update using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 drop policy if exists "Conversation members can read messages" on public.messages;
 create policy "Conversation members can read messages"
   on public.messages for select
-  using (exists (
-    select 1 from public.conversation_members cm
-    where cm.conversation_id = messages.conversation_id and cm.user_id = auth.uid()
-  ));
+  using (exists (select 1 from public.conversation_members cm where cm.conversation_id = messages.conversation_id and cm.user_id = auth.uid()));
 
 drop policy if exists "Conversation members can send messages" on public.messages;
 create policy "Conversation members can send messages"
   on public.messages for insert
-  with check (
-    sender_id = auth.uid() and exists (
-      select 1 from public.conversation_members cm
-      where cm.conversation_id = messages.conversation_id and cm.user_id = auth.uid()
-    )
-  );
+  with check (sender_id = auth.uid() and exists (select 1 from public.conversation_members cm where cm.conversation_id = messages.conversation_id and cm.user_id = auth.uid()));
+
+-- Security-definer helper prevents duplicate 1-to-1 conversations while keeping the tables private.
+create or replace function public.get_or_create_direct_conversation(other_user_id uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_user_id uuid := auth.uid();
+  conversation_id uuid;
+begin
+  if current_user_id is null or other_user_id is null or current_user_id = other_user_id then
+    raise exception 'Invalid conversation participants';
+  end if;
+
+  select c.id into conversation_id
+  from public.conversations c
+  where exists (select 1 from public.conversation_members cm where cm.conversation_id = c.id and cm.user_id = current_user_id)
+    and exists (select 1 from public.conversation_members cm where cm.conversation_id = c.id and cm.user_id = other_user_id)
+    and (select count(*) from public.conversation_members cm where cm.conversation_id = c.id) = 2
+  order by c.updated_at desc
+  limit 1;
+
+  if conversation_id is null then
+    insert into public.conversations default values returning id into conversation_id;
+    insert into public.conversation_members (conversation_id, user_id) values (conversation_id, current_user_id), (conversation_id, other_user_id);
+  end if;
+  return conversation_id;
+end;
+$$;
+
+grant execute on function public.get_or_create_direct_conversation(uuid) to authenticated;
 
 -- A public bucket is used for post media so feeds can render attachments directly.
 insert into storage.buckets (id, name, public)
@@ -92,20 +107,16 @@ values ('post-media', 'post-media', true)
 on conflict (id) do update set public = true;
 
 drop policy if exists "Post media is publicly readable" on storage.objects;
-create policy "Post media is publicly readable"
-  on storage.objects for select
-  using (bucket_id = 'post-media');
+create policy "Post media is publicly readable" on storage.objects for select using (bucket_id = 'post-media');
 
 drop policy if exists "Authenticated users can upload post media" on storage.objects;
 create policy "Authenticated users can upload post media"
-  on storage.objects for insert
-  to authenticated
+  on storage.objects for insert to authenticated
   with check (bucket_id = 'post-media' and (storage.foldername(name))[1] = auth.uid()::text);
 
 drop policy if exists "Users can delete their post media" on storage.objects;
 create policy "Users can delete their post media"
-  on storage.objects for delete
-  to authenticated
+  on storage.objects for delete to authenticated
   using (bucket_id = 'post-media' and owner_id = auth.uid()::text);
 
 alter table public.posts add column if not exists media_url text;
@@ -113,6 +124,5 @@ alter table public.posts add column if not exists media_type text;
 alter table public.posts add column if not exists media_name text;
 alter table public.posts add column if not exists media_size bigint;
 
--- Keep the existing image_url column usable for older posts and consumers.
 update public.posts set media_url = image_url where media_url is null and image_url is not null;
 update public.posts set media_type = 'image/*' where media_type is null and image_url is not null;
