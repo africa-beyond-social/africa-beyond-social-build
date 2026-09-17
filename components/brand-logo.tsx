@@ -34,7 +34,7 @@ export function BrandWordmark({
         src={WIGOD_WORDMARK}
         alt="WIGOD — People. Places. Perspectives."
         fill
-        sizes="(max-width: 768px) 240px, 360px"
+        sizes={showTagline ? "(max-width: 768px) 240px, 360px" : "(max-width: 768px) 180px, 280px"}
         className="object-contain"
         priority
       />
