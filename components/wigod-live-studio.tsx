@@ -4,10 +4,15 @@ import { useRef, useState } from "react"
 import { Camera, Image as ImageIcon, MessageCircle, Mic, MonitorUp, Play, Plus, Radio, Settings2, Sparkles, Upload, Users, Video, X } from "lucide-react"
 
 const destinations = [
-  { id: "youtube", label: "YouTube", detail: "Primary broadcast destination" },
-  { id: "facebook", label: "Facebook", detail: "Connect a Facebook Live destination" },
-  { id: "tiktok", label: "TikTok", detail: "Connect a TikTok LIVE destination" },
-  { id: "wigod", label: "WIGOD", detail: "Publish inside WIGOD Live" },
+  { id: "wigod", label: "WIGOD Live", detail: "Broadcast directly inside WIGOD" },
+  { id: "youtube", label: "YouTube", detail: "Optional external broadcast destination" },
+]
+
+const nativeFeatures = [
+  { label: "WIGOD Feed", detail: "Publish the live event to your followers' feed" },
+  { label: "WIGOD Short Video", detail: "Create short-form clips from the broadcast" },
+  { label: "WIGOD Communities", detail: "Share the broadcast with selected communities" },
+  { label: "WIGOD Explore", detail: "Make public broadcasts discoverable" },
 ]
 
 export function WigodLiveStudio() {
@@ -18,7 +23,7 @@ export function WigodLiveStudio() {
   const [description, setDescription] = useState("")
   const [overlayText, setOverlayText] = useState("WIGOD LIVE")
   const [thumbnail, setThumbnail] = useState<string | null>(null)
-  const [selected, setSelected] = useState<string[]>(["youtube", "wigod"])
+  const [selected, setSelected] = useState<string[]>(["wigod", "youtube"])
   const [cameraReady, setCameraReady] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -38,7 +43,7 @@ export function WigodLiveStudio() {
           <div>
             <div className="flex items-center gap-2"><Radio className="size-4 text-brand-red" /><span className="text-xs font-bold uppercase tracking-wider text-brand-red">WIGOD Live Studio</span></div>
             <h2 className="mt-1 font-serif text-xl font-bold">Create your live broadcast</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Prepare one broadcast and send it to your connected destinations.</p>
+            <p className="mt-1 text-xs text-muted-foreground">One native WIGOD broadcast, with optional YouTube publishing.</p>
           </div>
           <div className="flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs font-semibold"><span className="size-2 rounded-full bg-brand-green" /> Studio ready</div>
         </div>
@@ -86,7 +91,7 @@ export function WigodLiveStudio() {
         <section className="rounded-2xl border border-border p-4">
           <div className="flex items-center gap-2"><MessageCircle className="size-4 text-brand-red" /><h3 className="text-sm font-bold">Comments & audience</h3></div>
           <div className="mt-3 flex items-center justify-between rounded-xl border border-border p-3"><div><p className="text-xs font-bold">Show comments</p><p className="text-[11px] text-muted-foreground">Allow viewers to participate during the broadcast.</p></div><button type="button" onClick={() => setComments((value) => !value)} className={`relative h-6 w-11 rounded-full ${comments ? "bg-brand-green" : "bg-secondary"}`}><span className={`absolute top-1 size-4 rounded-full bg-white transition ${comments ? "left-6" : "left-1"}`} /></button></div>
-          <div className="mt-3 flex items-center gap-3 rounded-xl bg-secondary/50 p-3 text-xs"><Users className="size-4 text-brand-green" /> Viewer interaction will appear in the public WIGOD Live room.</div>
+          <div className="mt-3 flex items-center gap-3 rounded-xl bg-secondary/50 p-3 text-xs"><Users className="size-4 text-brand-green" /> Viewer interaction is native to the WIGOD Live room.</div>
         </section>
 
         <section className="rounded-2xl border border-border p-4">
@@ -98,15 +103,20 @@ export function WigodLiveStudio() {
       </div>
 
       <section className="rounded-2xl border border-border p-4">
-        <div className="flex items-center justify-between"><div><h3 className="text-sm font-bold">Broadcast destinations</h3><p className="text-[11px] text-muted-foreground">Select where this WIGOD Studio feed should be published.</p></div><Video className="size-5 text-brand-red" /></div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{destinations.map((destination) => <button key={destination.id} type="button" onClick={() => toggleDestination(destination.id)} className={`rounded-xl border p-3 text-left ${selected.includes(destination.id) ? "border-brand-green bg-brand-green/10" : "border-border"}`}><div className="flex items-center justify-between"><span className="text-xs font-bold">{destination.label}</span><span className={`size-3 rounded-full border ${selected.includes(destination.id) ? "border-brand-green bg-brand-green" : "border-border"}`} /></div><p className="mt-1 text-[10px] text-muted-foreground">{destination.detail}</p></button>)}</div>
+        <div className="flex items-center justify-between"><div><h3 className="text-sm font-bold">Built into WIGOD</h3><p className="text-[11px] text-muted-foreground">WIGOD combines the core social functions people expect from major social platforms.</p></div><Video className="size-5 text-brand-red" /></div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{nativeFeatures.map((feature) => <div key={feature.label} className="rounded-xl border border-border p-3"><p className="text-xs font-bold">{feature.label}</p><p className="mt-1 text-[10px] text-muted-foreground">{feature.detail}</p></div>)}</div>
+      </section>
+
+      <section className="rounded-2xl border border-border p-4">
+        <div className="flex items-center justify-between"><div><h3 className="text-sm font-bold">Broadcast destinations</h3><p className="text-[11px] text-muted-foreground">WIGOD is the native platform. YouTube is the first external publishing connection.</p></div><Radio className="size-5 text-brand-red" /></div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">{destinations.map((destination) => <button key={destination.id} type="button" onClick={() => toggleDestination(destination.id)} className={`rounded-xl border p-3 text-left ${selected.includes(destination.id) ? "border-brand-green bg-brand-green/10" : "border-border"}`}><div className="flex items-center justify-between"><span className="text-xs font-bold">{destination.label}</span><span className={`size-3 rounded-full border ${selected.includes(destination.id) ? "border-brand-green bg-brand-green" : "border-border"}`} /></div><p className="mt-1 text-[10px] text-muted-foreground">{destination.detail}</p></button>)}</div>
       </section>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
         <button type="button" className="rounded-xl border border-border px-5 py-3 text-sm font-bold">Schedule live</button>
         <button type="button" className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-red px-6 py-3 text-sm font-bold text-white"><Play className="size-4 fill-current" /> Start live</button>
       </div>
-      <p className="text-center text-[10px] text-muted-foreground">The Studio interface is ready for the publishing/media transport layer. Destination credentials are never stored in the browser.</p>
+      <p className="text-center text-[10px] text-muted-foreground">The Studio interface is ready for the production media transport layer. External destination credentials are never stored in the browser.</p>
     </div>
   )
 }
