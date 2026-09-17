@@ -20,7 +20,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-full">
-      <PageHeader title="Home" subtitle="People. Places. Perspectives." />
+      <PageHeader title="AFRICA & BEYOND SOCIAL" subtitle="People. Places. Perspectives." />
 
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 border-r-0 lg:border-r lg:border-border">
