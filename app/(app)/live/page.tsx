@@ -3,7 +3,8 @@ import { Globe2, MessageCircle, Radio, Tv } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { FeedList, EmptyState } from "@/components/feed-list"
 import { LiveEventCard } from "@/components/live-event-card"
-import { LivePlayer } from "@/components/live-player"
+import { LiveStatus } from "@/components/live-status"
+import { getUpcomingLiveEvents } from "@/lib/live"
 import { getRecentPosts, getSessionUser, searchPosts } from "@/lib/queries"
 
 const filters = [
@@ -19,14 +20,17 @@ export default async function LivePage({ searchParams }: { searchParams: Promise
   const query = q?.trim() ?? ""
   const user = await getSessionUser()
   const currentUserId = user?.id ?? null
-  const posts = query ? await searchPosts(query, currentUserId) : await getRecentPosts(currentUserId, 24)
+  const [posts, events] = await Promise.all([
+    query ? searchPosts(query, currentUserId) : getRecentPosts(currentUserId, 24),
+    getUpcomingLiveEvents(6),
+  ])
 
   const liveVideoId = process.env.NEXT_PUBLIC_LIVE_YOUTUBE_VIDEO_ID
   const liveChannelId = process.env.NEXT_PUBLIC_LIVE_YOUTUBE_CHANNEL_ID
   const liveTitle = process.env.NEXT_PUBLIC_LIVE_TITLE?.trim() || "Africa & Beyond TV — Live"
-  const eventStart = process.env.NEXT_PUBLIC_LIVE_EVENT_START?.trim()
-  const eventTitle = process.env.NEXT_PUBLIC_LIVE_EVENT_TITLE?.trim() || "Next Africa & Beyond live event"
-  const eventLocation = process.env.NEXT_PUBLIC_LIVE_EVENT_LOCATION?.trim()
+  const fallbackEventStart = process.env.NEXT_PUBLIC_LIVE_EVENT_START?.trim()
+  const fallbackEventTitle = process.env.NEXT_PUBLIC_LIVE_EVENT_TITLE?.trim() || "Next Africa & Beyond live event"
+  const fallbackEventLocation = process.env.NEXT_PUBLIC_LIVE_EVENT_LOCATION?.trim()
 
   return (
     <div>
@@ -57,14 +61,14 @@ export default async function LivePage({ searchParams }: { searchParams: Promise
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2"><span className="flex size-2.5 rounded-full bg-brand-red" /><h2 className="font-serif text-base font-bold">Live now</h2></div>
-            <p className="mt-1 text-xs text-muted-foreground">The main broadcast window for Africa & Beyond TV.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Automatic YouTube detection keeps this broadcast window current.</p>
           </div>
           <span className="hidden rounded-full border border-border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground sm:inline-flex">YouTube Live</span>
         </div>
-        <LivePlayer videoId={liveVideoId} channelId={liveChannelId} title={liveTitle} />
+        <LiveStatus fallbackVideoId={liveVideoId} channelId={liveChannelId} fallbackTitle={liveTitle} />
       </section>
 
-      <section className="grid gap-3 border-b border-border px-4 py-5 sm:grid-cols-3">
+      <section className="grid gap-3 border-b border-border px-4 py-5 sm:grid-cols-2">
         <div className="rounded-2xl border border-border p-4">
           <Tv className="size-5 text-brand-red" />
           <h3 className="mt-3 text-sm font-bold">Africa & Beyond TV</h3>
@@ -73,10 +77,23 @@ export default async function LivePage({ searchParams }: { searchParams: Promise
         </div>
         <div className="rounded-2xl border border-border p-4">
           <Radio className="size-5 text-brand-green" />
-          <h3 className="mt-3 text-sm font-bold">Live broadcasts</h3>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">The page connects to the Africa & Beyond TV live channel automatically, with a specific video ID available when needed.</p>
+          <h3 className="mt-3 text-sm font-bold">Broadcast status</h3>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">The platform checks the connected YouTube channel automatically and changes the Live Now window when a broadcast is detected.</p>
         </div>
-        <LiveEventCard title={eventTitle} start={eventStart} location={eventLocation} />
+      </section>
+
+      <section className="border-b border-border px-4 py-5">
+        <div className="mb-3 flex items-center gap-2">
+          <Radio className="size-4 text-brand-green" />
+          <div><h2 className="font-serif text-base font-bold">Upcoming events</h2><p className="text-xs text-muted-foreground">Scheduled programmes stored in the Africa & Beyond Live database</p></div>
+        </div>
+        {events.length > 0 ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {events.map((event) => <LiveEventCard key={event.id} title={event.title} start={event.start_at} location={event.location ?? undefined} />)}
+          </div>
+        ) : (
+          <LiveEventCard title={fallbackEventTitle} start={fallbackEventStart} location={fallbackEventLocation} />
+        )}
       </section>
 
       <section className="border-b border-border px-4 py-5">
