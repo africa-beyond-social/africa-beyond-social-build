@@ -21,11 +21,21 @@ function formatCount(n: number) {
   return n > 0 ? String(n) : ""
 }
 
+function mediaKind(url: string, declared?: string | null) {
+  if (declared) return declared
+  const clean = url.split("?")[0].toLowerCase()
+  if (/\.(mp4|webm|mov|m4v|ogg)$/.test(clean)) return "video/*"
+  if (clean.endsWith(".pdf")) return "application/pdf"
+  return "image/*"
+}
+
 function PostMedia({ post }: { post: FeedPost }) {
-  if (!post.media_url) return null
-  if (post.media_type?.startsWith("image/")) return <div className="mt-3 overflow-hidden rounded-2xl border border-border"><img src={post.media_url} alt={post.media_name ?? "Post photo"} loading="lazy" className="max-h-[520px] w-full object-contain bg-secondary/20" /></div>
-  if (post.media_type?.startsWith("video/")) return <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-black"><video src={post.media_url} controls playsInline preload="metadata" className="max-h-[520px] w-full" /></div>
-  if (post.media_type === "application/pdf") return <a href={post.media_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="mt-3 flex items-center gap-3 rounded-2xl border border-border bg-secondary/30 p-4 hover:bg-secondary/50"><span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-red/10 text-brand-red"><FileText className="size-6" /></span><span className="min-w-0 flex-1"><span className="block truncate font-semibold">{post.media_name ?? "PDF document"}</span><span className="text-xs text-muted-foreground">PDF document · Open document</span></span></a>
+  const url = post.media_url ?? post.image_url
+  if (!url) return null
+  const type = mediaKind(url, post.media_type)
+  if (type.startsWith("image/")) return <div className="mt-3 overflow-hidden rounded-2xl border border-border"><img src={url} alt={post.media_name ?? "Post photo"} loading="lazy" className="max-h-[520px] w-full object-contain bg-secondary/20" /></div>
+  if (type.startsWith("video/")) return <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-black"><video src={url} controls playsInline preload="metadata" className="max-h-[520px] w-full" /></div>
+  if (type === "application/pdf") return <a href={url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="mt-3 flex items-center gap-3 rounded-2xl border border-border bg-secondary/30 p-4 hover:bg-secondary/50"><span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-red/10 text-brand-red"><FileText className="size-6" /></span><span className="min-w-0 flex-1"><span className="block truncate font-semibold">{post.media_name ?? "PDF document"}</span><span className="text-xs text-muted-foreground">PDF document · Open document</span></span></a>
   return null
 }
 
