@@ -1,20 +1,23 @@
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 
-/**
- * Original Africa & Beyond Social mark: a rounded emblem with rising bars
- * (a "beyond"/rising motif) in the brand red, black and green.
- */
+// The official logo was uploaded at the repository root. Use its public raw
+// GitHub asset URL until the binary can be moved into /public/branding.
+const OFFICIAL_LOGO = "https://raw.githubusercontent.com/africa-beyond-social/africa-beyond-social-build/stage-1-home-feed/1000276350.png"
+
+/** Official Africa & Beyond logo asset. */
 export function BrandMark({ className }: { className?: string }) {
   return (
-    <span
-      className={cn("inline-flex size-9 items-center justify-center rounded-xl bg-foreground", className)}
-      aria-hidden="true"
-    >
-      <svg viewBox="0 0 24 24" className="size-5" fill="none" role="presentation">
-        <rect x="4" y="13" width="4" height="7" rx="1.5" fill="var(--brand-green)" />
-        <rect x="10" y="8" width="4" height="12" rx="1.5" fill="#ffffff" />
-        <rect x="16" y="4" width="4" height="16" rx="1.5" fill="var(--brand-red)" />
-      </svg>
+    <span className={cn("relative inline-flex shrink-0 overflow-hidden", className)}>
+      <Image
+        src={OFFICIAL_LOGO}
+        alt="Africa & Beyond"
+        fill
+        sizes="(max-width: 768px) 120px, 180px"
+        className="object-contain"
+        unoptimized
+        priority
+      />
     </span>
   )
 }
@@ -27,14 +30,14 @@ export function BrandWordmark({
   showTagline?: boolean
 }) {
   return (
-    <div className={cn("flex items-center gap-2.5", className)}>
-      <BrandMark />
-      <div className="flex flex-col leading-none">
-        <span className="font-serif text-base font-bold tracking-tight text-foreground">
-          Africa <span className="text-brand-red">&amp;</span> Beyond
+    <div className={cn("flex items-center gap-3", className)}>
+      <BrandMark className="h-14 w-28 lg:h-16 lg:w-36" />
+      <div className="flex min-w-0 flex-col leading-none">
+        <span className="text-[0.95rem] font-extrabold tracking-tight text-foreground">
+          AFRICA &amp; BEYOND SOCIAL
         </span>
-        <span className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          {showTagline ? "From Africa, to the world" : "Social"}
+        <span className="mt-1 text-[0.65rem] font-medium tracking-normal text-muted-foreground">
+          {showTagline ? "People. Places. Perspectives." : "Social"}
         </span>
       </div>
     </div>
