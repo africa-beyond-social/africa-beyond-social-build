@@ -6,12 +6,12 @@ const OFFICIAL_LOGO = "/1000276350.png"
 /** Official Africa & Beyond logo asset uploaded to the repository. */
 export function BrandMark({ className }: { className?: string }) {
   return (
-    <span className={cn("relative inline-flex size-10 shrink-0 overflow-hidden rounded-lg bg-black", className)}>
+    <span className={cn("relative inline-flex size-12 shrink-0 overflow-hidden rounded-xl bg-black", className)}>
       <Image
         src={OFFICIAL_LOGO}
         alt="Africa & Beyond"
         fill
-        sizes="40px"
+        sizes="48px"
         className="object-contain"
         priority
       />
@@ -28,7 +28,7 @@ export function BrandWordmark({
 }) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <BrandMark className="size-10" />
+      <BrandMark className="size-12" />
       <div className="flex min-w-0 flex-col leading-none">
         <span className="text-[0.95rem] font-extrabold tracking-tight text-foreground">
           AFRICA &amp; BEYOND SOCIAL
