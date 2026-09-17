@@ -1,8 +1,8 @@
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
-const WIGOD_MARK = "/branding/wigod-mark.png"
-const WIGOD_WORDMARK = "/branding/wigod-wordmark.png"
+const WIGOD_MARK = "/branding/Wigod-mark.png"
+const WIGOD_WORDMARK = "/branding/Wigod-wordmark.png"
 
 /** Official WIGOD mark supplied for the product brand. */
 export function BrandMark({ className }: { className?: string }) {
