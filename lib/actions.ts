@@ -42,19 +42,6 @@ export async function ensureProfile(): Promise<void> {
   }
 }
 
-export async function signUpAction(formData: FormData): Promise<ActionResult> {
-  const email = String(formData.get("email") ?? "").trim()
-  const password = String(formData.get("password") ?? "")
-  const displayName = String(formData.get("display_name") ?? "").trim()
-  const username = String(formData.get("username") ?? "").trim()
-  if (!email || !password) return { ok: false, error: "Email and password are required." }
-  if (password.length < 6) return { ok: false, error: "Password must be at least 6 characters." }
-  const supabase = await createClient()
-  const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/auth/callback`, data: { display_name: displayName || undefined, username: username || undefined } } })
-  if (error) return { ok: false, error: error.message }
-  return { ok: true }
-}
-
 export async function createPost(content: string, media?: { url: string; type: string; name: string; size: number } | null): Promise<ActionResult> {
   const trimmed = content.trim()
   if (!trimmed && !media?.url) return { ok: false, error: "Post cannot be empty." }
@@ -65,7 +52,7 @@ export async function createPost(content: string, media?: { url: string; type: s
   const userId = await getUserId()
   if (!userId) return { ok: false, error: "You must be signed in." }
   const supabase = await createClient()
-  const { error } = await supabase.from("posts").insert({ user_id: userId, content: trimmed, image_url: media?.type.startsWith("image/") ? media.url : null, media_url: media?.url ?? null, media_type: media?.type ?? null, media_name: media?.name ?? null, media_size: media?.size ?? null })
+  const { error } = await supabase.from("posts").insert({ user_id: userId, content: trimmed, image_url: media?.url ?? null, media_url: media?.url ?? null, media_type: media?.type ?? null, media_name: media?.name ?? null, media_size: media?.size ?? null })
   if (error) return { ok: false, error: error.message }
   revalidatePath("/")
   revalidatePath("/explore")
