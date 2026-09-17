@@ -15,9 +15,20 @@ type YouTubeItem = {
 
 type YouTubeSearchResponse = { items?: YouTubeItem[] }
 
-async function findBroadcast(channelId: string, eventType: "live" | "upcoming") {
+type BroadcastResult = {
+  data: {
+    videoId: string
+    title: string
+    description: string | null
+    thumbnailUrl: string | null
+    publishedAt: string | null
+  } | null
+  error?: { status: number; reason?: string; message?: string }
+}
+
+async function findBroadcast(channelId: string, eventType: "live" | "upcoming"): Promise<BroadcastResult> {
   const key = process.env.YOUTUBE_API_KEY
-  if (!key) return null
+  if (!key) return { data: null, error: { status: 0, reason: "missing_api_key" } }
 
   const url = new URL(YOUTUBE_API_BASE)
   url.searchParams.set("part", "snippet")
@@ -28,19 +39,32 @@ async function findBroadcast(channelId: string, eventType: "live" | "upcoming") 
   url.searchParams.set("key", key)
 
   const response = await fetch(url, { next: { revalidate: 30 } })
-  if (!response.ok) return null
+  if (!response.ok) {
+    let reason: string | undefined
+    let message: string | undefined
+    try {
+      const payload = (await response.json()) as { error?: { errors?: Array<{ reason?: string }>; message?: string } }
+      reason = payload.error?.errors?.[0]?.reason
+      message = payload.error?.message
+    } catch {
+      // Keep the response safe if YouTube does not return JSON.
+    }
+    return { data: null, error: { status: response.status, reason, message } }
+  }
 
   const payload = (await response.json()) as YouTubeSearchResponse
   const item = payload.items?.[0]
   const videoId = item?.id?.videoId
-  if (!videoId) return null
+  if (!videoId) return { data: null }
 
   return {
-    videoId,
-    title: item.snippet?.title ?? "Africa & Beyond TV Live",
-    description: item.snippet?.description ?? null,
-    thumbnailUrl: item.snippet?.thumbnails?.high?.url ?? item.snippet?.thumbnails?.medium?.url ?? null,
-    publishedAt: item.snippet?.publishedAt ?? null,
+    data: {
+      videoId,
+      title: item.snippet?.title ?? "Africa & Beyond TV Live",
+      description: item.snippet?.description ?? null,
+      thumbnailUrl: item.snippet?.thumbnails?.high?.url ?? item.snippet?.thumbnails?.medium?.url ?? null,
+      publishedAt: item.snippet?.publishedAt ?? null,
+    },
   }
 }
 
@@ -48,7 +72,7 @@ export async function GET() {
   const channelId = process.env.YOUTUBE_CHANNEL_ID?.trim() || process.env.NEXT_PUBLIC_LIVE_YOUTUBE_CHANNEL_ID?.trim() || DEFAULT_CHANNEL_ID
 
   try {
-    const [live, upcoming] = await Promise.all([
+    const [liveResult, upcomingResult] = await Promise.all([
       findBroadcast(channelId, "live"),
       findBroadcast(channelId, "upcoming"),
     ])
@@ -57,15 +81,19 @@ export async function GET() {
       {
         configured: Boolean(process.env.YOUTUBE_API_KEY),
         channelId,
-        live,
-        upcoming,
+        live: liveResult.data,
+        upcoming: upcomingResult.data,
+        diagnostics: {
+          live: liveResult.error ?? null,
+          upcoming: upcomingResult.error ?? null,
+        },
         checkedAt: new Date().toISOString(),
       },
       { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" } },
     )
   } catch {
     return NextResponse.json(
-      { configured: Boolean(process.env.YOUTUBE_API_KEY), channelId, live: null, upcoming: null, checkedAt: new Date().toISOString() },
+      { configured: Boolean(process.env.YOUTUBE_API_KEY), channelId, live: null, upcoming: null, diagnostics: { request: "unexpected_error" }, checkedAt: new Date().toISOString() },
       { status: 200 },
     )
   }
