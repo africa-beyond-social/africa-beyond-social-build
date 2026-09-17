@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils"
 
 /**
- * Original Africa & Beyond Social mark: a rounded emblem with rising bars
+ * Africa & Beyond Social brand mark: a rounded emblem with rising bars
  * (a "beyond"/rising motif) in the brand red, black and green.
  */
 export function BrandMark({ className }: { className?: string }) {
@@ -30,11 +30,11 @@ export function BrandWordmark({
     <div className={cn("flex items-center gap-2.5", className)}>
       <BrandMark />
       <div className="flex flex-col leading-none">
-        <span className="font-serif text-base font-bold tracking-tight text-foreground">
-          Africa <span className="text-brand-red">&amp;</span> Beyond
+        <span className="font-serif text-base font-bold tracking-tight text-foreground uppercase">
+          Africa <span className="text-brand-red">&amp;</span> Beyond Social
         </span>
-        <span className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          {showTagline ? "From Africa, to the world" : "Social"}
+        <span className="text-[0.65rem] font-semibold tracking-[0.08em] text-muted-foreground">
+          {showTagline ? "People. Places. Perspectives." : "Social"}
         </span>
       </div>
     </div>
