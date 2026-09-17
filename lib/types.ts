@@ -12,10 +12,10 @@ export type Post = {
   user_id: string
   content: string
   image_url: string | null
-  media_url: string | null
-  media_type: string | null
-  media_name: string | null
-  media_size: number | null
+  media_url?: string | null
+  media_type?: string | null
+  media_name?: string | null
+  media_size?: number | null
   created_at: string
   updated_at: string | null
 }
@@ -24,10 +24,10 @@ export type FeedPost = {
   id: string
   content: string
   image_url: string | null
-  media_url: string | null
-  media_type: string | null
-  media_name: string | null
-  media_size: number | null
+  media_url?: string | null
+  media_type?: string | null
+  media_name?: string | null
+  media_size?: number | null
   created_at: string
   updated_at: string | null
   author: Profile
