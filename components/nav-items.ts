@@ -24,7 +24,7 @@ export function buildNavItems(username: string | null): NavItem[] {
   const profileHref = username ? `/profile/${username}` : "/auth/login"
   return [
     { label: "Home", href: "/", icon: Home, match: (p) => p === "/" },
-    { label: "Explore Africa", href: "/explore", icon: Compass, match: (p) => p.startsWith("/explore") },
+    { label: "Explore Africa & Beyond", href: "/explore", icon: Compass, match: (p) => p.startsWith("/explore") },
     { label: "News", href: "/news", icon: Newspaper, match: (p) => p.startsWith("/news") },
     { label: "Media", href: "/media", icon: PlaySquare, match: (p) => p.startsWith("/media") },
     { label: "Community", href: "/community", icon: Users, match: (p) => p.startsWith("/community") },
