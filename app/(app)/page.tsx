@@ -20,7 +20,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-full">
-      <PageHeader title="AFRICA & BEYOND SOCIAL" subtitle="People. Places. Perspectives." />
+      <PageHeader title="Home" subtitle="People. Places. Perspectives." />
 
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 border-r-0 lg:border-r lg:border-border">
@@ -30,7 +30,7 @@ export default async function HomePage() {
                 <Globe2 className="size-5" />
               </div>
               <div className="min-w-0">
-                <h2 className="font-serif text-lg font-bold">What’s happening across Africa?</h2>
+                <h2 className="font-semibold text-lg">What’s happening across Africa?</h2>
                 <p className="text-xs leading-5 text-muted-foreground">Share your perspective, story, photo or moment from where you are.</p>
               </div>
             </div>
@@ -76,7 +76,7 @@ export default async function HomePage() {
           <section className="rounded-2xl border border-border bg-card p-4">
             <div className="mb-3 flex items-center gap-2">
               <Globe2 className="size-5 text-brand-green" />
-              <h2 className="font-serif font-bold">AFRICA TODAY</h2>
+              <h2 className="font-semibold">AFRICA TODAY</h2>
             </div>
             <p className="mb-4 text-xs text-muted-foreground">Discover conversations from across the continent.</p>
             <div className="space-y-2">
@@ -98,9 +98,9 @@ export default async function HomePage() {
           <section className="rounded-2xl border border-brand-red/20 bg-brand-red/5 p-4">
             <div className="mb-2 flex items-center gap-2">
               <Radio className="size-5 text-brand-red" />
-              <h2 className="font-serif font-bold">AFRICA & BEYOND TV</h2>
+              <h2 className="font-semibold">AFRICA &amp; BEYOND TV</h2>
             </div>
-            <p className="text-xs leading-5 text-muted-foreground">Live broadcasts, programmes and video from Africa & Beyond.</p>
+            <p className="text-xs leading-5 text-muted-foreground">Live broadcasts, programmes and video from Africa &amp; Beyond.</p>
             <Link href="/live" className="mt-3 inline-flex rounded-full bg-brand-red px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90">
               Watch Live
             </Link>
