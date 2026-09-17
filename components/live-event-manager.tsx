@@ -12,8 +12,15 @@ export function LiveEventManager({ initialEvents }: { initialEvents: LiveEvent[]
   async function createEvent(formData: FormData) {
     setSaving(true)
     setMessage("")
-    const payload = Object.fromEntries(formData.entries())
-    const response = await fetch("/api/live/events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+    const payload = Object.fromEntries(formData.entries()) as Record<string, FormDataEntryValue>
+    const startAt = String(payload.startAt || "")
+    const endAt = String(payload.endAt || "")
+    const normalized = {
+      ...payload,
+      startAt: startAt ? new Date(startAt).toISOString() : "",
+      endAt: endAt ? new Date(endAt).toISOString() : "",
+    }
+    const response = await fetch("/api/live/events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(normalized) })
     const result = await response.json()
     if (!response.ok) {
       setMessage(result.error || "Could not create event")
@@ -49,7 +56,7 @@ export function LiveEventManager({ initialEvents }: { initialEvents: LiveEvent[]
 
       <section>
         <div className="mb-3"><h2 className="font-serif text-lg font-bold">Scheduled events</h2><p className="text-xs text-muted-foreground">These records power the public Live Centre.</p></div>
-        {events.length === 0 ? <p className="rounded-2xl border border-border p-6 text-sm text-muted-foreground">No scheduled events.</p> : <div className="space-y-2">{events.map((event) => <div key={event.id} className="flex items-center justify-between gap-3 rounded-2xl border border-border p-4"><div><p className="text-sm font-bold">{event.title}</p><p className="mt-1 text-xs text-muted-foreground">{new Date(event.start_at).toLocaleString()} {event.location ? `• ${event.location}` : ""}</p></div><button onClick={() => deleteEvent(event.id)} className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-brand-red" aria-label={`Delete ${event.title}`}><Trash2 className="size-4" /></button></div>)}</div>}
+        {events.length === 0 ? <p className="rounded-2xl border border-border p-6 text-sm text-muted-foreground">No scheduled events.</p> : <div className="space-y-2">{events.map((event) => <div key={event.id} className="flex items-center justify-between gap-3 rounded-2xl border border-border p-4"><div><p className="text-sm font-bold">{event.title}</p><p className="mt-1 text-xs text-muted-foreground">{new Date(event.start_at).toLocaleString()} {event.location ? `• ${event.location}` : ""}</p></div><button type="button" onClick={() => deleteEvent(event.id)} className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-brand-red" aria-label={`Delete ${event.title}`}><Trash2 className="size-4" /></button></div>)}</div>}
       </section>
     </div>
   )
