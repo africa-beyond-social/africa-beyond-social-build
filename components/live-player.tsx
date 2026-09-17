@@ -1,30 +1,23 @@
 import { ExternalLink, Radio } from "lucide-react"
 
-export function LivePlayer({ videoId, title }: { videoId?: string; title: string }) {
-  const cleanVideoId = videoId?.trim()
+const DEFAULT_CHANNEL_ID = "UC4c_VhltMjJ3lqkQREjnzfQ"
 
-  if (!cleanVideoId) {
-    return (
-      <div className="flex aspect-video items-center justify-center rounded-2xl border border-border bg-secondary/40 p-6 text-center">
-        <div className="max-w-sm">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-brand-red/10 text-brand-red">
-            <Radio className="size-6" />
-          </div>
-          <p className="mt-4 text-sm font-bold">Live stream ready to connect</p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Add the YouTube live video ID to the deployment environment and this player will become the live broadcast window.
-          </p>
-        </div>
-      </div>
-    )
-  }
+export function LivePlayer({ videoId, channelId, title }: { videoId?: string; channelId?: string; title: string }) {
+  const cleanVideoId = videoId?.trim()
+  const cleanChannelId = channelId?.trim() || DEFAULT_CHANNEL_ID
+  const embedUrl = cleanVideoId
+    ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(cleanVideoId)}?rel=0&modestbranding=1`
+    : `https://www.youtube-nocookie.com/embed/live_stream?channel=${encodeURIComponent(cleanChannelId)}&rel=0&modestbranding=1`
+  const watchUrl = cleanVideoId
+    ? `https://www.youtube.com/watch?v=${encodeURIComponent(cleanVideoId)}`
+    : `https://www.youtube.com/@africaandbeyondtv/live`
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-black shadow-sm">
       <div className="aspect-video">
         <iframe
           className="size-full"
-          src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(cleanVideoId)}?rel=0&modestbranding=1`}
+          src={embedUrl}
           title={title}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
@@ -36,7 +29,7 @@ export function LivePlayer({ videoId, title }: { videoId?: string; title: string
           <span className="truncate text-xs font-semibold">{title}</span>
         </div>
         <a
-          href={`https://www.youtube.com/watch?v=${encodeURIComponent(cleanVideoId)}`}
+          href={watchUrl}
           target="_blank"
           rel="noreferrer"
           className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-white/80 hover:text-white"
