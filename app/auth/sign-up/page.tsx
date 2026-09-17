@@ -32,7 +32,7 @@ export default function SignUpPage() {
     <Card className="rounded-2xl">
       <CardContent className="pt-6">
         <h1 className="mb-1 font-serif text-xl font-bold">Create your account</h1>
-        <p className="mb-6 text-sm text-muted-foreground">Join the conversation across Africa and beyond.</p>
+        <p className="mb-6 text-sm text-muted-foreground">Join the conversation on WIGOD.</p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="display_name">Display name</Label>
