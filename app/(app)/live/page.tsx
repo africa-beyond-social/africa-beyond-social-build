@@ -1,0 +1,32 @@
+import Link from "next/link"
+import { Globe2, Radio, CalendarDays, PlayCircle, MessageCircle, Tv } from "lucide-react"
+import { PageHeader } from "@/components/page-header"
+import { FeedList, EmptyState } from "@/components/feed-list"
+import { getRecentPosts, getSessionUser, searchPosts } from "@/lib/queries"
+
+const filters = [
+  { label: "All Live", query: "live" },
+  { label: "Africa", query: "Africa live" },
+  { label: "World", query: "World live" },
+  { label: "News", query: "news live" },
+  { label: "Community", query: "community live" },
+]
+
+export default async function LivePage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const { q } = await searchParams
+  const query = q?.trim() ?? ""
+  const user = await getSessionUser()
+  const currentUserId = user?.id ?? null
+  const posts = query ? await searchPosts(query, currentUserId) : await getRecentPosts(currentUserId, 24)
+
+  return (
+    <div>
+      <PageHeader title="LIVE" subtitle="Africa & Beyond • Live broadcasts, conversations and events" />
+      <section className="border-b border-border px-4 py-4"><div className="flex gap-2 overflow-x-auto pb-1">{filters.map((item) => <Link key={item.label} href={`/live?q=${encodeURIComponent(item.query)}`} className="flex shrink-0 items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold hover:bg-secondary"><Radio className="size-3.5 text-brand-red" /> {item.label}</Link>)}</div></section>
+      <section className="border-b border-border bg-gradient-to-br from-brand-red/10 via-background to-brand-green/10 px-4 py-6"><div className="flex items-start gap-3"><div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-red/10 text-brand-red"><Radio className="size-6" /></div><div><p className="text-xs font-bold uppercase tracking-wider text-brand-red">Live centre</p><h2 className="mt-1 font-serif text-2xl font-bold">Africa & Beyond Live</h2><p className="mt-1 max-w-2xl text-sm leading-5 text-muted-foreground">A central place for live broadcasts, public conversations and events connecting Africa with audiences around the world.</p></div></div></section>
+      <section className="grid gap-3 border-b border-border px-4 py-5 sm:grid-cols-3"><div className="rounded-2xl border border-border p-4"><Tv className="size-5 text-brand-red" /><h3 className="mt-3 text-sm font-bold">Africa & Beyond TV</h3><p className="mt-1 text-xs leading-5 text-muted-foreground">A home for programmes and broadcasts. Video hosting can be connected when a provider is configured.</p></div><div className="rounded-2xl border border-border p-4"><PlayCircle className="size-5 text-brand-green" /><h3 className="mt-3 text-sm font-bold">Live broadcasts</h3><p className="mt-1 text-xs leading-5 text-muted-foreground">Discover live content shared on the platform without pretending an external stream is live when it is not.</p></div><div className="rounded-2xl border border-border p-4"><CalendarDays className="size-5 text-brand-green" /><h3 className="mt-3 text-sm font-bold">Upcoming events</h3><p className="mt-1 text-xs leading-5 text-muted-foreground">A future-ready space for scheduled programmes, conferences and community events.</p></div></section>
+      <section className="border-b border-border px-4 py-5"><div className="mb-3 flex items-center gap-2"><MessageCircle className="size-4 text-brand-red" /><div><h2 className="font-serif text-base font-bold">Live conversations</h2><p className="text-xs text-muted-foreground">Social posts and discussions related to live events</p></div></div><FeedList posts={posts} currentUserId={currentUserId} empty={<EmptyState icon={<Radio className="size-6" />} title="No live conversations yet" description="Live broadcasts and event discussions will appear here when people start sharing them." />} /></section>
+      <section className="px-4 py-5"><div className="flex items-center gap-2"><Globe2 className="size-4 text-brand-green" /><div><h2 className="font-serif text-base font-bold">Live across Africa & Beyond</h2><p className="text-xs text-muted-foreground">Explore live conversations from Africa and the wider world through Explore.</p></div></div><Link href="/explore" className="mt-3 inline-flex rounded-full border border-border px-4 py-2 text-xs font-semibold hover:bg-secondary">Explore Africa & Beyond</Link></section>
+    </div>
+  )
+}
