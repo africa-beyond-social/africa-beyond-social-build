@@ -21,8 +21,8 @@ export function SearchBar({ initialQuery = "" }: { initialQuery?: string }) {
         type="search"
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Search people and posts"
-        aria-label="Search people and posts"
+        placeholder="Search people, posts, communities, videos and more..."
+        aria-label="Search people, posts, communities, videos and more"
         className="w-full rounded-full border border-border bg-secondary/60 py-2.5 pl-9 pr-9 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:bg-background"
       />
       {value && (
