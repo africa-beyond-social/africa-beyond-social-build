@@ -1,33 +1,33 @@
 # africa-beyond-social-build
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+This is the Next.js application for **Africa & Beyond Social**.
 
-## Built with v0
+## Africa & Beyond Live setup
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+The Live Centre supports:
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_r5Ol358K0imgWN4HPlXLksqTynKV)
+- automatic YouTube Live detection through the YouTube Data API
+- a live broadcast player that appears when an active broadcast is detected
+- scheduled events stored in Supabase
+- an administrator control room at `/live/manage`
+- live-event countdowns and broadcast metadata
+- existing social conversations around live events
 
-## Getting Started
+### Required environment variables
 
-First, run the development server:
+Set these in Vercel for the deployment:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-```
+- `YOUTUBE_API_KEY` — server-side YouTube Data API key
+- `YOUTUBE_CHANNEL_ID` — Africa & Beyond TV YouTube channel ID
+- `SUPABASE_SECRET_KEY` — server-only Supabase secret for the Live control room
+- `LIVE_ADMIN_EMAILS` — comma-separated Supabase Auth email addresses allowed to manage Live events
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The existing public Supabase URL and publishable key remain required by the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Database
 
-## Learn More
+Apply the migration in `supabase/migrations/20260917110800_create_live_events.sql` to the connected Supabase project. It creates the public-readable `live_events` table with RLS enabled.
 
-To learn more, take a look at the following resources:
+Once deployed, administrators can open `/live/manage` to create and delete scheduled programmes.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+Never expose `YOUTUBE_API_KEY` or `SUPABASE_SECRET_KEY` to the browser.
