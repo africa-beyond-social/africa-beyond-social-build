@@ -12,15 +12,22 @@ export type Post = {
   user_id: string
   content: string
   image_url: string | null
+  media_url?: string | null
+  media_type?: string | null
+  media_name?: string | null
+  media_size?: number | null
   created_at: string
   updated_at: string | null
 }
 
-// A post enriched with author + interaction data for rendering in feeds.
 export type FeedPost = {
   id: string
   content: string
   image_url: string | null
+  media_url?: string | null
+  media_type?: string | null
+  media_name?: string | null
+  media_size?: number | null
   created_at: string
   updated_at: string | null
   author: Profile
@@ -29,7 +36,6 @@ export type FeedPost = {
   repost_count: number
   liked_by_me: boolean
   reposted_by_me: boolean
-  // Present when this row appears in the feed because someone reposted it.
   reposted_by?: { id: string; display_name: string | null; username: string } | null
 }
 
