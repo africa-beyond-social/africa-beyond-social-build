@@ -3,15 +3,15 @@ import { cn } from "@/lib/utils"
 
 const OFFICIAL_LOGO = "/1000276350.png"
 
-/** Official Africa & Beyond logo asset uploaded to the repository. */
+/** Official Africa & Beyond artwork. The source artwork is kept unchanged. */
 export function BrandMark({ className }: { className?: string }) {
   return (
-    <span className={cn("relative inline-flex size-12 shrink-0 overflow-hidden rounded-xl bg-black", className)}>
+    <span className={cn("relative inline-flex shrink-0 overflow-hidden", className)}>
       <Image
         src={OFFICIAL_LOGO}
         alt="Africa & Beyond"
         fill
-        sizes="48px"
+        sizes="(max-width: 767px) 120px, 180px"
         className="object-contain"
         priority
       />
@@ -27,16 +27,11 @@ export function BrandWordmark({
   showTagline?: boolean
 }) {
   return (
-    <div className={cn("flex items-center gap-3", className)}>
-      <BrandMark className="size-12" />
-      <div className="flex min-w-0 flex-col leading-none">
-        <span className="text-[0.95rem] font-extrabold tracking-tight text-foreground">
-          AFRICA &amp; BEYOND SOCIAL
-        </span>
-        <span className="mt-1 text-[0.65rem] font-medium tracking-normal text-muted-foreground">
-          {showTagline ? "People. Places. Perspectives." : "Social"}
-        </span>
-      </div>
+    <div className={cn("flex min-w-0 flex-col", className)}>
+      <BrandMark className="h-16 w-[170px]" />
+      <span className="mt-1 text-[0.62rem] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+        {showTagline ? "People. Places. Perspectives." : "Social"}
+      </span>
     </div>
   )
 }
