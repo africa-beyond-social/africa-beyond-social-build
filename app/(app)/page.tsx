@@ -30,8 +30,8 @@ export default async function HomePage() {
                 <Globe2 className="size-5" />
               </div>
               <div className="min-w-0">
-                <h2 className="font-semibold text-lg">What’s happening across Africa?</h2>
-                <p className="text-xs leading-5 text-muted-foreground">Share your perspective, story, photo or moment from where you are.</p>
+                <h2 className="font-semibold text-lg">What’s happening across Africa & Beyond?</h2>
+                <p className="text-xs leading-5 text-muted-foreground">Share your perspective, story, photo or moment from wherever you are in the world.</p>
               </div>
             </div>
             <div className="mt-4 hidden md:block">
@@ -65,8 +65,8 @@ export default async function HomePage() {
             empty={
               <EmptyState
                 icon={<Sparkles className="size-6" />}
-                title="Your Africa feed is quiet"
-                description="Follow people on Explore Africa, or share your first perspective to get the conversation started."
+                title="Your Africa & Beyond feed is quiet"
+                description="Follow people on Explore Africa & Beyond, or share your first perspective to get the conversation started."
               />
             }
           />
@@ -91,7 +91,7 @@ export default async function HomePage() {
               ))}
             </div>
             <Link href="/explore" className="mt-3 flex items-center gap-2 text-sm font-semibold text-brand-red hover:underline">
-              <MapPin className="size-4" /> Explore Africa
+              <MapPin className="size-4" /> Explore Africa & Beyond
             </Link>
           </section>
 
