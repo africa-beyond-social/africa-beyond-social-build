@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/page-header"
 import { FeedList, EmptyState } from "@/components/feed-list"
 import { LiveEventCard } from "@/components/live-event-card"
 import { LiveStatus } from "@/components/live-status"
+import { WigodLiveNow } from "@/components/wigod-live-now"
 import { getUpcomingLiveEvents } from "@/lib/live"
 import { getRecentPosts, getSessionUser, searchPosts } from "@/lib/queries"
 
