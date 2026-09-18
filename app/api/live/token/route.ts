@@ -1,33 +1,7 @@
-import { createHmac, randomUUID } from "node:crypto"
+import { randomUUID } from "node:crypto"
+import { AccessToken } from "livekit-server-sdk"
 import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/queries"
-
-function base64url(value: string | Buffer) {
-  return Buffer.from(value).toString("base64url")
-}
-
-function signToken(apiKey: string, apiSecret: string, identity: string, room: string, canPublish: boolean) {
-  const now = Math.floor(Date.now() / 1000)
-  const header = base64url(JSON.stringify({ alg: "HS256", typ: "JWT" }))
-  const payload = base64url(JSON.stringify({
-    iss: apiKey,
-    sub: identity,
-    nbf: now - 5,
-    exp: now + 3600,
-    video: {
-      room,
-      roomJoin: true,
-      canPublish,
-      canSubscribe: true,
-      canPublishData: false,
-    },
-  }))
-  const unsigned = header + "." + payload
-  const signature = createHmac("sha256", apiSecret)
-    .update(unsigned)
-    .digest("base64url")
-  return unsigned + "." + signature
-}
 
 function isAdmin(email?: string | null) {
   return Boolean(
@@ -60,17 +34,41 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "A valid WIGOD Live room is required." }, { status: 400 })
     }
 
+    let identity: string
+    let canPublish = false
+
     if (role === "publisher") {
       const user = await getSessionUser()
       if (!isAdmin(user?.email)) {
         return NextResponse.json({ error: "Not authorised to publish WIGOD Live." }, { status: 403 })
       }
-      const token = signToken(apiKey, apiSecret, user!.id, room, true)
-      return NextResponse.json({ serverUrl: url, token, room, role })
+      identity = user!.id
+      canPublish = true
+    } else {
+      identity = "viewer-" + randomUUID()
     }
 
-    const token = signToken(apiKey, apiSecret, randomUUID(), room, false)
-    return NextResponse.json({ serverUrl: url, token, room, role })
+    const accessToken = new AccessToken(apiKey, apiSecret, {
+      identity,
+      ttl: "1h",
+    })
+
+    accessToken.addGrant({
+      roomJoin: true,
+      room,
+      canPublish,
+      canSubscribe: true,
+      canPublishData: false,
+    })
+
+    const token = await accessToken.toJwt()
+
+    return NextResponse.json({
+      serverUrl: url,
+      token,
+      room,
+      role,
+    })
   } catch (error) {
     console.error("WIGOD Live token error:", error)
     return NextResponse.json({ error: "WIGOD Live token service failed." }, { status: 500 })
