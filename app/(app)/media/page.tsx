@@ -19,11 +19,12 @@ export default async function MediaPage({ searchParams }: { searchParams: Promis
   const query = q?.trim() ?? ""
   const user = await getSessionUser()
   const currentUserId = user?.id ?? null
-  const posts = query ? await searchPosts(query, currentUserId) : await getRecentPosts(currentUserId, 40)
-  const mediaPosts = posts.filter((post) =>
-    Boolean(post.image_url) ||
-    /\b(photo|video|live|watch|pictured|image|broadcast)\b/i.test(post.content),
-  )
+  const posts = query === "video" || query === "photo" ? await getRecentPosts(currentUserId, 60) : query ? await searchPosts(query, currentUserId) : await getRecentPosts(currentUserId, 40)
+  const mediaPosts = posts.filter((post) => {
+    if (query === "video") return Boolean(post.video_url)
+    if (query === "photo") return Boolean(post.image_url)
+    return Boolean(post.image_url) || Boolean(post.video_url) || /\b(photo|video|live|watch|pictured|image|broadcast)\b/i.test(post.content)
+  })
 
   return (
     <div>
@@ -80,13 +81,15 @@ export default async function MediaPage({ searchParams }: { searchParams: Promis
           <EmptyState
             icon={<ImageIcon className="size-6" />}
             title="No media yet"
-            description="Photos and visual stories will appear here as WIGOD members share them."
+            description="Photos and videos will appear here as WIGOD members share them."
           />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {mediaPosts.slice(0, 6).map((post) => (
               <article key={post.id} className="overflow-hidden rounded-2xl border border-border bg-card">
-                {post.image_url ? (
+                {post.video_url ? (
+                  <video src={post.video_url} controls playsInline preload="metadata" className="aspect-video w-full bg-black object-contain" />
+                ) : post.image_url ? (
                   <img src={post.image_url} alt="" className="aspect-video w-full object-cover" />
                 ) : (
                   <div className="flex aspect-video items-center justify-center bg-secondary">
