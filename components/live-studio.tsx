@@ -147,6 +147,8 @@ export function LiveStudio() {
   const [bannerLayout, setBannerLayout] = useState<BannerLayout>("lower-third")
   const [bannerRadius, setBannerRadius] = useState<"square" | "rounded" | "pill">("rounded")
   const [tickerColor, setTickerColor] = useState("#d62828")
+  const [tickerSpeed, setTickerSpeed] = useState(36)
+  const [tickerHeight, setTickerHeight] = useState("small")
   const [ticker, setTicker] = useState("")
   const [tickerOn, setTickerOn] = useState(false)
   const [headlineOn, setHeadlineOn] = useState(false)
@@ -215,6 +217,8 @@ export function LiveStudio() {
         if (typeof saved.bannerLayout === "string") setBannerLayout(saved.bannerLayout as BannerLayout)
         if (typeof saved.bannerRadius === "string") setBannerRadius(saved.bannerRadius as typeof bannerRadius)
         if (typeof saved.tickerColor === "string") setTickerColor(saved.tickerColor)
+        if (typeof saved.tickerSpeed === "number") setTickerSpeed(Math.max(18, Math.min(60, saved.tickerSpeed)))
+        if (typeof saved.tickerHeight === "string") setTickerHeight(saved.tickerHeight)
         if (typeof saved.ticker === "string") setTicker(saved.ticker)
         if (typeof saved.headlines === "string") setHeadlines(saved.headlines)
         if (Array.isArray(saved.scenes)) setScenes(saved.scenes as Scene[])
@@ -243,7 +247,7 @@ export function LiveStudio() {
         layout, panel, showOverlay, liveStampOn, broadcastTimeOn, overlayOpacity,
         overlayDesign, screenText, screenTextOn, screenTextPosition, screenTextSize, lowerThird, lowerName, lowerRole,
         primaryColor, accentColor, bannerColor, bannerTextColor, bannerLayout, bannerRadius,
-        tickerColor, ticker, tickerOn, headlineOn, headlines, scenes, graphicsDefaultsVersion: 2,
+        tickerColor, tickerSpeed, tickerHeight, ticker, tickerOn, headlineOn, headlines, scenes, graphicsDefaultsVersion: 2,
         customCameraSide, customCameraWidth, customCameraZoom, customMediaZoom,
         customCameraPosition, customMediaPosition, logoUrl, overlayUrl, backgroundUrl, thumbnailUrl, avatarUrl
       }))
@@ -254,7 +258,7 @@ export function LiveStudio() {
     layout, panel, showOverlay, liveStampOn, broadcastTimeOn, overlayOpacity,
     overlayDesign, screenText, screenTextOn, screenTextPosition, screenTextSize, lowerThird, lowerName, lowerRole,
     primaryColor, accentColor, bannerColor, bannerTextColor, bannerLayout, bannerRadius,
-    tickerColor, ticker, tickerOn, headlineOn, headlines, scenes,
+    tickerColor, tickerSpeed, tickerHeight, ticker, tickerOn, headlineOn, headlines, scenes,
     customCameraSide, customCameraWidth, customCameraZoom, customMediaZoom,
     customCameraPosition, customMediaPosition, logoUrl, overlayUrl, backgroundUrl, thumbnailUrl, avatarUrl
   ])
@@ -811,7 +815,7 @@ export function LiveStudio() {
             ) : null}
 
             {headlineOn && headlines.trim() ? (
-              <div className="pointer-events-none absolute left-0 right-0 z-40" style={{ bottom: tickerOn && ticker ? 32 : 8 }}>
+              <div className="pointer-events-none absolute left-0 right-0 z-40" style={{ bottom: tickerOn && ticker ? (tickerHeight === "large" ? 44 : tickerHeight === "medium" ? 40 : 36) : 8 }}>
                 {overlayDesign === "newsroom" ? (
                   <div className="mx-0 flex min-h-8 overflow-hidden" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderTop: "3px solid " + primaryColor }}>
                     <div className="shrink-0 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider" style={{ backgroundColor: primaryColor }}>HEADLINES</div>
@@ -873,14 +877,17 @@ export function LiveStudio() {
                 )}
               </div>
             ) : broadcastTimeOn && liveClock ? (
-              <div className="pointer-events-none absolute right-3 z-40 rounded-md px-3 py-1.5 text-[10px] font-black tabular-nums" style={{ bottom: tickerOn && ticker ? 32 : 8, backgroundColor: bannerColor, color: bannerTextColor }}>
+              <div className="pointer-events-none absolute right-3 z-40 rounded-md px-3 py-1.5 text-[10px] font-black tabular-nums" style={{ bottom: tickerOn && ticker ? (tickerHeight === "large" ? 44 : tickerHeight === "medium" ? 40 : 36) : 8, backgroundColor: bannerColor, color: bannerTextColor }}>
                 {liveClock}
               </div>
             ) : null}
 
             {tickerOn && ticker ? (
-              <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-50 overflow-hidden px-3 py-2 text-[11px] font-bold" style={{ backgroundColor: tickerColor, color: bannerTextColor }}>
-                <div className="flex w-max min-w-full animate-[wigodTicker_18s_linear_infinite] whitespace-nowrap">
+              <div
+                className={"pointer-events-none absolute bottom-2 left-0 right-0 z-50 overflow-hidden px-3 " + (tickerHeight === "large" ? "py-2.5 text-[10px]" : tickerHeight === "medium" ? "py-2 text-[9px]" : "py-1.5 text-[8px]") + " font-bold"}
+                style={{ backgroundColor: tickerColor, color: bannerTextColor }}
+              >
+                <div className="flex w-max min-w-full whitespace-nowrap" style={{ animation: "wigodTicker " + tickerSpeed + "s linear infinite" }}>
                   <span className="pr-16">{ticker}</span>
                   <span className="pr-16">{ticker}</span>
                 </div>
@@ -1112,7 +1119,32 @@ export function LiveStudio() {
                 <textarea value={headlines} onChange={(event) => { setHeadlines(event.target.value); setHeadlineIndex(0) }} rows={4} placeholder="One headline per line" className="mt-2 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-xs" />
                 <p className="mt-1 text-[9px] text-muted-foreground">Headlines rotate automatically every 6 seconds. Use one headline per line.</p>
                 <input value={ticker} onChange={(event) => setTicker(event.target.value)} placeholder="Add scrolling ticker text..." className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs" />
-                <p className="mt-1 text-[9px] text-muted-foreground">When enabled, the ticker appears directly below the headline graphic.</p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <label className="rounded-lg border border-border p-2 text-[10px] font-semibold">
+                    Ticker background
+                    <div className="mt-1 flex items-center gap-2">
+                      <input type="color" value={tickerColor} onChange={(event) => setTickerColor(event.target.value)} className="h-8 w-10 cursor-pointer rounded border-0 bg-transparent p-0" />
+                      <span className="font-mono text-[9px]">{tickerColor}</span>
+                    </div>
+                  </label>
+                  <label className="rounded-lg border border-border p-2 text-[10px] font-semibold">
+                    Ticker size
+                    <select value={tickerHeight} onChange={(event) => setTickerHeight(event.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-2 py-2 text-[10px]">
+                      <option value="small">Small</option>
+                      <option value="medium">Medium</option>
+                      <option value="large">Large</option>
+                    </select>
+                  </label>
+                </div>
+                <label className="mt-3 block rounded-lg border border-border p-2 text-[10px] font-semibold">
+                  Scroll speed
+                  <div className="mt-1 flex items-center justify-between text-[9px] text-muted-foreground">
+                    <span>Slower</span><span>{tickerSpeed}s</span><span>Faster</span>
+                  </div>
+                  <input type="range" min="18" max="60" step="1" value={tickerSpeed} onChange={(event) => setTickerSpeed(Number(event.target.value))} className="mt-1 w-full" />
+                  <p className="mt-1 text-[9px] font-normal text-muted-foreground">Higher seconds = slower movement.</p>
+                </label>
+                <p className="mt-2 text-[9px] text-muted-foreground">The ticker runs full width beneath the headline/time graphic and leaves a clean margin below.</p>
               </div>
 
               <div className="rounded-xl bg-secondary/40 p-3">
@@ -1188,12 +1220,6 @@ export function LiveStudio() {
                     <div className="mt-1 flex items-center gap-2">
                       <input type="color" value={bannerTextColor} onChange={(event) => setBannerTextColor(event.target.value)} className="h-8 w-10 cursor-pointer rounded border-0 bg-transparent p-0" />
                       <span className="font-mono text-[9px]">{bannerTextColor}</span>
-                    </div>
-                  </label>
-                  <label className="rounded-lg border border-border p-2 text-[10px] font-semibold">Ticker
-                    <div className="mt-1 flex items-center gap-2">
-                      <input type="color" value={tickerColor} onChange={(event) => setTickerColor(event.target.value)} className="h-8 w-10 cursor-pointer rounded border-0 bg-transparent p-0" />
-                      <span className="font-mono text-[9px]">{tickerColor}</span>
                     </div>
                   </label>
                   <label className="rounded-lg border border-border p-2 text-[10px] font-semibold">Banner shape
