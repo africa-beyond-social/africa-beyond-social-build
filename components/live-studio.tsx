@@ -90,6 +90,9 @@ export function LiveStudio() {
   const [layout, setLayout] = useState<Layout>("single")
   const [panel, setPanel] = useState<Panel>("settings")
   const [showOverlay, setShowOverlay] = useState(true)
+  const [liveStampOn, setLiveStampOn] = useState(true)
+  const [timestampOn, setTimestampOn] = useState(true)
+  const [liveClock, setLiveClock] = useState("")
   const [overlayUrl, setOverlayUrl] = useState("")
   const [overlayOpacity, setOverlayOpacity] = useState(100)
   const [logoUrl, setLogoUrl] = useState("")
@@ -103,6 +106,9 @@ export function LiveStudio() {
   const [lowerRole, setLowerRole] = useState("People. Places. Perspectives.")
   const [ticker, setTicker] = useState("")
   const [tickerOn, setTickerOn] = useState(false)
+  const [headlineOn, setHeadlineOn] = useState(true)
+  const [headlines, setHeadlines] = useState("BREAKING NEWS: WIGOD LIVE\nLATEST NEWS FROM AFRICA & BEYOND\nPEOPLE. PLACES. PERSPECTIVES.")
+  const [headlineIndex, setHeadlineIndex] = useState(0)
   const [scenes, setScenes] = useState<Scene[]>(DEFAULT_SCENES)
   const [customSceneName, setCustomSceneName] = useState("")
   const [mediaUrl, setMediaUrl] = useState("")
@@ -127,6 +133,22 @@ export function LiveStudio() {
       for (const url of urlsRef.current) URL.revokeObjectURL(url)
     }
   }, [])
+
+  useEffect(() => {
+    const updateClock = () => {
+      setLiveClock(new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date()))
+    }
+    updateClock()
+    const timer = window.setInterval(updateClock, 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    const items = headlines.split("\n").map((item) => item.trim()).filter(Boolean)
+    if (items.length < 2 || !headlineOn) return
+    const timer = window.setInterval(() => setHeadlineIndex((current) => (current + 1) % items.length), 6000)
+    return () => window.clearInterval(timer)
+  }, [headlines, headlineOn])
 
   async function refreshDevices() {
     if (!navigator.mediaDevices?.enumerateDevices) return
@@ -526,8 +548,21 @@ export function LiveStudio() {
               />
             ) : null}
 
+            {liveStampOn ? (
+              <div className="pointer-events-none absolute left-3 top-3 z-30 flex items-center gap-2 rounded-md bg-black/80 px-2.5 py-1.5 text-[11px] font-black tracking-wider text-white shadow-sm">
+                <span className="size-2 animate-pulse rounded-full bg-brand-red" />
+                LIVE
+              </div>
+            ) : null}
+
             {logoUrl ? (
               <img src={logoUrl} alt="WIGOD logo" className="absolute right-3 top-3 z-20 h-12 w-12 rounded object-contain" />
+            ) : null}
+
+            {timestampOn && liveClock ? (
+              <div className="pointer-events-none absolute right-3 top-[4.25rem] z-30 rounded-md bg-black/75 px-2.5 py-1 text-[10px] font-bold tabular-nums text-white">
+                {liveClock}
+              </div>
             ) : null}
 
             {showOverlay && overlayUrl ? (
@@ -561,8 +596,17 @@ export function LiveStudio() {
               </div>
             ) : null}
 
+            {headlineOn && headlines.trim() ? (
+              <div className="pointer-events-none absolute bottom-8 left-0 right-0 z-40 flex min-h-7 overflow-hidden bg-black/90 text-white">
+                <div className="shrink-0 bg-brand-green px-3 py-1.5 text-[9px] font-black uppercase tracking-wider">HEADLINES</div>
+                <div className="min-w-0 flex-1 px-3 py-1.5 text-[10px] font-bold">
+                  {(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "WIGOD NEWS")}
+                </div>
+              </div>
+            ) : null}
+
             {tickerOn && ticker ? (
-              <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-40 overflow-hidden bg-brand-red px-3 py-2 text-[11px] font-bold text-white">
+              <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-50 overflow-hidden bg-brand-red px-3 py-2 text-[11px] font-bold text-white">
                 <div className="animate-[wigodTicker_18s_linear_infinite] whitespace-nowrap">{ticker}</div>
               </div>
             ) : null}
@@ -731,6 +775,17 @@ export function LiveStudio() {
                   <span className="mt-1 block">Thumbnail</span>
                   <input type="file" accept="image/*" className="hidden" onChange={(event) => handleAsset(event, setThumbnailUrl, true)} />
                 </label>
+              </div>
+
+              <div className="rounded-xl bg-secondary/40 p-3">
+                <p className="text-xs font-bold">Broadcast graphics</p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-[10px] font-semibold"><span>LIVE stamp</span><input type="checkbox" checked={liveStampOn} onChange={(event) => setLiveStampOn(event.target.checked)} /></label>
+                  <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-[10px] font-semibold"><span>Time stamp</span><input type="checkbox" checked={timestampOn} onChange={(event) => setTimestampOn(event.target.checked)} /></label>
+                  <label className="col-span-2 flex items-center justify-between rounded-lg border border-border px-3 py-2 text-[10px] font-semibold"><span>News headlines</span><input type="checkbox" checked={headlineOn} onChange={(event) => setHeadlineOn(event.target.checked)} /></label>
+                </div>
+                <textarea value={headlines} onChange={(event) => { setHeadlines(event.target.value); setHeadlineIndex(0) }} rows={4} placeholder="One headline per line" className="mt-2 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-xs" />
+                <p className="mt-1 text-[9px] text-muted-foreground">Headlines rotate automatically every 6 seconds. Use one headline per line.</p>
               </div>
 
               <div className="flex items-center justify-between rounded-xl border border-border px-3 py-3">
