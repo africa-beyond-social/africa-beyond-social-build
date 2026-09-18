@@ -638,7 +638,7 @@ export function LiveStudio() {
       }
     }
 
-    if (liveRoomName) {
+    if (liveRoomNameRef.current) {
       await fetch("/api/live/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
