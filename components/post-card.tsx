@@ -200,6 +200,18 @@ export function PostCard({
           <PostContent content={post.content} />
         </div>
 
+        {post.video_url && (
+          <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-black">
+            <video
+              src={post.video_url}
+              controls
+              playsInline
+              preload="metadata"
+              className="max-h-[560px] w-full"
+            />
+          </div>
+        )}
+
         {post.image_url && (
           <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-secondary/30">
             <img
