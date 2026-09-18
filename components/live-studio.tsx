@@ -22,6 +22,7 @@ import {
 
 export function LiveStudio() {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const screenStreamRef = useRef<MediaStream | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
@@ -44,12 +45,14 @@ export function LiveStudio() {
       if (meterFrameRef.current) cancelAnimationFrame(meterFrameRef.current)
       audioContextRef.current?.close()
       streamRef.current?.getTracks().forEach((track) => track.stop())
-      if (thumbnail) URL.revokeObjectURL(thumbnail)
+      screenStreamRef.current?.getTracks().forEach((track) => track.stop())
     }
-  }, [thumbnail])
+  }, [])
 
   function stopStream() {
     streamRef.current?.getTracks().forEach((track) => track.stop())
+    screenStreamRef.current?.getTracks().forEach((track) => track.stop())
+    screenStreamRef.current = null
     streamRef.current = null
     if (videoRef.current) videoRef.current.srcObject = null
     if (meterFrameRef.current) cancelAnimationFrame(meterFrameRef.current)
@@ -107,6 +110,8 @@ export function LiveStudio() {
     }
 
     try {
+      screenStreamRef.current?.getTracks().forEach((track) => track.stop())
+      screenStreamRef.current = null
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error("Camera access is not supported by this browser.")
       }
@@ -160,6 +165,7 @@ export function LiveStudio() {
         throw new Error("Screen sharing is not supported by this browser.")
       }
 
+      screenStreamRef.current?.getTracks().forEach((track) => track.stop())
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
         audio: true,
@@ -173,12 +179,14 @@ export function LiveStudio() {
         await videoRef.current.play()
       }
 
+      screenStreamRef.current = displayStream
       setScreen(true)
       setStatus("previewing")
-      if (camera) setCamera(false)
+      setCamera(false)
 
       const screenTrack = displayStream.getVideoTracks()[0]
       screenTrack.addEventListener("ended", () => {
+        screenStreamRef.current = null
         setScreen(false)
         if (camera && streamRef.current && videoRef.current) {
           videoRef.current.srcObject = streamRef.current
