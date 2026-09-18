@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 
 const DEFAULT_CHANNEL_ID = "UC4c_VhltMjJ3lqkQREjnzfQ"
-const YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3/search"
+const YOUTUBE_SEARCH_BASE = "https://www.googleapis.com/youtube/v3/search"
+const YOUTUBE_VIDEOS_BASE = "https://www.googleapis.com/youtube/v3/videos"
 
 type YouTubeItem = {
   id?: { videoId?: string }
@@ -15,6 +16,16 @@ type YouTubeItem = {
 
 type YouTubeSearchResponse = { items?: YouTubeItem[] }
 
+type YouTubeVideoDetails = {
+  items?: Array<{
+    liveStreamingDetails?: {
+      scheduledStartTime?: string
+      actualStartTime?: string
+      actualEndTime?: string
+    }
+  }>
+}
+
 type BroadcastResult = {
   data: {
     videoId: string
@@ -22,15 +33,29 @@ type BroadcastResult = {
     description: string | null
     thumbnailUrl: string | null
     publishedAt: string | null
+    scheduledStartAt: string | null
   } | null
   error?: { status: number; reason?: string; message?: string }
+}
+
+async function getStreamingDetails(videoId: string, key: string) {
+  const url = new URL(YOUTUBE_VIDEOS_BASE)
+  url.searchParams.set("part", "liveStreamingDetails")
+  url.searchParams.set("id", videoId)
+  url.searchParams.set("key", key)
+
+  const response = await fetch(url, { next: { revalidate: 30 } })
+  if (!response.ok) return null
+
+  const payload = (await response.json()) as YouTubeVideoDetails
+  return payload.items?.[0]?.liveStreamingDetails ?? null
 }
 
 async function findBroadcast(channelId: string, eventType: "live" | "upcoming"): Promise<BroadcastResult> {
   const key = process.env.YOUTUBE_API_KEY
   if (!key) return { data: null, error: { status: 0, reason: "missing_api_key" } }
 
-  const url = new URL(YOUTUBE_API_BASE)
+  const url = new URL(YOUTUBE_SEARCH_BASE)
   url.searchParams.set("part", "snippet")
   url.searchParams.set("channelId", channelId)
   url.searchParams.set("eventType", eventType)
@@ -57,6 +82,8 @@ async function findBroadcast(channelId: string, eventType: "live" | "upcoming"):
   const videoId = item?.id?.videoId
   if (!videoId) return { data: null }
 
+  const streamingDetails = await getStreamingDetails(videoId, key)
+
   return {
     data: {
       videoId,
@@ -64,6 +91,7 @@ async function findBroadcast(channelId: string, eventType: "live" | "upcoming"):
       description: item.snippet?.description ?? null,
       thumbnailUrl: item.snippet?.thumbnails?.high?.url ?? item.snippet?.thumbnails?.medium?.url ?? null,
       publishedAt: item.snippet?.publishedAt ?? null,
+      scheduledStartAt: streamingDetails?.scheduledStartTime ?? null,
     },
   }
 }

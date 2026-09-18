@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Globe2, MessageCircle, Radio, Tv } from "lucide-react"
+import { Globe2, MessageCircle, Radio, Tv, Settings2 } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { FeedList, EmptyState } from "@/components/feed-list"
 import { LiveEventCard } from "@/components/live-event-card"
@@ -15,6 +15,15 @@ const filters = [
   { label: "Community", query: "community live" },
 ]
 
+function isLiveAdmin(email?: string | null) {
+  if (!email) return false
+  const allowed = (process.env.LIVE_ADMIN_EMAILS || "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean)
+  return allowed.includes(email.toLowerCase())
+}
+
 export default async function LivePage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams
   const query = q?.trim() ?? ""
@@ -24,6 +33,7 @@ export default async function LivePage({ searchParams }: { searchParams: Promise
     query ? searchPosts(query, currentUserId) : getRecentPosts(currentUserId, 24),
     getUpcomingLiveEvents(6),
   ])
+  const canManageLive = isLiveAdmin(user?.email)
 
   const liveVideoId = process.env.NEXT_PUBLIC_LIVE_YOUTUBE_VIDEO_ID
   const liveChannelId = process.env.NEXT_PUBLIC_LIVE_YOUTUBE_CHANNEL_ID
@@ -45,6 +55,18 @@ export default async function LivePage({ searchParams }: { searchParams: Promise
           ))}
         </div>
       </section>
+
+      {canManageLive ? (
+        <section className="border-b border-border px-4 py-4">
+          <Link href="/live/manage" className="flex items-center justify-between gap-4 rounded-2xl border border-brand-green/30 bg-brand-green/5 px-4 py-3 hover:bg-brand-green/10">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-green/10 text-brand-green"><Settings2 className="size-5" /></div>
+              <div><p className="text-sm font-bold">Live Control Room</p><p className="text-xs text-muted-foreground">Create and manage non-YouTube live events and programmes.</p></div>
+            </div>
+            <span className="rounded-full bg-brand-green px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white">Open</span>
+          </Link>
+        </section>
+      ) : null}
 
       <section className="border-b border-border bg-gradient-to-br from-brand-red/10 via-background to-brand-green/10 px-4 py-6">
         <div className="flex items-start gap-3">
