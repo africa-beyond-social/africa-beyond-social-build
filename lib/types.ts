@@ -12,6 +12,7 @@ export type Post = {
   user_id: string
   content: string
   image_url: string | null
+  video_url: string | null
   created_at: string
   updated_at: string | null
 }
@@ -21,6 +22,7 @@ export type FeedPost = {
   id: string
   content: string
   image_url: string | null
+  video_url: string | null
   created_at: string
   updated_at: string | null
   author: Profile
