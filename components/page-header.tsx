@@ -13,6 +13,8 @@ export function PageHeader({
   backHref?: string
   action?: ReactNode
 }) {
+  const isWigodHeader = title === "WIGOD"
+
   return (
     <div className="sticky top-0 z-20 flex items-center gap-4 border-b border-border bg-background/85 px-4 py-3 backdrop-blur md:top-0">
       {backHref && (
@@ -25,8 +27,18 @@ export function PageHeader({
         </Link>
       )}
       <div className="min-w-0 flex-1">
-        <h1 className="truncate text-lg font-bold leading-tight tracking-tight">{title}</h1>
-        {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
+        <h1
+          className={`truncate font-bold leading-tight tracking-tight ${
+            isWigodHeader ? "text-2xl md:text-3xl" : "text-lg"
+          }`}
+        >
+          {title}
+        </h1>
+        {subtitle && (
+          <p className={`${isWigodHeader ? "text-sm" : "text-xs"} truncate text-muted-foreground`}>
+            {subtitle}
+          </p>
+        )}
       </div>
       {action}
     </div>

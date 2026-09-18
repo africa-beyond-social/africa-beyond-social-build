@@ -1,0 +1,20 @@
+import Link from "next/link"
+import { Users, Plus, ArrowRight, Compass } from "lucide-react"
+import { PageHeader } from "@/components/page-header"
+import { getSessionUser } from "@/lib/queries"
+import { getCommunities } from "@/lib/community-queries"
+
+const categories = ["News & Current Affairs", "Business & Enterprise", "Culture & Heritage", "Faith & Belief", "Sports", "Technology", "Creators & Media", "Local Communities"]
+
+export default async function CommunityPage() {
+  const user = await getSessionUser()
+  const communities = await getCommunities(user?.id ?? null)
+  return <div>
+    <PageHeader title="COMMUNITIES" subtitle="WIGOD • People. Places. Perspectives." />
+    <section className="border-b border-border bg-secondary/20 px-4 py-5"><div className="flex items-start justify-between gap-4"><div><div className="flex items-center gap-2"><Users className="size-5 text-brand-green" /><h1 className="font-serif text-xl font-bold">Find your people</h1></div><p className="mt-1 max-w-2xl text-sm text-muted-foreground">Join communities built around interests, places, professions and conversations—all inside WIGOD.</p></div>{user && <Link href="/community/create" className="inline-flex shrink-0 items-center gap-2 rounded-full bg-foreground px-4 py-2 text-xs font-semibold text-background"><Plus className="size-3.5" /> Create</Link>}</div></section>
+    <section className="border-b border-border px-4 py-5"><div className="mb-3 flex items-center gap-2"><Compass className="size-4 text-brand-green" /><h2 className="font-serif text-base font-bold">Explore by interest</h2></div><div className="flex flex-wrap gap-2">{categories.map((category) => <Link key={category} href={`/community?category=${encodeURIComponent(category)}`} className="rounded-full border border-border bg-background px-3 py-2 text-xs font-medium hover:bg-secondary">{category}</Link>)}</div></section>
+    <section className="px-4 py-5"><div className="mb-3"><h2 className="font-serif text-base font-bold">Discover communities</h2><p className="text-xs text-muted-foreground">Spaces where WIGOD members can connect and participate.</p></div>{communities.length === 0 ? <div className="rounded-2xl border border-dashed border-border px-5 py-10 text-center"><Users className="mx-auto size-7 text-muted-foreground" /><h3 className="mt-3 font-semibold">Communities are ready to grow</h3><p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">Create the first WIGOD community and give people a dedicated space to connect.</p>{user && <Link href="/community/create" className="mt-4 inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs font-semibold">Create a community <ArrowRight className="size-3.5" /></Link>}</div> : <div className="grid gap-3 md:grid-cols-2">{communities.map((community) => <article key={community.id} className="rounded-2xl border border-border p-4"><div className="flex items-start gap-3"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-brand-green"><Users className="size-5" /></div><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold">{community.name}</h3><p className="mt-1 text-xs font-medium text-brand-green">{community.category}</p></div>{user && <form action="/api/community/join" method="post"><input type="hidden" name="community_id" value={community.id} /><input type="hidden" name="joined" value={String(community.joined_by_me)} /><button type="submit" className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold">{community.joined_by_me ? "Joined" : "Join"}</button></form>}</div><p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{community.description || "A WIGOD community for shared conversations and interests."}</p><p className="mt-3 text-xs text-muted-foreground">{community.member_count} {community.member_count === 1 ? "member" : "members"}</p></div></div></article>)}</div>}</section>
+  </div>
+}
+
+// Stage 3 deployment trigger: keep community page behavior unchanged.

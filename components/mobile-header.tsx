@@ -6,7 +6,7 @@ import type { Profile } from "@/lib/types"
 export function MobileHeader({ profile }: { profile: Profile | null }) {
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/95 px-4 py-2.5 backdrop-blur md:hidden">
-      <Link href="/" aria-label="Africa & Beyond Social home">
+      <Link href="/" aria-label="WIGOD home">
         <BrandWordmark />
       </Link>
       {profile && (

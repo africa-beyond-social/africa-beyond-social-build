@@ -12,7 +12,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           {children}
         </div>
         <p className="mt-8 max-w-sm text-center text-xs text-muted-foreground">
-          Africa &amp; Beyond Social — a professional space for African voices and the global diaspora.
+          WIGOD — a global social platform for people, places and perspectives.
         </p>
       </div>
     </main>
