@@ -1,5 +1,6 @@
 "use client"
 
+import Script from "next/script"
 import { type ChangeEvent, useEffect, useRef, useState } from "react"
 import {
   AlertCircle,
@@ -112,12 +113,15 @@ export function LiveStudio() {
   const meterFrameRef = useRef<number | null>(null)
   const urlsRef = useRef<Set<string>>(new Set())
   const preferencesLoadedRef = useRef(false)
+  const liveRoomRef = useRef<any>(null)
 
   const [camera, setCamera] = useState(false)
   const [mic, setMic] = useState(false)
   const [screen, setScreen] = useState(false)
   const [status, setStatus] = useState<"ready" | "previewing" | "live">("ready")
   const [error, setError] = useState("")
+  const [liveSdkReady, setLiveSdkReady] = useState(false)
+  const [liveRoomName, setLiveRoomName] = useState("")
   const [micLevel, setMicLevel] = useState(0)
   const [cameraPermission, setCameraPermission] = useState<string>("unknown")
   const [micPermission, setMicPermission] = useState<string>("unknown")
@@ -186,6 +190,7 @@ export function LiveStudio() {
 
     return () => {
       navigator.mediaDevices?.removeEventListener?.("devicechange", onDeviceChange)
+      void endWigodLive()
       stopAllMedia()
       if (meterFrameRef.current) cancelAnimationFrame(meterFrameRef.current)
       audioContextRef.current?.close()
@@ -612,6 +617,107 @@ export function LiveStudio() {
     setTickerColor(scene.tickerColor)
   }
 
+  async function endWigodLive() {
+    const room = liveRoomRef.current
+    liveRoomRef.current = null
+    if (room) {
+      try {
+        await room.disconnect()
+      } catch {
+        // The connection may already be closed.
+      }
+    }
+
+    if (liveRoomName) {
+      await fetch("/api/live/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "stop", room: liveRoomName }),
+        keepalive: true,
+      }).catch(() => {})
+    }
+
+    setLiveRoomName("")
+    setStatus(camera || screen || audioStreamRef.current ? "previewing" : "ready")
+  }
+
+  async function startWigodLive() {
+    setError("")
+
+    if (!liveSdkReady || !window.LivekitClient) {
+      setError("The WIGOD live video engine is still loading. Please wait a moment and try again.")
+      return
+    }
+
+    const source = screen ? screenStreamRef.current : cameraStreamRef.current
+    if (!source?.getVideoTracks().length) {
+      setError("Turn on the camera or share your screen before starting WIGOD Live.")
+      return
+    }
+
+    try {
+      const sessionResponse = await fetch("/api/live/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "WIGOD Live",
+          description: lowerName || "Live on WIGOD",
+          thumbnailUrl: thumbnailUrl || null,
+          category: "community",
+          action: "start",
+        }),
+      })
+      const sessionPayload = await sessionResponse.json()
+      if (!sessionResponse.ok) throw new Error(sessionPayload.error || "WIGOD could not create the live session.")
+
+      const roomName = String(sessionPayload.live?.room_name || "")
+      if (!roomName) throw new Error("WIGOD did not receive a live room.")
+
+      const tokenResponse = await fetch("/api/live/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ room: roomName, role: "publisher" }),
+      })
+      const tokenPayload = await tokenResponse.json()
+      if (!tokenResponse.ok) throw new Error(tokenPayload.error || "WIGOD could not authorise the broadcast.")
+
+      const livekit = window.LivekitClient
+      const room = new livekit.Room({ adaptiveStream: true, dynacast: true })
+      liveRoomRef.current = room
+
+      await room.connect(tokenPayload.serverUrl, tokenPayload.token)
+
+      const videoTrack = source.getVideoTracks()[0]
+      await room.localParticipant.publishTrack(videoTrack, {
+        name: "wigod-video",
+        source: screen ? livekit.Track.Source.ScreenShare : livekit.Track.Source.Camera,
+        simulcast: true,
+      })
+
+      const audioTrack = source.getAudioTracks()[0] || audioStreamRef.current?.getAudioTracks()[0]
+      if (audioTrack && audioTrack.enabled) {
+        await room.localParticipant.publishTrack(audioTrack, {
+          name: "wigod-audio",
+          source: livekit.Track.Source.Microphone,
+          stream: "wigod",
+        })
+      }
+
+      setLiveRoomName(roomName)
+      setStatus("live")
+    } catch (cause) {
+      await fetch("/api/live/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "stop" }),
+        keepalive: true,
+      }).catch(() => {})
+      liveRoomRef.current = null
+      setStatus(camera || screen || audioStreamRef.current ? "previewing" : "ready")
+      setError(cause instanceof Error ? cause.message : "WIGOD could not start the live broadcast.")
+    }
+  }
+
   function saveCustomScene() {
     const name = customSceneName.trim()
     if (!name) return
@@ -660,6 +766,12 @@ export function LiveStudio() {
 
   return (
     <div className="space-y-5">
+      <Script
+        src="https://cdn.jsdelivr.net/npm/livekit-client@2.22.3/dist/livekit-client.umd.min.js"
+        strategy="afterInteractive"
+        onLoad={() => setLiveSdkReady(true)}
+        onError={() => setError("The WIGOD live video engine could not be loaded.")}
+      />
       <style jsx>{`
         @keyframes wigodTicker {
           from { transform: translateX(0); }
@@ -988,16 +1100,29 @@ export function LiveStudio() {
               WIGOD is the primary destination. YouTube remains an optional publishing connection. Facebook and TikTok are not required destinations.
             </p>
             <div className="mt-4 flex items-center gap-2">
-              <button type="button" onClick={() => setStatus("live")} disabled={!camera && !screen && !mediaPlaying} className="flex-1 rounded-xl bg-brand-red px-4 py-3 text-sm font-bold text-white disabled:opacity-40">
-                Start WIGOD Live
-              </button>
+              {status === "live" ? (
+                <button type="button" onClick={() => void endWigodLive()} className="flex-1 rounded-xl bg-brand-red px-4 py-3 text-sm font-bold text-white">
+                  End WIGOD Live
+                </button>
+              ) : (
+                <button type="button" onClick={() => void startWigodLive()} disabled={!camera && !screen || !liveSdkReady} className="flex-1 rounded-xl bg-brand-red px-4 py-3 text-sm font-bold text-white disabled:opacity-40">
+                  {liveSdkReady ? "Start WIGOD Live" : "Loading live engine…"}
+                </button>
+              )}
               <div className="min-w-[118px] rounded-xl border border-border bg-background px-3 py-2 text-center">
                 <p className="text-[8px] font-bold uppercase tracking-wider text-muted-foreground">Video time</p>
                 <p className="text-sm font-black tabular-nums">{formatTime(mediaElapsed)} / {formatTime(mediaDuration)}</p>
               </div>
             </div>
             <p className="mt-2 text-[9px] text-muted-foreground">Video time is a studio control only and is not broadcast.</p>
-            <p className="mt-2 text-[10px] text-muted-foreground">The browser studio preview is functional. A production WebRTC/media-server transport is still required for remote viewers.</p>
+            <p className="mt-2 text-[10px] text-muted-foreground">
+              {status === "live" && liveRoomName ? "Broadcasting to WIGOD room " + liveRoomName : "WIGOD Live uses a real-time media server so remote viewers can watch from the public Live room."}
+            </p>
+            {status === "live" && liveRoomName ? (
+              <div className="mt-2 rounded-lg bg-brand-green/10 px-3 py-2 text-[10px] font-semibold text-brand-green">
+                Share: {typeof window !== "undefined" ? window.location.origin : "" + "/live/" + liveRoomName}
+              </div>
+            ) : null}
           </div>
         </section>
 
