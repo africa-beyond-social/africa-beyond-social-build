@@ -45,6 +45,15 @@ type Panel = "settings" | "brand" | "layout" | "scenes" | "media"
 type BannerLayout = "lower-third" | "full-width" | "split" | "pill" | "corner" | "headline"
 type OverlayDesign = "ribbon" | "badge" | "capsule" | "angled" | "round"
 
+declare global {
+  interface Window {
+    LivekitClient?: {
+      Room: new (options?: Record<string, unknown>) => any
+      Track: { Source: { Camera: string; Microphone: string; ScreenShare: string } }
+    }
+  }
+}
+
 type BackgroundOption = { id: string; name: string; kind: "picture" | "video"; url: string }
 
 const STUDIO_BACKGROUND_OPTIONS: BackgroundOption[] = [
@@ -114,6 +123,7 @@ export function LiveStudio() {
   const urlsRef = useRef<Set<string>>(new Set())
   const preferencesLoadedRef = useRef(false)
   const liveRoomRef = useRef<any>(null)
+  const liveRoomNameRef = useRef("")
 
   const [camera, setCamera] = useState(false)
   const [mic, setMic] = useState(false)
@@ -632,11 +642,12 @@ export function LiveStudio() {
       await fetch("/api/live/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "stop", room: liveRoomName }),
+        body: JSON.stringify({ action: "stop", room: liveRoomNameRef.current }),
         keepalive: true,
       }).catch(() => {})
     }
 
+    liveRoomNameRef.current = ""
     setLiveRoomName("")
     setStatus(camera || screen || audioStreamRef.current ? "previewing" : "ready")
   }
@@ -703,6 +714,7 @@ export function LiveStudio() {
         })
       }
 
+      liveRoomNameRef.current = roomName
       setLiveRoomName(roomName)
       setStatus("live")
     } catch (cause) {
@@ -1120,7 +1132,7 @@ export function LiveStudio() {
             </p>
             {status === "live" && liveRoomName ? (
               <div className="mt-2 rounded-lg bg-brand-green/10 px-3 py-2 text-[10px] font-semibold text-brand-green">
-                Share: {typeof window !== "undefined" ? window.location.origin : "" + "/live/" + liveRoomName}
+                Share: {typeof window !== "undefined" ? window.location.origin + "/live/" + liveRoomName : "/live/" + liveRoomName}
               </div>
             ) : null}
           </div>
