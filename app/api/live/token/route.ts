@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/queries"
 
 function base64url(value: string | Buffer) {
-  return Buffer.from(value).toString("base64").replace(/=/g, "").replace(/\\+/g, "-").replace(/\\//g, "_")
+  return Buffer.from(value).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\\//g, "_")
 }
 
 function signToken(apiKey: string, apiSecret: string, identity: string, room: string, canPublish: boolean) {
@@ -24,7 +24,7 @@ function signToken(apiKey: string, apiSecret: string, identity: string, room: st
   }))
   const unsigned = header + "." + payload
   const signature = createHmac("sha256", apiSecret).update(unsigned).digest("base64")
-    .replace(/=/g, "").replace(/\\+/g, "-").replace(/\\//g, "_")
+    .replace(/=/g, "").replace(/\+/g, "-").replace(/\\//g, "_")
   return unsigned + "." + signature
 }
 
