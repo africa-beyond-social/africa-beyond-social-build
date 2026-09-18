@@ -44,6 +44,15 @@ type Panel = "settings" | "brand" | "layout" | "scenes" | "media"
 type BannerLayout = "lower-third" | "full-width" | "split" | "pill" | "corner" | "headline"
 type OverlayDesign = "newsroom" | "split-bar" | "modern" | "minimal" | "corner" | "stacked" | "breaking" | "broadcast"
 
+type BackgroundOption = { id: string; name: string; kind: "picture" | "video"; url: string }
+
+const STUDIO_BACKGROUND_OPTIONS: BackgroundOption[] = [
+  { id: "studio-green", name: "WIGOD Green Studio", kind: "picture", url: "data:image/svg+xml," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1280 720'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop stop-color='#062b1c'/><stop offset='.55' stop-color='#0f8f4f'/><stop offset='1' stop-color='#03140d'/></linearGradient></defs><rect width='1280' height='720' fill='url(#g)'/><circle cx='1040' cy='150' r='260' fill='#ffffff' opacity='.06'/><circle cx='180' cy='620' r='320' fill='#d62828' opacity='.07'/><text x='640' y='390' text-anchor='middle' fill='#ffffff' opacity='.12' font-family='Arial' font-size='74' font-weight='700'>WIGOD LIVE</text></svg>") },
+  { id: "studio-news", name: "Newsroom", kind: "picture", url: "data:image/svg+xml," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1280 720'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='0'><stop stop-color='#070b14'/><stop offset='.5' stop-color='#182235'/><stop offset='1' stop-color='#070b14'/></linearGradient></defs><rect width='1280' height='720' fill='url(#g)'/><path d='M0 560 L1280 420 L1280 720 L0 720Z' fill='#d62828' opacity='.13'/><path d='M0 0 L1280 0 L1280 180 L0 300Z' fill='#0f8f4f' opacity='.12'/><text x='640' y='390' text-anchor='middle' fill='#ffffff' opacity='.16' font-family='Arial' font-size='68' font-weight='700'>NEWSROOM</text></svg>") },
+  { id: "studio-dark", name: "Dark Broadcast", kind: "picture", url: "data:image/svg+xml," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1280 720'><defs><radialGradient id='g'><stop stop-color='#303642'/><stop offset='1' stop-color='#050608'/></radialGradient></defs><rect width='1280' height='720' fill='url(#g)'/><rect x='70' y='70' width='1140' height='580' rx='30' fill='none' stroke='#ffffff' stroke-opacity='.08' stroke-width='3'/><text x='640' y='390' text-anchor='middle' fill='#ffffff' opacity='.13' font-family='Arial' font-size='62' font-weight='700'>BROADCAST STUDIO</text></svg>") },
+  { id: "motion", name: "Motion Background", kind: "video", url: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" },
+]
+
 const OVERLAY_DESIGNS: Array<{ id: OverlayDesign; name: string; description: string }> = [
   { id: "newsroom", name: "Newsroom", description: "Headline bar, clock, logo and ticker" },
   { id: "split-bar", name: "Split Bar", description: "Headline space with dedicated time block" },
@@ -131,6 +140,7 @@ export function LiveStudio() {
   const [overlayOpacity, setOverlayOpacity] = useState(100)
   const [logoUrl, setLogoUrl] = useState("")
   const [backgroundUrl, setBackgroundUrl] = useState("")
+  const [backgroundKind, setBackgroundKind] = useState<"picture" | "video" | "">("")
   const [thumbnailUrl, setThumbnailUrl] = useState("")
   const [avatarUrl, setAvatarUrl] = useState("")
   const [screenText, setScreenText] = useState("WELCOME TO WIGOD LIVE")
@@ -231,6 +241,7 @@ export function LiveStudio() {
         if (typeof saved.logoUrl === "string") setLogoUrl(saved.logoUrl)
         if (typeof saved.overlayUrl === "string") setOverlayUrl(saved.overlayUrl)
         if (typeof saved.backgroundUrl === "string") setBackgroundUrl(saved.backgroundUrl)
+        if (saved.backgroundKind === "picture" || saved.backgroundKind === "video") setBackgroundKind(saved.backgroundKind)
         if (typeof saved.thumbnailUrl === "string") setThumbnailUrl(saved.thumbnailUrl)
         if (typeof saved.avatarUrl === "string") setAvatarUrl(saved.avatarUrl)
       }
@@ -249,7 +260,7 @@ export function LiveStudio() {
         primaryColor, accentColor, bannerColor, bannerTextColor, bannerLayout, bannerRadius,
         tickerColor, tickerSpeed, tickerHeight, ticker, tickerOn, headlineOn, headlines, scenes, graphicsDefaultsVersion: 2,
         customCameraSide, customCameraWidth, customCameraZoom, customMediaZoom,
-        customCameraPosition, customMediaPosition, logoUrl, overlayUrl, backgroundUrl, thumbnailUrl, avatarUrl
+        customCameraPosition, customMediaPosition, logoUrl, overlayUrl, backgroundUrl, backgroundKind, thumbnailUrl, avatarUrl
       }))
     } catch {
       // Storage can be unavailable or full; never break the studio.
@@ -260,8 +271,15 @@ export function LiveStudio() {
     primaryColor, accentColor, bannerColor, bannerTextColor, bannerLayout, bannerRadius,
     tickerColor, tickerSpeed, tickerHeight, ticker, tickerOn, headlineOn, headlines, scenes,
     customCameraSide, customCameraWidth, customCameraZoom, customMediaZoom,
-    customCameraPosition, customMediaPosition, logoUrl, overlayUrl, backgroundUrl, thumbnailUrl, avatarUrl
+    customCameraPosition, customMediaPosition, logoUrl, overlayUrl, backgroundUrl, backgroundKind, thumbnailUrl, avatarUrl
   ])
+
+  useEffect(() => {
+    if (!videoRef.current) return
+    const stream = screen ? screenStreamRef.current : camera ? cameraStreamRef.current : null
+    videoRef.current.srcObject = stream
+    if (stream) void videoRef.current.play().catch(() => {})
+  }, [layout, camera, screen, mediaPlaying])
 
   useEffect(() => {
     const updateClock = () => {
@@ -680,8 +698,11 @@ export function LiveStudio() {
         <section className="space-y-4">
           <div
             className="relative aspect-video overflow-hidden rounded-2xl border border-border bg-black shadow-sm"
-            style={backgroundUrl ? { backgroundImage: "url(" + backgroundUrl + ")", backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+            style={backgroundKind === "picture" && backgroundUrl ? { backgroundImage: "url(" + backgroundUrl + ")", backgroundSize: "cover", backgroundPosition: "center" } : undefined}
           >
+            {backgroundKind === "video" && backgroundUrl ? (
+              <video src={backgroundUrl} autoPlay muted loop playsInline className="absolute inset-0 size-full object-cover" aria-hidden="true" />
+            ) : null}
             {mediaPlaying && mediaUrl ? (
               layout === "media" || layout === "screen" || layout === "cinema" ? (
                 <video ref={mediaVideoRef} src={mediaUrl} autoPlay controls playsInline className="absolute inset-0 size-full object-contain bg-black" style={{ objectPosition: customMediaPosition, transform: "scale(" + customMediaZoom / 100 + ")" }} onEnded={() => setMediaPlaying(false)} />
@@ -719,10 +740,8 @@ export function LiveStudio() {
 
             {!camera && !screen && !mediaPlaying ? (
               avatarUrl ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black text-center text-white">
+                <div className={"absolute inset-0 flex items-center justify-center " + (backgroundKind ? "bg-black/10" : "bg-black")}>
                   <img src={avatarUrl} alt="Creator avatar" className="size-28 rounded-full border-4 border-white/20 object-cover shadow-2xl" />
-                  <p className="mt-3 text-sm font-black">Camera off</p>
-                  <p className="mt-1 text-[10px] text-white/60">Your creator avatar is on stage</p>
                 </div>
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white">
@@ -761,13 +780,6 @@ export function LiveStudio() {
                 className="pointer-events-none absolute inset-0 z-10 size-full object-cover"
                 style={{ opacity: overlayOpacity / 100 }}
               />
-            ) : null}
-
-            {showOverlay && !overlayUrl ? (
-              <div className="pointer-events-none absolute inset-0 z-10">
-                <div className="absolute left-0 top-0 h-2 w-full bg-brand-green" />
-                <div className="absolute right-0 top-0 h-2 w-1/3 bg-brand-red" />
-              </div>
             ) : null}
 
             {screenTextOn && screenText ? (
@@ -895,36 +907,6 @@ export function LiveStudio() {
             ) : null}
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-xl border border-border bg-secondary/20 px-3 py-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Video time</span>
-                <span className="text-xs font-bold tabular-nums">{formatTime(mediaElapsed)} / {formatTime(mediaDuration)}</span>
-              </div>
-              {mediaUrl ? (
-                <input type="range" min={0} max={mediaDuration || 0} step="0.1" value={Math.min(mediaElapsed, mediaDuration || 0)} onChange={(event) => {
-                  const next = Number(event.target.value)
-                  setMediaElapsed(next)
-                  if (mediaVideoRef.current) mediaVideoRef.current.currentTime = next
-                }} className="mt-2 w-full" aria-label="Video position" />
-              ) : (
-                <p className="mt-1 text-[9px] text-muted-foreground">Studio-only timer — it is not part of the broadcast graphics.</p>
-              )}
-            </div>
-            <div className="rounded-xl border border-border bg-secondary/20 px-3 py-2">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Broadcast time</span>
-                  <p className="mt-0.5 text-[9px] text-muted-foreground">{broadcastTimeOn ? "Current time while broadcasting" : "Hidden from the studio stage"}</p>
-                </div>
-                <button type="button" onClick={() => setBroadcastTimeOn((value) => !value)} className={"rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-white " + (broadcastTimeOn ? "bg-brand-green" : "bg-brand-red")}>
-                  {broadcastTimeOn ? "On" : "Off"}
-                </button>
-              </div>
-              {broadcastTimeOn ? <p className="mt-2 text-lg font-black tabular-nums">{liveClock}</p> : null}
-            </div>
-          </div>
-
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
             <button
               type="button"
@@ -993,9 +975,16 @@ export function LiveStudio() {
             <p className="mt-3 text-xs leading-5 text-muted-foreground">
               WIGOD is the primary destination. YouTube remains an optional publishing connection. Facebook and TikTok are not required destinations.
             </p>
-            <button type="button" onClick={() => setStatus("live")} disabled={!camera && !screen && !mediaPlaying} className="mt-4 w-full rounded-xl bg-brand-red px-4 py-3 text-sm font-bold text-white disabled:opacity-40">
-              Start WIGOD Live
-            </button>
+            <div className="mt-4 flex items-center gap-2">
+              <button type="button" onClick={() => setStatus("live")} disabled={!camera && !screen && !mediaPlaying} className="flex-1 rounded-xl bg-brand-red px-4 py-3 text-sm font-bold text-white disabled:opacity-40">
+                Start WIGOD Live
+              </button>
+              <div className="min-w-[118px] rounded-xl border border-border bg-background px-3 py-2 text-center">
+                <p className="text-[8px] font-bold uppercase tracking-wider text-muted-foreground">Video time</p>
+                <p className="text-sm font-black tabular-nums">{formatTime(mediaElapsed)} / {formatTime(mediaDuration)}</p>
+              </div>
+            </div>
+            <p className="mt-2 text-[9px] text-muted-foreground">Video time is a studio control only and is not broadcast.</p>
             <p className="mt-2 text-[10px] text-muted-foreground">The browser studio preview is functional. A production WebRTC/media-server transport is still required for remote viewers.</p>
           </div>
         </section>
@@ -1077,6 +1066,31 @@ export function LiveStudio() {
                     <input type="file" accept="image/*" className="hidden" onChange={(event) => handleAsset(event, setAvatarUrl, true)} />
                   </label>
                 </div>
+              </div>
+
+              <div className="rounded-xl bg-secondary/40 p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold">Studio backgrounds</p>
+                    <p className="mt-0.5 text-[9px] text-muted-foreground">Choose a picture or looping video background. Your choice stays until you remove or replace it.</p>
+                  </div>
+                  {backgroundUrl ? <button type="button" onClick={() => { setBackgroundUrl(""); setBackgroundKind("") }} className="rounded-lg border border-brand-red/30 px-2 py-1 text-[9px] font-bold text-brand-red">Remove</button> : null}
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {STUDIO_BACKGROUND_OPTIONS.map((item) => (
+                    <button key={item.id} type="button" onClick={() => { setBackgroundUrl(item.url); setBackgroundKind(item.kind) }} className={"rounded-xl border p-2 text-left " + (backgroundUrl === item.url ? "border-brand-green bg-brand-green/5" : "border-border hover:bg-secondary")}>
+                      <div className="aspect-video overflow-hidden rounded-lg bg-black">
+                        {item.kind === "video" ? <video src={item.url} muted autoPlay loop playsInline className="size-full object-cover" /> : <img src={item.url} alt="" className="size-full object-cover" />}
+                      </div>
+                      <p className="mt-1 text-[9px] font-bold">{item.name}</p>
+                      <p className="text-[8px] text-muted-foreground">{item.kind === "video" ? "Video" : "Picture"}</p>
+                    </button>
+                  ))}
+                </div>
+                <label className="mt-3 block cursor-pointer rounded-xl border border-dashed border-border p-3 text-center text-[10px] font-semibold hover:bg-secondary">
+                  Upload picture background
+                  <input type="file" accept="image/*" className="hidden" onChange={(event) => handleAsset(event, (url) => { setBackgroundUrl(url); setBackgroundKind("picture") }, true)} />
+                </label>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
@@ -1398,29 +1412,3 @@ export function LiveStudio() {
                   onChange={(event) => {
                     const file = event.target.files?.[0]
                     if (!file) return
-                    if (mediaUrl) {
-                      urlsRef.current.delete(mediaUrl)
-                      URL.revokeObjectURL(mediaUrl)
-                    }
-                    setMediaUrl(registerUrl(URL.createObjectURL(file)))
-                    setMediaName(file.name)
-                    setMediaPlaying(false)
-                  }}
-                />
-              </label>
-              {mediaUrl ? (
-                <div className="rounded-xl border border-border p-3">
-                  <p className="truncate text-xs font-bold">{mediaName}</p>
-                  <button type="button" onClick={() => { setMediaPlaying(true); setMediaMicMuted(mic) }} className="mt-2 inline-flex items-center gap-2 rounded-lg bg-brand-green px-3 py-2 text-xs font-bold text-white">
-                    <Video className="size-3.5" /> Play on stage
-                  </button>
-                </div>
-              ) : null}
-              <p className="text-[10px] leading-4 text-muted-foreground">StreamYard uses media assets for intros, countdowns, outros and visual inserts; WIGOD now has the same studio-side workflow for local preview.</p>
-            </div>
-          ) : null}
-        </aside>
-      </div>
-    </div>
-  )
-}
