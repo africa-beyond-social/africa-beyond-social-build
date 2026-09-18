@@ -35,6 +35,10 @@ type Layout =
   | "screen"
   | "pip"
   | "cinema"
+  | "camera"
+  | "media"
+  | "split"
+  | "custom"
 
 type Panel = "settings" | "brand" | "layout" | "scenes" | "media"
 
@@ -57,6 +61,10 @@ const LAYOUTS: Array<{ id: Layout; name: string; description: string }> = [
   { id: "screen", name: "Screen", description: "Shared screen dominates" },
   { id: "pip", name: "Picture-in-picture", description: "Screen with presenter inset" },
   { id: "cinema", name: "Cinema", description: "Presentation without presenter tile" },
+  { id: "camera", name: "Camera only", description: "Camera fills the stage" },
+  { id: "media", name: "Media only", description: "Video fills the stage" },
+  { id: "split", name: "Camera + media", description: "Camera and video side by side" },
+  { id: "custom", name: "Custom", description: "Position, size and crop camera + media" },
 ]
 
 const DEFAULT_SCENES: Scene[] = [
@@ -68,6 +76,8 @@ const DEFAULT_SCENES: Scene[] = [
 
 export function LiveStudio() {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const mediaVideoRef = useRef<HTMLVideoElement>(null)
+  const micBeforeMediaRef = useRef(false)
   const cameraStreamRef = useRef<MediaStream | null>(null)
   const audioStreamRef = useRef<MediaStream | null>(null)
   const screenStreamRef = useRef<MediaStream | null>(null)
@@ -114,6 +124,13 @@ export function LiveStudio() {
   const [mediaUrl, setMediaUrl] = useState("")
   const [mediaName, setMediaName] = useState("")
   const [mediaPlaying, setMediaPlaying] = useState(false)
+  const [mediaMicMuted, setMediaMicMuted] = useState(false)
+  const [customCameraSide, setCustomCameraSide] = useState<"left" | "right">("left")
+  const [customCameraWidth, setCustomCameraWidth] = useState(45)
+  const [customCameraZoom, setCustomCameraZoom] = useState(100)
+  const [customMediaZoom, setCustomMediaZoom] = useState(100)
+  const [customCameraPosition, setCustomCameraPosition] = useState("center")
+  const [customMediaPosition, setCustomMediaPosition] = useState("center")
 
   const cameraDevices = devices.filter((device) => device.kind === "videoinput")
   const micDevices = devices.filter((device) => device.kind === "audioinput")
@@ -149,6 +166,30 @@ export function LiveStudio() {
     const timer = window.setInterval(() => setHeadlineIndex((current) => (current + 1) % items.length), 6000)
     return () => window.clearInterval(timer)
   }, [headlines, headlineOn])
+
+  useEffect(() => {
+    if (!mediaPlaying) {
+      setMediaMicMuted(false)
+      if (micBeforeMediaRef.current && audioStreamRef.current) {
+        const track = audioStreamRef.current.getAudioTracks()[0]
+        if (track) {
+          track.enabled = true
+          setMic(true)
+          startMeter(audioStreamRef.current)
+        }
+      }
+      micBeforeMediaRef.current = false
+      return
+    }
+
+    micBeforeMediaRef.current = mic
+    if (mic) {
+      audioStreamRef.current?.getAudioTracks().forEach((track) => { track.enabled = false })
+      setMic(false)
+      setMicLevel(0)
+      setMediaMicMuted(true)
+    }
+  }, [mediaPlaying])
 
   async function refreshDevices() {
     if (!navigator.mediaDevices?.enumerateDevices) return
@@ -304,11 +345,10 @@ export function LiveStudio() {
     setError("")
 
     if (mic) {
-      audioStreamRef.current?.getAudioTracks().forEach((track) => {
-        track.enabled = false
-      })
+      audioStreamRef.current?.getAudioTracks().forEach((track) => { track.enabled = false })
       setMic(false)
       setMicLevel(0)
+      if (mediaPlaying) setMediaMicMuted(true)
       return
     }
 
@@ -332,6 +372,7 @@ export function LiveStudio() {
       if (!track) throw new Error("no-audio-track")
       track.enabled = true
       setMic(true)
+      setMediaMicMuted(false)
       startMeter(stream)
 
       if (cameraStreamRef.current && !cameraStreamRef.current.getAudioTracks().some((item) => item.id === track.id)) {
@@ -478,56 +519,39 @@ export function LiveStudio() {
             className="relative aspect-video overflow-hidden rounded-2xl border border-border bg-black shadow-sm"
             style={backgroundUrl ? { backgroundImage: "url(" + backgroundUrl + ")", backgroundSize: "cover", backgroundPosition: "center" } : undefined}
           >
-            {layout === "group" || layout === "news" || layout === "pip" ? (
-              <div className="absolute inset-0 flex items-center justify-center p-4">
-                <div
-                  className={
-                    layout === "pip"
-                      ? "absolute inset-0"
-                      : layout === "news"
-                        ? "grid h-full w-full grid-cols-[1.5fr_1fr] gap-2"
-                        : "grid h-full w-full grid-cols-2 gap-2"
-                  }
-                >
-                  <video
-                    ref={videoRef}
-                    muted
-                    playsInline
-                    autoPlay
-                    className={layout === "pip" ? "size-full object-cover" : "min-h-0 w-full rounded-xl bg-black object-cover"}
-                  />
-                  {layout !== "pip" ? (
-                    <div className="flex items-center justify-center rounded-xl bg-black/45 p-3 text-center text-white">
-                      <div>
-                        <div className="mx-auto flex size-10 items-center justify-center rounded-full bg-white/15">
-                          <Radio className="size-5" />
-                        </div>
-                        <p className="mt-2 text-xs font-bold">{layout === "news" ? "Shared screen" : "Guest / co-host"}</p>
-                        <p className="mt-1 text-[10px] text-white/60">Ready to add to the stage</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="absolute bottom-3 right-3 h-28 w-40 overflow-hidden rounded-xl border-2 border-white/70 bg-black">
-                      <video
-                        muted
-                        playsInline
-                        autoPlay
-                        src={screen ? undefined : undefined}
-                        className="size-full object-cover"
-                      />
-                      <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-white">Presenter</span>
-                    </div>
-                  )}
+            {mediaPlaying && mediaUrl ? (
+              layout === "media" || layout === "screen" || layout === "cinema" ? (
+                <video ref={mediaVideoRef} src={mediaUrl} autoPlay controls playsInline className="absolute inset-0 size-full object-contain bg-black" style={{ objectPosition: customMediaPosition, transform: "scale(" + customMediaZoom / 100 + ")" }} onEnded={() => setMediaPlaying(false)} />
+              ) : layout === "split" || layout === "news" ? (
+                <div className="absolute inset-0 grid grid-cols-2 gap-1 bg-black p-1">
+                  <div className="relative overflow-hidden rounded-lg bg-black">
+                    {camera ? <video ref={videoRef} muted playsInline autoPlay className="size-full object-cover" /> : <div className="flex size-full items-center justify-center text-xs text-white/50">Camera off</div>}
+                  </div>
+                  <div className="relative overflow-hidden rounded-lg bg-black">
+                    <video ref={mediaVideoRef} src={mediaUrl} autoPlay controls playsInline className="size-full object-contain" />
+                  </div>
                 </div>
-              </div>
+              ) : layout === "pip" ? (
+                <div className="absolute inset-0 overflow-hidden bg-black">
+                  <video ref={mediaVideoRef} src={mediaUrl} autoPlay controls playsInline className="size-full object-contain" />
+                  {camera ? <div className="absolute bottom-3 right-3 h-32 w-48 overflow-hidden rounded-xl border-2 border-white/80 bg-black shadow-xl"><video ref={videoRef} muted playsInline autoPlay className="size-full object-cover" /></div> : null}
+                </div>
+              ) : layout === "custom" ? (
+                <div className="absolute inset-0 overflow-hidden bg-black">
+                  <div className={"absolute inset-y-0 overflow-hidden " + (customCameraSide === "left" ? "left-0" : "right-0")} style={{ width: customCameraWidth + "%" }}>
+                    {camera ? <video ref={videoRef} muted playsInline autoPlay className="size-full object-cover" style={{ objectPosition: customCameraPosition, transform: "scale(" + customCameraZoom / 100 + ")" }} /> : <div className="flex size-full items-center justify-center text-xs text-white/50">Camera off</div>}
+                  </div>
+                  <div className={"absolute inset-y-0 overflow-hidden " + (customCameraSide === "left" ? "right-0" : "left-0")} style={{ width: (100 - customCameraWidth) + "%" }}>
+                    <video ref={mediaVideoRef} src={mediaUrl} autoPlay controls playsInline className="size-full object-contain" style={{ objectPosition: customMediaPosition, transform: "scale(" + customMediaZoom / 100 + ")" }} />
+                  </div>
+                </div>
+              ) : (
+                <video ref={videoRef} muted playsInline autoPlay className={"size-full object-cover " + (layout === "cropped" ? "scale-110" : "")} />
+              )
+            ) : layout === "media" || layout === "screen" || layout === "cinema" ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-black text-white/50 text-xs">Add and play a video to use Media only.</div>
             ) : (
-              <video
-                ref={videoRef}
-                muted
-                playsInline
-                autoPlay
-                className={"size-full object-cover " + (layout === "cropped" ? "scale-110" : "")}
-              />
+              <video ref={videoRef} muted playsInline autoPlay className={"size-full object-cover " + (layout === "cropped" ? "scale-110" : "")} />
             )}
 
             {!camera && !screen && !mediaPlaying ? (
@@ -535,23 +559,6 @@ export function LiveStudio() {
                 <Video className="size-10 opacity-70" />
                 <p className="mt-2 text-sm font-semibold">WIGOD Live preview</p>
                 <p className="mt-1 max-w-xs text-xs text-white/60">Turn on your camera, share your screen or play media.</p>
-              </div>
-            ) : null}
-
-            {mediaPlaying && mediaUrl ? (
-              <video
-                src={mediaUrl}
-                autoPlay
-                controls
-                className="absolute inset-0 size-full bg-black object-contain"
-                onEnded={() => setMediaPlaying(false)}
-              />
-            ) : null}
-
-            {liveStampOn ? (
-              <div className="pointer-events-none absolute left-3 top-3 z-30 flex items-center gap-2 rounded-md bg-black/80 px-2.5 py-1.5 text-[11px] font-black tracking-wider text-white shadow-sm">
-                <span className="size-2 animate-pulse rounded-full bg-brand-red" />
-                LIVE
               </div>
             ) : null}
 
@@ -628,7 +635,7 @@ export function LiveStudio() {
               className={"inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold text-white " + (mic ? "bg-brand-green" : "bg-brand-red")}
             >
               {mic ? <Mic className="size-4" /> : <MicOff className="size-4" />}
-              {mic ? "Mic on" : "Mic muted"}
+              {mic ? "Mic on" : mediaMicMuted ? "Mic muted for video" : "Mic muted"}
             </button>
 
             <button type="button" onClick={shareScreen} className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-3 py-2.5 text-xs font-bold">
@@ -866,7 +873,22 @@ export function LiveStudio() {
                   </button>
                 ))}
               </div>
-              <p className="text-[10px] leading-4 text-muted-foreground">Layouts are designed as reusable stage arrangements and can be changed while previewing.</p>
+              {layout === "custom" ? (
+                <div className="space-y-3 rounded-xl bg-secondary/40 p-3">
+                  <p className="text-xs font-bold">Custom stage editor</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="text-[10px] font-semibold">Camera side<select value={customCameraSide} onChange={(event) => setCustomCameraSide(event.target.value as "left" | "right")} className="mt-1 w-full rounded-lg border border-border bg-background px-2 py-2 text-xs"><option value="left">Left</option><option value="right">Right</option></select></label>
+                    <label className="text-[10px] font-semibold">Camera width <span className="float-right">{customCameraWidth}%</span><input type="range" min="20" max="80" value={customCameraWidth} onChange={(event) => setCustomCameraWidth(Number(event.target.value))} className="mt-2 w-full" /></label>
+                    <label className="text-[10px] font-semibold">Camera crop <span className="float-right">{customCameraZoom}%</span><input type="range" min="80" max="160" value={customCameraZoom} onChange={(event) => setCustomCameraZoom(Number(event.target.value))} className="mt-2 w-full" /></label>
+                    <label className="text-[10px] font-semibold">Media crop <span className="float-right">{customMediaZoom}%</span><input type="range" min="80" max="160" value={customMediaZoom} onChange={(event) => setCustomMediaZoom(Number(event.target.value))} className="mt-2 w-full" /></label>
+                    <label className="text-[10px] font-semibold">Camera position<select value={customCameraPosition} onChange={(event) => setCustomCameraPosition(event.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-2 py-2 text-xs"><option value="center">Center</option><option value="top">Top</option><option value="bottom">Bottom</option><option value="left">Left</option><option value="right">Right</option></select></label>
+                    <label className="text-[10px] font-semibold">Media position<select value={customMediaPosition} onChange={(event) => setCustomMediaPosition(event.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-2 py-2 text-xs"><option value="center">Center</option><option value="top">Top</option><option value="bottom">Bottom</option><option value="left">Left</option><option value="right">Right</option></select></label>
+                  </div>
+                  <p className="text-[9px] leading-4 text-muted-foreground">Build a camera + media composition by changing the split, side, zoom and crop position. Changes appear immediately on the preview.</p>
+                </div>
+              ) : null}
+
+                            <p className="text-[10px] leading-4 text-muted-foreground">Layouts are designed as reusable stage arrangements and can be changed while previewing.</p>
             </div>
           ) : null}
 
@@ -907,7 +929,7 @@ export function LiveStudio() {
               <label className="cursor-pointer rounded-xl border border-dashed border-border p-4 text-center block hover:bg-secondary">
                 <Video className="mx-auto size-5 text-brand-green" />
                 <p className="mt-2 text-xs font-bold">Add intro, countdown or outro video</p>
-                <p className="mt-1 text-[10px] text-muted-foreground">Local preview in the Studio</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">Playing video automatically mutes your mic; you can unmute it during playback.</p>
                 <input
                   type="file"
                   accept="video/mp4,video/webm,video/quicktime"
@@ -928,7 +950,7 @@ export function LiveStudio() {
               {mediaUrl ? (
                 <div className="rounded-xl border border-border p-3">
                   <p className="truncate text-xs font-bold">{mediaName}</p>
-                  <button type="button" onClick={() => setMediaPlaying(true)} className="mt-2 inline-flex items-center gap-2 rounded-lg bg-brand-green px-3 py-2 text-xs font-bold text-white">
+                  <button type="button" onClick={() => { setMediaPlaying(true); setMediaMicMuted(mic) }} className="mt-2 inline-flex items-center gap-2 rounded-lg bg-brand-green px-3 py-2 text-xs font-bold text-white">
                     <Video className="size-3.5" /> Play on stage
                   </button>
                 </div>
