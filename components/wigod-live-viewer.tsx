@@ -53,7 +53,7 @@ export function WigodLiveViewer({ room, title }: Props) {
             element.autoplay = true
           }
           if (mountRef.current) {
-            mountRef.current.replaceChildren(element)
+            mountRef.current.appendChild(element)
           }
         }
 
