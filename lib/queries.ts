@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import type { Comment, FeedPost, NotificationRow, Post, Profile } from "@/lib/types"
 
-type PostRow = Pick<Post, "id" | "user_id" | "content" | "image_url" | "created_at" | "updated_at">
+type PostRow = Pick<Post, "id" | "user_id" | "content" | "image_url" | "video_url" | "created_at" | "updated_at">
 
 type Enrichment = {
   author: Profile
@@ -75,6 +75,7 @@ function toFeedPost(row: PostRow, e: Enrichment, repostedBy?: FeedPost["reposted
     id: row.id,
     content: row.content,
     image_url: row.image_url,
+    video_url: row.video_url,
     created_at: row.created_at,
     updated_at: row.updated_at,
     author: e.author,
@@ -117,7 +118,7 @@ export async function getHomeFeed(userId: string): Promise<FeedPost[]> {
   const [{ data: posts }, { data: reposts }] = await Promise.all([
     supabase
       .from("posts")
-      .select("id, user_id, content, image_url, created_at, updated_at")
+      .select("id, user_id, content, image_url, video_url, created_at, updated_at")
       .in("user_id", scope)
       .order("created_at", { ascending: false })
       .limit(60),
@@ -141,7 +142,7 @@ export async function getHomeFeed(userId: string): Promise<FeedPost[]> {
   if (missingIds.length > 0) {
     const { data } = await supabase
       .from("posts")
-      .select("id, user_id, content, image_url, created_at, updated_at")
+      .select("id, user_id, content, image_url, video_url, created_at, updated_at")
       .in("id", missingIds)
     extraPosts = (data as PostRow[] | null) ?? []
   }
