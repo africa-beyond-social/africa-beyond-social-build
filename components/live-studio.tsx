@@ -93,6 +93,7 @@ export function LiveStudio() {
   const analyserRef = useRef<AnalyserNode | null>(null)
   const meterFrameRef = useRef<number | null>(null)
   const urlsRef = useRef<Set<string>>(new Set())
+  const preferencesLoadedRef = useRef(false)
 
   const [camera, setCamera] = useState(false)
   const [mic, setMic] = useState(false)
@@ -109,8 +110,10 @@ export function LiveStudio() {
   const [panel, setPanel] = useState<Panel>("settings")
   const [showOverlay, setShowOverlay] = useState(true)
   const [liveStampOn, setLiveStampOn] = useState(true)
-  const [timestampOn, setTimestampOn] = useState(true)
+  const [broadcastTimeOn, setBroadcastTimeOn] = useState(true)
   const [liveClock, setLiveClock] = useState("")
+  const [mediaElapsed, setMediaElapsed] = useState(0)
+  const [mediaDuration, setMediaDuration] = useState(0)
   const [overlayUrl, setOverlayUrl] = useState("")
   const [overlayOpacity, setOverlayOpacity] = useState(100)
   const [logoUrl, setLogoUrl] = useState("")
@@ -167,6 +170,75 @@ export function LiveStudio() {
   }, [])
 
   useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem("wigod-live-studio-preferences")
+      if (raw) {
+        const saved = JSON.parse(raw) as Record<string, unknown>
+        if (typeof saved.layout === "string") setLayout(saved.layout as Layout)
+        if (typeof saved.panel === "string") setPanel(saved.panel as Panel)
+        if (typeof saved.showOverlay === "boolean") setShowOverlay(saved.showOverlay)
+        if (typeof saved.liveStampOn === "boolean") setLiveStampOn(saved.liveStampOn)
+        if (typeof saved.broadcastTimeOn === "boolean") setBroadcastTimeOn(saved.broadcastTimeOn)
+        if (typeof saved.overlayOpacity === "number") setOverlayOpacity(saved.overlayOpacity)
+        if (typeof saved.screenText === "string") setScreenText(saved.screenText)
+        if (typeof saved.screenTextPosition === "string") setScreenTextPosition(saved.screenTextPosition as typeof screenTextPosition)
+        if (typeof saved.screenTextSize === "string") setScreenTextSize(saved.screenTextSize)
+        if (typeof saved.lowerThird === "boolean") setLowerThird(saved.lowerThird)
+        if (typeof saved.lowerName === "string") setLowerName(saved.lowerName)
+        if (typeof saved.lowerRole === "string") setLowerRole(saved.lowerRole)
+        if (typeof saved.primaryColor === "string") setPrimaryColor(saved.primaryColor)
+        if (typeof saved.accentColor === "string") setAccentColor(saved.accentColor)
+        if (typeof saved.bannerColor === "string") setBannerColor(saved.bannerColor)
+        if (typeof saved.bannerTextColor === "string") setBannerTextColor(saved.bannerTextColor)
+        if (typeof saved.bannerLayout === "string") setBannerLayout(saved.bannerLayout as BannerLayout)
+        if (typeof saved.bannerRadius === "string") setBannerRadius(saved.bannerRadius as typeof bannerRadius)
+        if (typeof saved.tickerColor === "string") setTickerColor(saved.tickerColor)
+        if (typeof saved.ticker === "string") setTicker(saved.ticker)
+        if (typeof saved.tickerOn === "boolean") setTickerOn(saved.tickerOn)
+        if (typeof saved.headlineOn === "boolean") setHeadlineOn(saved.headlineOn)
+        if (typeof saved.headlines === "string") setHeadlines(saved.headlines)
+        if (Array.isArray(saved.scenes)) setScenes(saved.scenes as Scene[])
+        if (typeof saved.customCameraSide === "string") setCustomCameraSide(saved.customCameraSide as "left" | "right")
+        if (typeof saved.customCameraWidth === "number") setCustomCameraWidth(saved.customCameraWidth)
+        if (typeof saved.customCameraZoom === "number") setCustomCameraZoom(saved.customCameraZoom)
+        if (typeof saved.customMediaZoom === "number") setCustomMediaZoom(saved.customMediaZoom)
+        if (typeof saved.customCameraPosition === "string") setCustomCameraPosition(saved.customCameraPosition)
+        if (typeof saved.customMediaPosition === "string") setCustomMediaPosition(saved.customMediaPosition)
+        if (typeof saved.logoUrl === "string") setLogoUrl(saved.logoUrl)
+        if (typeof saved.overlayUrl === "string") setOverlayUrl(saved.overlayUrl)
+        if (typeof saved.backgroundUrl === "string") setBackgroundUrl(saved.backgroundUrl)
+        if (typeof saved.thumbnailUrl === "string") setThumbnailUrl(saved.thumbnailUrl)
+      }
+    } catch {
+      // Ignore invalid or unavailable browser preferences.
+    }
+    preferencesLoadedRef.current = true
+  }, [])
+
+  useEffect(() => {
+    if (!preferencesLoadedRef.current) return
+    try {
+      window.localStorage.setItem("wigod-live-studio-preferences", JSON.stringify({
+        layout, panel, showOverlay, liveStampOn, broadcastTimeOn, overlayOpacity,
+        screenText, screenTextPosition, screenTextSize, lowerThird, lowerName, lowerRole,
+        primaryColor, accentColor, bannerColor, bannerTextColor, bannerLayout, bannerRadius,
+        tickerColor, ticker, tickerOn, headlineOn, headlines, scenes,
+        customCameraSide, customCameraWidth, customCameraZoom, customMediaZoom,
+        customCameraPosition, customMediaPosition, logoUrl, overlayUrl, backgroundUrl, thumbnailUrl
+      }))
+    } catch {
+      // Storage can be unavailable or full; never break the studio.
+    }
+  }, [
+    layout, panel, showOverlay, liveStampOn, broadcastTimeOn, overlayOpacity,
+    screenText, screenTextPosition, screenTextSize, lowerThird, lowerName, lowerRole,
+    primaryColor, accentColor, bannerColor, bannerTextColor, bannerLayout, bannerRadius,
+    tickerColor, ticker, tickerOn, headlineOn, headlines, scenes,
+    customCameraSide, customCameraWidth, customCameraZoom, customMediaZoom,
+    customCameraPosition, customMediaPosition, logoUrl, overlayUrl, backgroundUrl, thumbnailUrl
+  ])
+
+  useEffect(() => {
     const updateClock = () => {
       setLiveClock(new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date()))
     }
@@ -181,6 +253,17 @@ export function LiveStudio() {
     const timer = window.setInterval(() => setHeadlineIndex((current) => (current + 1) % items.length), 6000)
     return () => window.clearInterval(timer)
   }, [headlines, headlineOn])
+
+  useEffect(() => {
+    if (!mediaPlaying) return
+    const timer = window.setInterval(() => {
+      const player = mediaVideoRef.current
+      if (!player) return
+      setMediaElapsed(player.currentTime || 0)
+      setMediaDuration(Number.isFinite(player.duration) ? player.duration : 0)
+    }, 200)
+    return () => window.clearInterval(timer)
+  }, [mediaPlaying, mediaUrl])
 
   useEffect(() => {
     if (!mediaPlaying) {
@@ -249,16 +332,25 @@ export function LiveStudio() {
     return registerUrl(URL.createObjectURL(file))
   }
 
-  function handleAsset(event: ChangeEvent<HTMLInputElement>, setter: (url: string) => void, imageOnly = false) {
+  async function handleAsset(event: ChangeEvent<HTMLInputElement>, setter: (url: string) => void, imageOnly = false) {
     const file = event.target.files?.[0]
     if (!file) return
     if (imageOnly && !file.type.startsWith("image/")) {
       setError("Please select an image file.")
       return
     }
-    const url = registerUrl(URL.createObjectURL(file))
-    setter(url)
-    setError("")
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(String(reader.result))
+        reader.onerror = () => reject(new Error("asset-read-failed"))
+        reader.readAsDataURL(file)
+      })
+      setter(dataUrl)
+      setError("")
+    } catch {
+      setError("WIGOD could not save that graphic. Please choose the file again.")
+    }
   }
 
   function startMeter(stream: MediaStream) {
@@ -515,8 +607,25 @@ export function LiveStudio() {
   const textSizeClass =
     screenTextSize === "large" ? "text-2xl" : screenTextSize === "small" ? "text-sm" : "text-lg"
 
+  function formatTime(seconds: number) {
+    if (!Number.isFinite(seconds) || seconds < 0) return "00:00"
+    const total = Math.floor(seconds)
+    const hours = Math.floor(total / 3600)
+    const minutes = Math.floor((total % 3600) / 60)
+    const secs = total % 60
+    return hours > 0
+      ? [hours, minutes, secs].map((value) => String(value).padStart(2, "0")).join(":")
+      : [minutes, secs].map((value) => String(value).padStart(2, "0")).join(":")
+  }
+
   return (
     <div className="space-y-5">
+      <style jsx>{`
+        @keyframes wigodTicker {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+      `}</style>
       <div className="rounded-2xl border border-border bg-secondary/30 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -595,9 +704,10 @@ export function LiveStudio() {
               <img src={logoUrl} alt="WIGOD logo" className="absolute right-3 top-3 z-20 h-12 w-12 rounded object-contain" />
             ) : null}
 
-            {timestampOn && liveClock ? (
-              <div className="pointer-events-none absolute right-3 top-[4.25rem] z-30 rounded-md bg-black/75 px-2.5 py-1 text-[10px] font-bold tabular-nums text-white">
-                {liveClock}
+            {liveStampOn ? (
+              <div className="pointer-events-none absolute left-3 top-3 z-30 inline-flex items-center gap-1.5 rounded-md bg-red-600 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white">
+                <span className="size-1.5 animate-pulse rounded-full bg-white" />
+                LIVE
               </div>
             ) : null}
 
@@ -671,10 +781,43 @@ export function LiveStudio() {
             ) : null}
 
             {tickerOn && ticker ? (
-              <div className="pointer-events-none absolute bottom-0 left-0 right-0 overflow-hidden px-3 py-2 text-[11px] font-bold" style={{ backgroundColor: tickerColor, color: bannerTextColor }}>
-                <div className="animate-[wigodTicker_18s_linear_infinite] whitespace-nowrap">{ticker}</div>
+              <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-50 overflow-hidden px-3 py-2 text-[11px] font-bold" style={{ backgroundColor: tickerColor, color: bannerTextColor }}>
+                <div className="flex w-max min-w-full animate-[wigodTicker_18s_linear_infinite] whitespace-nowrap">
+                  <span className="pr-16">{ticker}</span>
+                  <span className="pr-16">{ticker}</span>
+                </div>
               </div>
             ) : null}
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="rounded-xl border border-border bg-secondary/20 px-3 py-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Video time</span>
+                <span className="text-xs font-bold tabular-nums">{formatTime(mediaElapsed)} / {formatTime(mediaDuration)}</span>
+              </div>
+              {mediaUrl ? (
+                <input type="range" min={0} max={mediaDuration || 0} step="0.1" value={Math.min(mediaElapsed, mediaDuration || 0)} onChange={(event) => {
+                  const next = Number(event.target.value)
+                  setMediaElapsed(next)
+                  if (mediaVideoRef.current) mediaVideoRef.current.currentTime = next
+                }} className="mt-2 w-full" aria-label="Video position" />
+              ) : (
+                <p className="mt-1 text-[9px] text-muted-foreground">Load a video to see elapsed and total time.</p>
+              )}
+            </div>
+            <div className="rounded-xl border border-border bg-secondary/20 px-3 py-2">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Broadcast time</span>
+                  <p className="mt-0.5 text-[9px] text-muted-foreground">{broadcastTimeOn ? "Current time while broadcasting" : "Hidden from the studio stage"}</p>
+                </div>
+                <button type="button" onClick={() => setBroadcastTimeOn((value) => !value)} className={"rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-white " + (broadcastTimeOn ? "bg-brand-green" : "bg-brand-red")}>
+                  {broadcastTimeOn ? "On" : "Off"}
+                </button>
+              </div>
+              {broadcastTimeOn ? <p className="mt-2 text-lg font-black tabular-nums">{liveClock}</p> : null}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
@@ -846,7 +989,7 @@ export function LiveStudio() {
                 <p className="text-xs font-bold">Broadcast graphics</p>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-[10px] font-semibold"><span>LIVE stamp</span><input type="checkbox" checked={liveStampOn} onChange={(event) => setLiveStampOn(event.target.checked)} /></label>
-                  <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-[10px] font-semibold"><span>Time stamp</span><input type="checkbox" checked={timestampOn} onChange={(event) => setTimestampOn(event.target.checked)} /></label>
+                  <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-[10px] font-semibold"><span>Broadcast time</span><input type="checkbox" checked={broadcastTimeOn} onChange={(event) => setBroadcastTimeOn(event.target.checked)} /></label>
                   <label className="col-span-2 flex items-center justify-between rounded-lg border border-border px-3 py-2 text-[10px] font-semibold"><span>News headlines</span><input type="checkbox" checked={headlineOn} onChange={(event) => setHeadlineOn(event.target.checked)} /></label>
                 </div>
                 <textarea value={headlines} onChange={(event) => { setHeadlines(event.target.value); setHeadlineIndex(0) }} rows={4} placeholder="One headline per line" className="mt-2 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-xs" />
