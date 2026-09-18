@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import type { Comment, FeedPost, NotificationRow, Post, Profile } from "@/lib/types"
 
-type PostRow = Pick<Post, "id" | "user_id" | "content" | "image_url" | "created_at" | "updated_at">
+type PostRow = Pick<Post, "id" | "user_id" | "content" | "image_url" | "video_url" | "created_at" | "updated_at">
 
 type Enrichment = {
   author: Profile
@@ -117,7 +117,7 @@ export async function getHomeFeed(userId: string): Promise<FeedPost[]> {
   const [{ data: posts }, { data: reposts }] = await Promise.all([
     supabase
       .from("posts")
-      .select("id, user_id, content, image_url, created_at, updated_at")
+      .select("id, user_id, content, image_url, video_url, created_at, updated_at")
       .in("user_id", scope)
       .order("created_at", { ascending: false })
       .limit(60),
