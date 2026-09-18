@@ -1,33 +1,22 @@
 # africa-beyond-social-build
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+This is the Next.js application for **Africa & Beyond Social**.
 
-## Built with v0
+## Africa & Beyond Live
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+The Live Centre supports automatic YouTube Live detection, a live player, persistent scheduled events in Supabase, live-event countdowns, social conversations and an administrator control room at `/live/manage`.
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_r5Ol358K0imgWN4HPlXLksqTynKV)
+### Vercel environment variables
 
-## Getting Started
+- `YOUTUBE_API_KEY` — server-side YouTube Data API key
+- `YOUTUBE_CHANNEL_ID` — Africa & Beyond TV YouTube channel ID
+- `SUPABASE_SECRET_KEY` — server-only Supabase secret for Live event management
+- `LIVE_ADMIN_EMAILS` — comma-separated Supabase Auth email addresses allowed to manage Live events
 
-First, run the development server:
+The existing public Supabase URL and publishable key remain required.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-```
+### Database
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Apply `supabase/migrations/20260917110800_create_live_events.sql` to the connected Supabase project. It creates `live_events` with RLS enabled and public read access.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-## Learn More
-
-To learn more, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+Administrators can use `/live/manage` to create and delete scheduled programmes. Never expose `YOUTUBE_API_KEY` or `SUPABASE_SECRET_KEY` to the browser.

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import type { Comment, FeedPost, NotificationRow, Post, Profile } from "@/lib/types"
 
-type PostRow = Pick<Post, "id" | "user_id" | "content" | "image_url" | "created_at" | "updated_at">
+type PostRow = Pick<Post, "id" | "user_id" | "content" | "image_url" | "video_url" | "created_at" | "updated_at">
 
 type Enrichment = {
   author: Profile
@@ -21,10 +21,6 @@ const EMPTY_PROFILE = (id: string): Profile => ({
   created_at: new Date().toISOString(),
 })
 
-/**
- * Given a set of raw post rows, load authors and interaction counts in a
- * handful of batched queries (no FK-name inference required).
- */
 async function enrichPosts(postRows: PostRow[], currentUserId: string | null): Promise<Map<string, Enrichment>> {
   const result = new Map<string, Enrichment>()
   if (postRows.length === 0) return result
@@ -79,6 +75,7 @@ function toFeedPost(row: PostRow, e: Enrichment, repostedBy?: FeedPost["reposted
     id: row.id,
     content: row.content,
     image_url: row.image_url,
+    video_url: row.video_url,
     created_at: row.created_at,
     updated_at: row.updated_at,
     author: e.author,
@@ -113,17 +110,15 @@ export async function getCurrentProfile(): Promise<Profile | null> {
   return (data as Profile | null) ?? null
 }
 
-/** Home feed: original posts + reposts from the user and everyone they follow. */
 export async function getHomeFeed(userId: string): Promise<FeedPost[]> {
   const supabase = await createClient()
-
   const { data: follows } = await supabase.from("follows").select("following_id").eq("follower_id", userId)
   const scope = Array.from(new Set([userId, ...(follows?.map((f) => f.following_id) ?? [])]))
 
   const [{ data: posts }, { data: reposts }] = await Promise.all([
     supabase
       .from("posts")
-      .select("id, user_id, content, image_url, created_at, updated_at")
+      .select("id, user_id, content, image_url, video_url, created_at, updated_at")
       .in("user_id", scope)
       .order("created_at", { ascending: false })
       .limit(60),
@@ -136,8 +131,6 @@ export async function getHomeFeed(userId: string): Promise<FeedPost[]> {
   ])
 
   const postRows = (posts as PostRow[] | null) ?? []
-
-  // Fetch the original posts behind reposts (may not already be in postRows).
   const repostRows = reposts ?? []
   const knownIds = new Set(postRows.map((p) => p.id))
   const missingIds = Array.from(new Set(repostRows.map((r) => r.post_id))).filter((id) => !knownIds.has(id))
@@ -149,7 +142,7 @@ export async function getHomeFeed(userId: string): Promise<FeedPost[]> {
   if (missingIds.length > 0) {
     const { data } = await supabase
       .from("posts")
-      .select("id, user_id, content, image_url, created_at, updated_at")
+      .select("id, user_id, content, image_url, video_url, created_at, updated_at")
       .in("id", missingIds)
     extraPosts = (data as PostRow[] | null) ?? []
   }
@@ -180,7 +173,6 @@ export async function getHomeFeed(userId: string): Promise<FeedPost[]> {
     const row = rowById.get(r.post_id)
     const e = row && enrichment.get(row.id)
     if (!row || !e) continue
-    // Skip reposts by the author of a post that is already shown as original by them.
     const reposter = reposterProfiles.get(r.user_id)
     items.push({
       feed: toFeedPost(row, e, reposter ? { id: reposter.id, display_name: reposter.display_name, username: reposter.username } : null),
@@ -190,13 +182,11 @@ export async function getHomeFeed(userId: string): Promise<FeedPost[]> {
 
   items.sort((a, b) => b.sortTime - a.sortTime)
 
-  // De-duplicate: keep the first (most recent) appearance of each post id.
   const deduped: FeedPost[] = []
   const usedIds = new Set<string>()
   for (const it of items) {
     const key = it.feed.reposted_by ? `rp-${it.feed.id}-${it.feed.reposted_by.id}` : it.feed.id
     if (usedIds.has(key)) continue
-    // avoid showing the same underlying post twice (original + own repost)
     if (usedIds.has(it.feed.id)) continue
     usedIds.add(key)
     usedIds.add(it.feed.id)
@@ -206,7 +196,6 @@ export async function getHomeFeed(userId: string): Promise<FeedPost[]> {
   return deduped.slice(0, 60)
 }
 
-/** Global recent posts (Explore latest). */
 export async function getRecentPosts(currentUserId: string | null, limit = 40): Promise<FeedPost[]> {
   const supabase = await createClient()
   const { data } = await supabase
@@ -296,7 +285,6 @@ export async function getFollowStats(userId: string, currentUserId: string | nul
   }
 }
 
-/** Returns the subset of candidateIds that currentUserId already follows. */
 export async function getFollowingSet(currentUserId: string | null, candidateIds: string[]): Promise<Set<string>> {
   const set = new Set<string>()
   if (!currentUserId || candidateIds.length === 0) return set
@@ -322,6 +310,26 @@ export async function getConnectionProfiles(userId: string, kind: "followers" | 
     .select("id, username, display_name, bio, avatar_url, created_at")
     .in("id", ids)
   return (data as Profile[] | null) ?? []
+}
+
+/** People discovery: recent profiles, excluding the signed-in user and people already followed. */
+export async function getSuggestedProfiles(currentUserId: string | null, limit = 8): Promise<Profile[]> {
+  const supabase = await createClient()
+  const followedIds = new Set<string>()
+  if (currentUserId) {
+    const { data: follows } = await supabase.from("follows").select("following_id").eq("follower_id", currentUserId)
+    for (const row of follows ?? []) followedIds.add(row.following_id)
+  }
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, username, display_name, bio, avatar_url, created_at")
+    .order("created_at", { ascending: false })
+    .limit(Math.max(limit * 4, 24))
+
+  return ((data as Profile[] | null) ?? [])
+    .filter((profile) => profile.id !== currentUserId && !followedIds.has(profile.id))
+    .slice(0, limit)
 }
 
 export async function searchProfiles(term: string): Promise<Profile[]> {

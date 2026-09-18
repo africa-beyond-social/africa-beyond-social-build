@@ -1,0 +1,10 @@
+"use client"
+import {useEffect,useState} from "react"
+import {CalendarDays,Clock3,MapPin,Radio} from "lucide-react"
+export function LiveEventCard({title,start,location}:{title:string;start?:string;location?:string}){
+ const [remaining,setRemaining]=useState<number|null>(null)
+ useEffect(()=>{if(!start)return;const t=new Date(start).getTime(),tick=()=>setRemaining(Math.max(0,t-Date.now()));tick();const id=window.setInterval(tick,1000);return()=>window.clearInterval(id)},[start])
+ if(!start)return <div className="rounded-2xl border border-border p-4"><CalendarDays className="size-5 text-brand-green"/><h3 className="mt-3 text-sm font-bold">Upcoming Live</h3><p className="mt-1 text-xs text-muted-foreground">Scheduled WIGOD broadcasts will appear here.</p></div>
+ const d=new Date(start),total=Math.floor((remaining??0)/1000),days=Math.floor(total/86400),hours=Math.floor(total%86400/3600),mins=Math.floor(total%3600/60)
+ return <div className="rounded-2xl border border-border bg-brand-green/5 p-4"><div className="flex items-start justify-between"><CalendarDays className="size-5 text-brand-green"/><span className="inline-flex items-center gap-1 rounded-full bg-brand-green/10 px-2.5 py-1 text-[10px] font-bold uppercase text-brand-green"><Radio className="size-3"/>Upcoming</span></div><h3 className="mt-4 text-sm font-bold">{title}</h3><div className="mt-2 space-y-1 text-xs text-muted-foreground"><p className="flex items-center gap-1.5"><Clock3 className="size-3.5"/>{d.toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"})}</p>{location?<p className="flex items-center gap-1.5"><MapPin className="size-3.5"/>{location}</p>:null}</div><div className="mt-4 grid grid-cols-3 gap-1.5 text-center">{[["Days",days],["Hours",hours],["Min",mins]].map(([l,v])=><div key={String(l)} className="rounded-lg border border-border bg-background py-2"><p className="text-sm font-bold tabular-nums">{String(v).padStart(2,"0")}</p><p className="text-[9px] text-muted-foreground">{l}</p></div>)}</div></div>
+}

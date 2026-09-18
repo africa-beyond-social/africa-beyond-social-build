@@ -24,7 +24,6 @@ export default function LoginPage() {
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
-      // Generic for credential mismatch; pass through actionable states.
       const msg = error.message.toLowerCase()
       if (msg.includes("confirm")) setError("Please confirm your email address before signing in.")
       else if (msg.includes("rate") || error.status === 429) setError("Too many attempts. Please try again shortly.")
@@ -35,29 +34,30 @@ export default function LoginPage() {
     router.push("/")
     router.refresh()
   }
+
   async function handleForgotPassword() {
-  if (!email) {
-    setError("Enter your email address first.")
-    return
+    if (!email) {
+      setError("Enter your email address first.")
+      return
+    }
+
+    setError(null)
+    setResetLoading(true)
+
+    const supabase = createClient()
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
+    })
+
+    if (error) {
+      setError(error.message)
+    } else {
+      setError("Check your email for a password reset link.")
+    }
+
+    setResetLoading(false)
   }
-
-  setError(null)
-  setResetLoading(true)
-
-  const supabase = createClient()
-
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
-  })
-
-  if (error) {
-    setError(error.message)
-  } else {
-    setError("Check your email for a password reset link.")
-  }
-
-  setResetLoading(false)
-}
 
   return (
     <Card className="rounded-2xl">
@@ -89,13 +89,13 @@ export default function LoginPage() {
               placeholder="••••••••"
             />
             <button
-  type="button"
-  onClick={handleForgotPassword}
-  disabled={resetLoading}
-  className="text-sm text-brand-red hover:underline text-left"
->
-  {resetLoading ? "Sending reset link..." : "Forgot your password?"}
-</button>
+              type="button"
+              onClick={handleForgotPassword}
+              disabled={resetLoading}
+              className="text-sm text-brand-red hover:underline text-left"
+            >
+              {resetLoading ? "Sending reset link..." : "Forgot your password?"}
+            </button>
           </div>
           {error && (
             <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -107,7 +107,7 @@ export default function LoginPage() {
           </Button>
         </form>
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          New to Africa &amp; Beyond?{" "}
+          New to WIGOD?{" "}
           <Link href="/auth/sign-up" className="font-semibold text-brand-red hover:underline">
             Create an account
           </Link>

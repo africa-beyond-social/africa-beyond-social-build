@@ -95,7 +95,7 @@ export function PostCard({
     const url = `${window.location.origin}${postHref}`
     try {
       if (navigator.share) {
-        await navigator.share({ url, title: "Africa & Beyond Social" })
+        await navigator.share({ url, title: "WIGOD" })
       } else {
         await navigator.clipboard.writeText(url)
         toast.success("Link copied to clipboard.")
@@ -199,6 +199,29 @@ export function PostCard({
         <div className="mt-0.5">
           <PostContent content={post.content} />
         </div>
+
+        {post.video_url && (
+          <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-black">
+            <video
+              src={post.video_url}
+              controls
+              playsInline
+              preload="metadata"
+              className="max-h-[560px] w-full"
+            />
+          </div>
+        )}
+
+        {post.image_url && (
+          <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-secondary/30">
+            <img
+              src={post.image_url}
+              alt="Post media"
+              className="max-h-[520px] w-full object-contain"
+              loading="lazy"
+            />
+          </div>
+        )}
 
         <div className="mt-2 flex max-w-md items-center justify-between text-muted-foreground">
           <button

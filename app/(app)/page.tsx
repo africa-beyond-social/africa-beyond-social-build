@@ -20,7 +20,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-full">
-      <PageHeader title="AFRICA & BEYOND SOCIAL" subtitle="People. Places. Perspectives." />
+      <PageHeader title="WIGOD" subtitle="People. Places. Perspectives." />
 
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 border-r-0 lg:border-r lg:border-border">
@@ -65,7 +65,7 @@ export default async function HomePage() {
             empty={
               <EmptyState
                 icon={<Sparkles className="size-6" />}
-                title="Your Africa & Beyond feed is quiet"
+                title="Your WIGOD feed is quiet"
                 description="Follow people on Explore Africa & Beyond, or share your first perspective to get the conversation started."
               />
             }
@@ -98,9 +98,9 @@ export default async function HomePage() {
           <section className="rounded-2xl border border-brand-red/20 bg-brand-red/5 p-4">
             <div className="mb-2 flex items-center gap-2">
               <Radio className="size-5 text-brand-red" />
-              <h2 className="font-semibold">AFRICA &amp; BEYOND TV</h2>
+              <h2 className="font-semibold">WIGOD LIVE</h2>
             </div>
-            <p className="text-xs leading-5 text-muted-foreground">Live broadcasts, programmes and video from Africa &amp; Beyond.</p>
+            <p className="text-xs leading-5 text-muted-foreground">Live broadcasts, programmes and video on WIGOD.</p>
             <Link href="/live" className="mt-3 inline-flex rounded-full bg-brand-red px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90">
               Watch Live
             </Link>
