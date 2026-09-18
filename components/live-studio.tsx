@@ -1134,7 +1134,7 @@ export function LiveStudio() {
                     <p className="text-xs font-bold">Broadcast graphics</p>
                     <p className="mt-0.5 text-[9px] text-muted-foreground">Everything here is off by default. Turn on only what you want on air.</p>
                   </div>
-                  <div className="text-right"><p className="text-[9px] font-bold text-brand-green">Brand design</p><p className="text-[10px] font-black">{OVERLAY_DESIGNS.find((item) => item.id === overlayDesign)?.name ?? "Newsroom"}</p></div>
+                  <div className="text-right"><p className="text-[9px] font-bold text-brand-green">Brand design</p><p className="text-[10px] font-black">{OVERLAY_DESIGNS.find((item) => item.id === overlayDesign)?.name ?? "Live Ribbon"}</p></div>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-[10px] font-semibold"><span>LIVE stamp</span><input type="checkbox" checked={liveStampOn} onChange={(event) => setLiveStampOn(event.target.checked)} /></label>
@@ -1181,17 +1181,21 @@ export function LiveStudio() {
                   </div>
                   <input type="checkbox" checked={showOverlay} onChange={(event) => setShowOverlay(event.target.checked)} />
                 </div>
-                <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {OVERLAY_DESIGNS.map((item) => (
                     <button key={item.id} type="button" onClick={() => setOverlayDesign(item.id)} className={"rounded-xl border p-2 text-left " + (overlayDesign === item.id ? "border-brand-green bg-brand-green/5" : "border-border hover:bg-secondary")}>
-                      <div className="mb-2 overflow-hidden rounded-md border border-border bg-black/80">
-                        <div className="h-1" style={{ backgroundColor: primaryColor }} />
-                        <div className="flex h-5 items-end gap-1 p-1">
-                          <span className="h-2 w-1/4 rounded-sm" style={{ backgroundColor: primaryColor }} />
-                          <span className="h-1.5 flex-1 rounded-sm bg-white/60" />
-                          <span className="h-1.5 w-1/6 rounded-sm" style={{ backgroundColor: accentColor }} />
-                        </div>
-                        <div className="h-1" style={{ backgroundColor: tickerColor }} />
+                      <div className="relative mb-2 aspect-[16/7] overflow-hidden rounded-md border border-border bg-black/90">
+                        {item.id === "ribbon" ? (
+                          <div className="absolute inset-x-2 bottom-2 h-4 -skew-x-12" style={{ backgroundColor: bannerColor }}><span className="absolute left-1 top-0 h-full w-6" style={{ backgroundColor: accentColor }} /><span className="absolute right-1 top-1 h-2 w-5" style={{ backgroundColor: primaryColor }} /></div>
+                        ) : item.id === "badge" ? (
+                          <div className="absolute bottom-2 left-1 size-7 rotate-45 rounded-lg" style={{ backgroundColor: primaryColor }} /><div className="absolute bottom-2 left-4 right-1 h-4 rounded" style={{ backgroundColor: bannerColor, borderBottom: "2px solid " + accentColor }} />
+                        ) : item.id === "capsule" ? (
+                          <div className="absolute inset-x-2 bottom-2 h-5 rounded-full" style={{ backgroundColor: bannerColor, border: "2px solid " + primaryColor }}><span className="absolute left-0 top-0 h-full w-8 rounded-full" style={{ backgroundColor: primaryColor }} /><span className="absolute right-0 top-0 h-full w-8 rounded-full" style={{ backgroundColor: accentColor }} /></div>
+                        ) : item.id === "angled" ? (
+                          <div className="absolute inset-x-2 bottom-2 flex h-5 -skew-x-12"><span className="w-1/5" style={{ backgroundColor: primaryColor }} /><span className="flex-1" style={{ backgroundColor: bannerColor }} /><span className="w-1/6" style={{ backgroundColor: accentColor }} /></div>
+                        ) : (
+                          <div className="absolute inset-x-2 bottom-2 flex h-5 items-center"><span className="z-10 mr-[-8px] size-7 rounded-full" style={{ backgroundColor: primaryColor, border: "2px solid white" }} /><span className="h-full flex-1 rounded-r-full" style={{ backgroundColor: bannerColor, borderTop: "2px solid " + primaryColor }} /><span className="mr-1 size-4 rounded-full" style={{ backgroundColor: accentColor }} /></div>
+                        )}
                       </div>
                       <p className="text-[10px] font-bold">{item.name}</p>
                       <p className="mt-0.5 text-[8px] leading-3 text-muted-foreground">{item.description}</p>
@@ -1398,15 +1402,3 @@ export function LiveStudio() {
                 ))}
               </div>
               <div className="rounded-xl bg-secondary/40 p-3">
-                <p className="text-xs font-bold">Save current setup as a scene</p>
-                <div className="mt-2 flex gap-2">
-                  <input value={customSceneName} onChange={(event) => setCustomSceneName(event.target.value)} placeholder="Scene name" className="min-w-0 flex-1 rounded-lg border border-border bg-background px-2.5 py-2 text-xs" />
-                  <button type="button" onClick={saveCustomScene} className="rounded-lg bg-brand-green px-3 py-2 text-xs font-bold text-white">Save</button>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {panel === "media" ? (
-            <div className="space-y-3 rounded-2xl border border-border p-4">
-              <div className="flex items-center gap-2">
