@@ -106,6 +106,7 @@ export async function createPost(content: string, imageUrl?: string | null, vide
 
   revalidatePath("/")
   revalidatePath("/explore")
+  revalidatePath("/media")
   return { ok: true }
 }
 
