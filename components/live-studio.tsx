@@ -192,7 +192,6 @@ export function LiveStudio() {
         if (typeof saved.screenText === "string") setScreenText(saved.screenText)
         if (typeof saved.screenTextPosition === "string") setScreenTextPosition(saved.screenTextPosition as typeof screenTextPosition)
         if (typeof saved.screenTextSize === "string") setScreenTextSize(saved.screenTextSize)
-        if (typeof saved.lowerThird === "boolean") setLowerThird(saved.lowerThird)
         if (typeof saved.lowerName === "string") setLowerName(saved.lowerName)
         if (typeof saved.lowerRole === "string") setLowerRole(saved.lowerRole)
         if (typeof saved.primaryColor === "string") setPrimaryColor(saved.primaryColor)
