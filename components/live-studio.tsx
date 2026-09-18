@@ -119,6 +119,7 @@ export function LiveStudio() {
   const [logoUrl, setLogoUrl] = useState("")
   const [backgroundUrl, setBackgroundUrl] = useState("")
   const [thumbnailUrl, setThumbnailUrl] = useState("")
+  const [avatarUrl, setAvatarUrl] = useState("")
   const [screenText, setScreenText] = useState("WELCOME TO WIGOD LIVE")
   const [screenTextPosition, setScreenTextPosition] = useState<"top" | "middle" | "bottom">("top")
   const [screenTextSize, setScreenTextSize] = useState("medium")
@@ -208,6 +209,7 @@ export function LiveStudio() {
         if (typeof saved.overlayUrl === "string") setOverlayUrl(saved.overlayUrl)
         if (typeof saved.backgroundUrl === "string") setBackgroundUrl(saved.backgroundUrl)
         if (typeof saved.thumbnailUrl === "string") setThumbnailUrl(saved.thumbnailUrl)
+        if (typeof saved.avatarUrl === "string") setAvatarUrl(saved.avatarUrl)
       }
     } catch {
       // Ignore invalid or unavailable browser preferences.
@@ -224,7 +226,7 @@ export function LiveStudio() {
         primaryColor, accentColor, bannerColor, bannerTextColor, bannerLayout, bannerRadius,
         tickerColor, ticker, tickerOn, headlineOn, headlines, scenes,
         customCameraSide, customCameraWidth, customCameraZoom, customMediaZoom,
-        customCameraPosition, customMediaPosition, logoUrl, overlayUrl, backgroundUrl, thumbnailUrl
+        customCameraPosition, customMediaPosition, logoUrl, overlayUrl, backgroundUrl, thumbnailUrl, avatarUrl
       }))
     } catch {
       // Storage can be unavailable or full; never break the studio.
@@ -235,7 +237,7 @@ export function LiveStudio() {
     primaryColor, accentColor, bannerColor, bannerTextColor, bannerLayout, bannerRadius,
     tickerColor, ticker, tickerOn, headlineOn, headlines, scenes,
     customCameraSide, customCameraWidth, customCameraZoom, customMediaZoom,
-    customCameraPosition, customMediaPosition, logoUrl, overlayUrl, backgroundUrl, thumbnailUrl
+    customCameraPosition, customMediaPosition, logoUrl, overlayUrl, backgroundUrl, thumbnailUrl, avatarUrl
   ])
 
   useEffect(() => {
@@ -693,11 +695,19 @@ export function LiveStudio() {
             )}
 
             {!camera && !screen && !mediaPlaying ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white">
-                <Video className="size-10 opacity-70" />
-                <p className="mt-2 text-sm font-semibold">WIGOD Live preview</p>
-                <p className="mt-1 max-w-xs text-xs text-white/60">Turn on your camera, share your screen or play media.</p>
-              </div>
+              avatarUrl ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black text-center text-white">
+                  <img src={avatarUrl} alt="Creator avatar" className="size-28 rounded-full border-4 border-white/20 object-cover shadow-2xl" />
+                  <p className="mt-3 text-sm font-black">Camera off</p>
+                  <p className="mt-1 text-[10px] text-white/60">Your creator avatar is on stage</p>
+                </div>
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white">
+                  <Video className="size-10 opacity-70" />
+                  <p className="mt-2 text-sm font-semibold">WIGOD Live preview</p>
+                  <p className="mt-1 max-w-xs text-xs text-white/60">Turn on your camera, share your screen or play media.</p>
+                </div>
+              )
             ) : null}
 
             {logoUrl ? (
@@ -777,6 +787,15 @@ export function LiveStudio() {
                 <div className="min-w-0 flex-1 px-3 py-1.5 text-[10px] font-bold">
                   {(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "WIGOD NEWS")}
                 </div>
+                {broadcastTimeOn && liveClock ? (
+                  <div className="shrink-0 border-l border-white/20 px-3 py-1.5 text-[10px] font-black tabular-nums" aria-label="Broadcast time">
+                    {liveClock}
+                  </div>
+                ) : null}
+              </div>
+            ) : broadcastTimeOn && liveClock ? (
+              <div className="pointer-events-none absolute bottom-8 right-0 z-40 rounded-l-md px-3 py-1.5 text-[10px] font-black tabular-nums" style={{ backgroundColor: bannerColor, color: bannerTextColor }}>
+                {liveClock}
               </div>
             ) : null}
 
@@ -803,7 +822,7 @@ export function LiveStudio() {
                   if (mediaVideoRef.current) mediaVideoRef.current.currentTime = next
                 }} className="mt-2 w-full" aria-label="Video position" />
               ) : (
-                <p className="mt-1 text-[9px] text-muted-foreground">Load a video to see elapsed and total time.</p>
+                <p className="mt-1 text-[9px] text-muted-foreground">Studio-only timer — it is not part of the broadcast graphics.</p>
               )}
             </div>
             <div className="rounded-xl border border-border bg-secondary/20 px-3 py-2">
@@ -960,6 +979,18 @@ export function LiveStudio() {
               <div className="flex items-center gap-2">
                 <Layers3 className="size-4" />
                 <h3 className="text-sm font-bold">Brand assets</h3>
+              </div>
+
+              <div className="rounded-xl bg-secondary/40 p-3">
+                <p className="text-xs font-bold">Creator avatar</p>
+                <p className="mt-0.5 text-[9px] text-muted-foreground">Shown automatically when your camera is off.</p>
+                <div className="mt-2 flex items-center gap-3">
+                  {avatarUrl ? <img src={avatarUrl} alt="Creator avatar" className="size-14 rounded-full object-cover" /> : <div className="flex size-14 items-center justify-center rounded-full bg-secondary text-[10px] text-muted-foreground">Avatar</div>}
+                  <label className="cursor-pointer rounded-lg border border-border px-3 py-2 text-[10px] font-semibold hover:bg-secondary">
+                    Choose avatar
+                    <input type="file" accept="image/*" className="hidden" onChange={(event) => handleAsset(event, setAvatarUrl, true)} />
+                  </label>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
