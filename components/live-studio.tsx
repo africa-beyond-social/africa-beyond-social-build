@@ -41,6 +41,7 @@ type Layout =
   | "custom"
 
 type Panel = "settings" | "brand" | "layout" | "scenes" | "media"
+type BannerLayout = "lower-third" | "full-width" | "split" | "pill" | "corner" | "headline"
 
 type Scene = {
   id: string
@@ -50,6 +51,13 @@ type Scene = {
   lowerThird: boolean
   screenText: string
   screenTextPosition: "top" | "middle" | "bottom"
+  primaryColor: string
+  accentColor: string
+  bannerColor: string
+  bannerTextColor: string
+  bannerLayout: BannerLayout
+  bannerRadius: "square" | "rounded" | "pill"
+  tickerColor: string
 }
 
 const LAYOUTS: Array<{ id: Layout; name: string; description: string }> = [
@@ -68,10 +76,10 @@ const LAYOUTS: Array<{ id: Layout; name: string; description: string }> = [
 ]
 
 const DEFAULT_SCENES: Scene[] = [
-  { id: "opening", name: "Opening", layout: "single", overlay: true, lowerThird: true, screenText: "WELCOME TO WIGOD LIVE", screenTextPosition: "top" },
-  { id: "interview", name: "Interview", layout: "group", overlay: true, lowerThird: true, screenText: "", screenTextPosition: "bottom" },
-  { id: "screen", name: "Screen Demo", layout: "pip", overlay: true, lowerThird: false, screenText: "", screenTextPosition: "bottom" },
-  { id: "full", name: "Full Screen", layout: "cinema", overlay: false, lowerThird: false, screenText: "", screenTextPosition: "bottom" },
+  { id: "opening", name: "Opening", layout: "single", overlay: true, lowerThird: true, screenText: "WELCOME TO WIGOD LIVE", screenTextPosition: "top", primaryColor: "#0f8f4f", accentColor: "#d62828", bannerColor: "#111111", bannerTextColor: "#ffffff", bannerLayout: "lower-third", bannerRadius: "rounded", tickerColor: "#d62828" },
+  { id: "interview", name: "Interview", layout: "group", overlay: true, lowerThird: true, screenText: "", screenTextPosition: "bottom", primaryColor: "#2563eb", accentColor: "#7c3aed", bannerColor: "#111827", bannerTextColor: "#ffffff", bannerLayout: "split", bannerRadius: "rounded", tickerColor: "#2563eb" },
+  { id: "screen", name: "Screen Demo", layout: "pip", overlay: true, lowerThird: false, screenText: "", screenTextPosition: "bottom", primaryColor: "#0f8f4f", accentColor: "#f59e0b", bannerColor: "#0b1220", bannerTextColor: "#ffffff", bannerLayout: "pill", bannerRadius: "pill", tickerColor: "#0f8f4f" },
+  { id: "full", name: "Full Screen", layout: "cinema", overlay: false, lowerThird: false, screenText: "", screenTextPosition: "bottom", primaryColor: "#111111", accentColor: "#ffffff", bannerColor: "#111111", bannerTextColor: "#ffffff", bannerLayout: "headline", bannerRadius: "square", tickerColor: "#111111" },
 ]
 
 export function LiveStudio() {
@@ -114,6 +122,13 @@ export function LiveStudio() {
   const [lowerThird, setLowerThird] = useState(true)
   const [lowerName, setLowerName] = useState("WIGOD LIVE")
   const [lowerRole, setLowerRole] = useState("People. Places. Perspectives.")
+  const [primaryColor, setPrimaryColor] = useState("#0f8f4f")
+  const [accentColor, setAccentColor] = useState("#d62828")
+  const [bannerColor, setBannerColor] = useState("#111111")
+  const [bannerTextColor, setBannerTextColor] = useState("#ffffff")
+  const [bannerLayout, setBannerLayout] = useState<BannerLayout>("lower-third")
+  const [bannerRadius, setBannerRadius] = useState<"square" | "rounded" | "pill">("rounded")
+  const [tickerColor, setTickerColor] = useState("#d62828")
   const [ticker, setTicker] = useState("")
   const [tickerOn, setTickerOn] = useState(false)
   const [headlineOn, setHeadlineOn] = useState(true)
@@ -456,6 +471,13 @@ export function LiveStudio() {
     setLowerThird(scene.lowerThird)
     setScreenText(scene.screenText)
     setScreenTextPosition(scene.screenTextPosition)
+    setPrimaryColor(scene.primaryColor)
+    setAccentColor(scene.accentColor)
+    setBannerColor(scene.bannerColor)
+    setBannerTextColor(scene.bannerTextColor)
+    setBannerLayout(scene.bannerLayout)
+    setBannerRadius(scene.bannerRadius)
+    setTickerColor(scene.tickerColor)
   }
 
   function saveCustomScene() {
@@ -471,6 +493,13 @@ export function LiveStudio() {
         lowerThird,
         screenText,
         screenTextPosition,
+        primaryColor,
+        accentColor,
+        bannerColor,
+        bannerTextColor,
+        bannerLayout,
+        bannerRadius,
+        tickerColor,
       },
     ])
     setCustomSceneName("")
@@ -597,15 +626,44 @@ export function LiveStudio() {
             ) : null}
 
             {lowerThird ? (
-              <div className="pointer-events-none absolute bottom-12 left-3 z-30 max-w-[75%] overflow-hidden rounded-lg border-l-4 border-brand-green bg-black/80 px-4 py-2 text-white">
-                <p className="text-sm font-black">{lowerName || "WIGOD LIVE"}</p>
-                <p className="mt-0.5 text-[10px] text-white/70">{lowerRole}</p>
-              </div>
+              bannerLayout === "full-width" ? (
+                <div className="pointer-events-none absolute bottom-12 left-0 right-0 z-30 px-3">
+                  <div className="w-full px-5 py-3" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderTop: "4px solid " + primaryColor }}>
+                    <p className="text-sm font-black">{lowerName || "WIGOD LIVE"}</p>
+                    <p className="mt-0.5 text-[10px] opacity-70">{lowerRole}</p>
+                  </div>
+                </div>
+              ) : bannerLayout === "split" ? (
+                <div className="pointer-events-none absolute bottom-12 left-3 z-30 flex max-w-[82%] overflow-hidden" style={{ borderRadius: bannerRadius === "pill" ? 999 : bannerRadius === "rounded" ? 12 : 0 }}>
+                  <div className="px-4 py-2 text-sm font-black" style={{ backgroundColor: primaryColor, color: bannerTextColor }}>{lowerName || "WIGOD LIVE"}</div>
+                  <div className="px-4 py-2 text-[10px] font-semibold" style={{ backgroundColor: bannerColor, color: bannerTextColor }}>{lowerRole}</div>
+                </div>
+              ) : bannerLayout === "pill" ? (
+                <div className="pointer-events-none absolute bottom-12 left-3 z-30 max-w-[75%] px-5 py-2.5 shadow-lg" style={{ backgroundColor: bannerColor, color: bannerTextColor, border: "2px solid " + accentColor, borderRadius: 999 }}>
+                  <p className="text-sm font-black">{lowerName || "WIGOD LIVE"}</p>
+                  <p className="mt-0.5 text-[10px] opacity-70">{lowerRole}</p>
+                </div>
+              ) : bannerLayout === "corner" ? (
+                <div className="pointer-events-none absolute bottom-12 right-3 z-30 max-w-[45%] px-4 py-2" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderRight: "4px solid " + accentColor, borderRadius: bannerRadius === "rounded" ? 12 : bannerRadius === "pill" ? 999 : 0 }}>
+                  <p className="text-sm font-black">{lowerName || "WIGOD LIVE"}</p>
+                  <p className="mt-0.5 text-[10px] opacity-70">{lowerRole}</p>
+                </div>
+              ) : bannerLayout === "headline" ? (
+                <div className="pointer-events-none absolute bottom-12 left-3 right-3 z-30 px-4 py-2" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderLeft: "5px solid " + primaryColor }}>
+                  <p className="text-sm font-black uppercase">{lowerName || "WIGOD LIVE"}</p>
+                  <p className="mt-0.5 text-[10px] opacity-70">{lowerRole}</p>
+                </div>
+              ) : (
+                <div className="pointer-events-none absolute bottom-12 left-3 z-30 max-w-[75%] px-4 py-2" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderLeft: "5px solid " + primaryColor, borderRadius: bannerRadius === "rounded" ? 12 : bannerRadius === "pill" ? 999 : 0 }}>
+                  <p className="text-sm font-black">{lowerName || "WIGOD LIVE"}</p>
+                  <p className="mt-0.5 text-[10px] opacity-70">{lowerRole}</p>
+                </div>
+              )
             ) : null}
 
             {headlineOn && headlines.trim() ? (
-              <div className="pointer-events-none absolute bottom-8 left-0 right-0 z-40 flex min-h-7 overflow-hidden bg-black/90 text-white">
-                <div className="shrink-0 bg-brand-green px-3 py-1.5 text-[9px] font-black uppercase tracking-wider">HEADLINES</div>
+              <div className="pointer-events-none absolute bottom-8 left-0 right-0 z-40 flex min-h-7 overflow-hidden" style={{ backgroundColor: bannerColor, color: bannerTextColor }}>
+                <div className="shrink-0 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider" style={{ backgroundColor: primaryColor, color: bannerTextColor }}>HEADLINES</div>
                 <div className="min-w-0 flex-1 px-3 py-1.5 text-[10px] font-bold">
                   {(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "WIGOD NEWS")}
                 </div>
@@ -613,7 +671,7 @@ export function LiveStudio() {
             ) : null}
 
             {tickerOn && ticker ? (
-              <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-50 overflow-hidden bg-brand-red px-3 py-2 text-[11px] font-bold text-white">
+              <div className="pointer-events-none absolute bottom-0 left-0 right-0 overflow-hidden px-3 py-2 text-[11px] font-bold" style={{ backgroundColor: tickerColor, color: bannerTextColor }}>
                 <div className="animate-[wigodTicker_18s_linear_infinite] whitespace-nowrap">{ticker}</div>
               </div>
             ) : null}
@@ -817,13 +875,95 @@ export function LiveStudio() {
               {logoUrl ? <div className="rounded-xl border border-border p-2"><img src={logoUrl} alt="WIGOD logo preview" className="mx-auto h-16 w-16 object-contain" /></div> : null}
 
               <div className="rounded-xl bg-secondary/40 p-3">
-                <p className="text-xs font-bold">Lower third</p>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-[10px] text-muted-foreground">Show lower third</span>
-                  <input type="checkbox" checked={lowerThird} onChange={(event) => setLowerThird(event.target.checked)} />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold">Creator colors & banners</p>
+                    <p className="mt-0.5 text-[9px] text-muted-foreground">Choose the visual identity used by your scenes.</p>
+                  </div>
+                  <Sparkles className="size-4 text-brand-red" />
                 </div>
-                <input value={lowerName} onChange={(event) => setLowerName(event.target.value)} placeholder="Name / show title" className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs" />
-                <input value={lowerRole} onChange={(event) => setLowerRole(event.target.value)} placeholder="Role / subtitle" className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs" />
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <label className="rounded-lg border border-border p-2 text-[10px] font-semibold">Primary
+                    <div className="mt-1 flex items-center gap-2">
+                      <input type="color" value={primaryColor} onChange={(event) => setPrimaryColor(event.target.value)} className="h-8 w-10 cursor-pointer rounded border-0 bg-transparent p-0" />
+                      <span className="font-mono text-[9px]">{primaryColor}</span>
+                    </div>
+                  </label>
+                  <label className="rounded-lg border border-border p-2 text-[10px] font-semibold">Accent
+                    <div className="mt-1 flex items-center gap-2">
+                      <input type="color" value={accentColor} onChange={(event) => setAccentColor(event.target.value)} className="h-8 w-10 cursor-pointer rounded border-0 bg-transparent p-0" />
+                      <span className="font-mono text-[9px]">{accentColor}</span>
+                    </div>
+                  </label>
+                  <label className="rounded-lg border border-border p-2 text-[10px] font-semibold">Banner
+                    <div className="mt-1 flex items-center gap-2">
+                      <input type="color" value={bannerColor} onChange={(event) => setBannerColor(event.target.value)} className="h-8 w-10 cursor-pointer rounded border-0 bg-transparent p-0" />
+                      <span className="font-mono text-[9px]">{bannerColor}</span>
+                    </div>
+                  </label>
+                  <label className="rounded-lg border border-border p-2 text-[10px] font-semibold">Banner text
+                    <div className="mt-1 flex items-center gap-2">
+                      <input type="color" value={bannerTextColor} onChange={(event) => setBannerTextColor(event.target.value)} className="h-8 w-10 cursor-pointer rounded border-0 bg-transparent p-0" />
+                      <span className="font-mono text-[9px]">{bannerTextColor}</span>
+                    </div>
+                  </label>
+                  <label className="rounded-lg border border-border p-2 text-[10px] font-semibold">Ticker
+                    <div className="mt-1 flex items-center gap-2">
+                      <input type="color" value={tickerColor} onChange={(event) => setTickerColor(event.target.value)} className="h-8 w-10 cursor-pointer rounded border-0 bg-transparent p-0" />
+                      <span className="font-mono text-[9px]">{tickerColor}</span>
+                    </div>
+                  </label>
+                  <label className="rounded-lg border border-border p-2 text-[10px] font-semibold">Banner shape
+                    <select value={bannerRadius} onChange={(event) => setBannerRadius(event.target.value as typeof bannerRadius)} className="mt-1 w-full rounded-lg border border-border bg-background px-2 py-2 text-[10px]">
+                      <option value="square">Square</option>
+                      <option value="rounded">Rounded</option>
+                      <option value="pill">Pill</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div className="mt-3">
+                  <p className="text-[10px] font-bold">Banner layout</p>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {([
+                      ["lower-third", "Lower third"],
+                      ["full-width", "Full width"],
+                      ["split", "Split name + role"],
+                      ["pill", "Pill"],
+                      ["corner", "Corner"],
+                      ["headline", "Headline bar"],
+                    ] as Array<[BannerLayout, string]>).map(([id, name]) => (
+                      <button key={id} type="button" onClick={() => setBannerLayout(id)} className={"rounded-lg border p-2 text-left text-[10px] font-semibold " + (bannerLayout === id ? "border-brand-green bg-brand-green/5" : "border-border hover:bg-secondary")}>
+                        <div className="mb-1 h-3 overflow-hidden rounded-sm" style={{ backgroundColor: bannerColor }}>
+                          <div className="h-full w-1/3" style={{ backgroundColor: primaryColor }} />
+                        </div>
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-3 rounded-lg border border-border p-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-bold">Live banner preview</p>
+                    <span className="text-[9px] text-muted-foreground">Updates instantly</span>
+                  </div>
+                  <div className="mt-2 overflow-hidden p-2" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderRadius: bannerRadius === "pill" ? 999 : bannerRadius === "rounded" ? 12 : 0 }}>
+                    <p className="text-[10px] font-black">{lowerName || "CREATOR NAME"}</p>
+                    <p className="text-[8px] opacity-70">{lowerRole || "Creator / Show title"}</p>
+                  </div>
+                </div>
+
+                <div className="mt-3 border-t border-border pt-3">
+                  <p className="text-xs font-bold">Lower third</p>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-[10px] text-muted-foreground">Show lower third</span>
+                    <input type="checkbox" checked={lowerThird} onChange={(event) => setLowerThird(event.target.checked)} />
+                  </div>
+                  <input value={lowerName} onChange={(event) => setLowerName(event.target.value)} placeholder="Name / show title" className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs" />
+                  <input value={lowerRole} onChange={(event) => setLowerRole(event.target.value)} placeholder="Role / subtitle" className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs" />
+                </div>
               </div>
 
               <div className="rounded-xl bg-secondary/40 p-3">
@@ -901,12 +1041,25 @@ export function LiveStudio() {
               <p className="text-[10px] leading-4 text-muted-foreground">Save a whole look and switch it in one tap during a show.</p>
               <div className="space-y-2">
                 {scenes.map((scene) => (
-                  <button key={scene.id} type="button" onClick={() => applyScene(scene)} className="flex w-full items-center justify-between rounded-xl border border-border px-3 py-3 text-left hover:bg-secondary">
-                    <span>
-                      <span className="block text-xs font-bold">{scene.name}</span>
-                      <span className="mt-0.5 block text-[10px] text-muted-foreground">{LAYOUTS.find((item) => item.id === scene.layout)?.name ?? scene.layout}</span>
-                    </span>
-                    <ChevronDown className="size-3.5 -rotate-90 text-muted-foreground" />
+                  <button key={scene.id} type="button" onClick={() => applyScene(scene)} className="w-full rounded-xl border border-border p-3 text-left hover:bg-secondary">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="block text-xs font-bold">{scene.name}</span>
+                        <span className="mt-0.5 block text-[10px] text-muted-foreground">{LAYOUTS.find((item) => item.id === scene.layout)?.name ?? scene.layout} · {scene.bannerLayout.replace("-", " ")}</span>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <span className="size-4 rounded-full border border-border" style={{ backgroundColor: scene.primaryColor }} />
+                        <span className="size-4 rounded-full border border-border" style={{ backgroundColor: scene.accentColor }} />
+                        <span className="size-4 rounded-full border border-border" style={{ backgroundColor: scene.bannerColor }} />
+                        <ChevronDown className="ml-1 size-3.5 -rotate-90 text-muted-foreground" />
+                      </div>
+                    </div>
+                    <div className="mt-2 overflow-hidden" style={{ borderRadius: scene.bannerRadius === "pill" ? 999 : scene.bannerRadius === "rounded" ? 8 : 0 }}>
+                      <div className="h-2" style={{ backgroundColor: scene.primaryColor }} />
+                      <div className="flex h-5 items-center px-2 text-[8px] font-bold" style={{ backgroundColor: scene.bannerColor, color: scene.bannerTextColor }}>
+                        {scene.name} · {scene.bannerLayout.replace("-", " ")}
+                      </div>
+                    </div>
                   </button>
                 ))}
               </div>
