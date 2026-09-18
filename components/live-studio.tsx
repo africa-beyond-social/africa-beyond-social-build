@@ -69,6 +69,7 @@ const DEFAULT_SCENES: Scene[] = [
 export function LiveStudio() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const cameraStreamRef = useRef<MediaStream | null>(null)
+  const audioStreamRef = useRef<MediaStream | null>(null)
   const screenStreamRef = useRef<MediaStream | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
@@ -76,7 +77,7 @@ export function LiveStudio() {
   const urlsRef = useRef<Set<string>>(new Set())
 
   const [camera, setCamera] = useState(false)
-  const [mic, setMic] = useState(true)
+  const [mic, setMic] = useState(false)
   const [screen, setScreen] = useState(false)
   const [status, setStatus] = useState<"ready" | "previewing" | "live">("ready")
   const [error, setError] = useState("")
@@ -224,61 +225,52 @@ export function LiveStudio() {
 
   async function toggleCamera() {
     setError("")
+
     if (camera) {
-      cameraStreamRef.current?.getTracks().forEach((track) => track.stop())
+      cameraStreamRef.current?.getVideoTracks().forEach((track) => track.stop())
       cameraStreamRef.current = null
-      if (videoRef.current) videoRef.current.srcObject = null
+      if (videoRef.current) videoRef.current.srcObject = screen ? screenStreamRef.current : null
       setCamera(false)
-      setStatus(screen ? "previewing" : "ready")
-      setMicLevel(0)
+      setStatus(screen ? "previewing" : audioStreamRef.current ? "previewing" : "ready")
       return
     }
 
     try {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error("unsupported")
-      if (cameraPermission === "denied") {
-        setError("Camera access is blocked for this WIGOD site. Click the lock/site-info icon beside the address bar, set Camera to Allow, then refresh this page and try again.")
-      }
-
-      screenStreamRef.current?.getTracks().forEach((track) => track.stop())
-      screenStreamRef.current = null
-      setScreen(false)
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: cameraDeviceId
           ? { deviceId: { exact: cameraDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
           : { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: {
-          deviceId: micDeviceId ? { exact: micDeviceId } : undefined,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
       })
 
       cameraStreamRef.current = stream
-      const audioTrack = stream.getAudioTracks()[0]
-      if (audioTrack) audioTrack.enabled = mic
+
+      const existingAudio = audioStreamRef.current?.getAudioTracks()[0]
+      if (existingAudio) stream.addTrack(existingAudio)
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         videoRef.current.muted = true
         await videoRef.current.play()
       }
+
       setCamera(true)
       setStatus("previewing")
-      startMeter(stream)
       await refreshDevices()
       await checkPermissions()
       setError("")
     } catch (cause) {
       if (cause instanceof DOMException && cause.name === "NotAllowedError") {
-        setError("Camera or microphone permission was denied. Use the site-info/lock icon beside the address bar to allow Camera and Microphone, then refresh WIGOD.")
+        setError("Camera access was denied by the browser or Windows. Camera is allowed for this site, so check Windows Settings > Privacy & security > Camera and turn on Camera access, Let apps access your camera, and Let desktop apps access your camera.")
       } else if (cause instanceof DOMException && cause.name === "NotFoundError") {
-        setError("WIGOD could not find the selected camera or microphone. Open Settings and choose another device.")
+        setError("WIGOD could not find a camera. Open Settings and choose another camera.")
       } else if (cause instanceof DOMException && cause.name === "NotReadableError") {
-        setError("The camera is being used by another application, or Windows has blocked access. Close other camera apps and try again.")
+        setError("The camera is detected but cannot be opened. Close Camera, Teams, Zoom, OBS or another application using the camera, then try again.")
+      } else if (cause instanceof DOMException && cause.name === "OverconstrainedError") {
+        setError("The selected camera could not satisfy the requested settings. Choose another camera in Settings and try again.")
       } else {
-        setError("WIGOD could not start the camera. Check browser/device permissions and try again.")
+        setError("WIGOD could not start the camera. Check Windows camera access and the selected device.")
       }
       await refreshDevices()
       await checkPermissions()
@@ -286,12 +278,63 @@ export function LiveStudio() {
     }
   }
 
-  function toggleMic() {
-    const next = !mic
-    setMic(next)
-    const track = cameraStreamRef.current?.getAudioTracks()[0]
-    if (track) track.enabled = next
-    if (!next) setMicLevel(0)
+  async function toggleMic() {
+    setError("")
+
+    if (mic) {
+      audioStreamRef.current?.getAudioTracks().forEach((track) => {
+        track.enabled = false
+      })
+      setMic(false)
+      setMicLevel(0)
+      return
+    }
+
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error("unsupported")
+
+      let stream = audioStreamRef.current
+      if (!stream || stream.getAudioTracks().length === 0) {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            deviceId: micDeviceId ? { exact: micDeviceId } : undefined,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        })
+        audioStreamRef.current = stream
+      }
+
+      const track = stream.getAudioTracks()[0]
+      if (!track) throw new Error("no-audio-track")
+      track.enabled = true
+      setMic(true)
+      startMeter(stream)
+
+      if (cameraStreamRef.current && !cameraStreamRef.current.getAudioTracks().some((item) => item.id === track.id)) {
+        cameraStreamRef.current.addTrack(track)
+      }
+
+      await refreshDevices()
+      await checkPermissions()
+    } catch (cause) {
+      if (cause instanceof DOMException && cause.name === "NotAllowedError") {
+        setError("Microphone access was denied by the browser or Windows. Microphone is allowed for this site, so check Windows Settings > Privacy & security > Microphone and turn on Microphone access, Let apps access your microphone, and Let desktop apps access your microphone.")
+      } else if (cause instanceof DOMException && cause.name === "NotFoundError") {
+        setError("WIGOD could not find a microphone. Open Settings and choose another microphone.")
+      } else if (cause instanceof DOMException && cause.name === "NotReadableError") {
+        setError("The microphone is detected but cannot be opened. Close Teams, Zoom, OBS or another application using the microphone, then try again.")
+      } else if (cause instanceof DOMException && cause.name === "OverconstrainedError") {
+        setError("The selected microphone could not satisfy the requested settings. Choose another microphone in Settings and try again.")
+      } else {
+        setError("WIGOD could not start the microphone. Check Windows microphone access and the selected device.")
+      }
+      setMic(false)
+      setMicLevel(0)
+      await refreshDevices()
+      await checkPermissions()
+    }
   }
 
   async function shareScreen() {
@@ -299,8 +342,10 @@ export function LiveStudio() {
     try {
       if (!navigator.mediaDevices?.getDisplayMedia) throw new Error("unsupported")
       const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
-      const cameraAudio = cameraStreamRef.current?.getAudioTracks()[0]
-      if (cameraAudio) displayStream.addTrack(cameraAudio)
+
+      const micTrack = audioStreamRef.current?.getAudioTracks()[0]
+      if (micTrack && micTrack.enabled) displayStream.addTrack(micTrack)
+
       screenStreamRef.current = displayStream
 
       if (videoRef.current) {
@@ -311,19 +356,20 @@ export function LiveStudio() {
 
       setScreen(true)
       setStatus("previewing")
-      if (camera) setCamera(false)
+      setCamera(false)
 
       const screenTrack = displayStream.getVideoTracks()[0]
       screenTrack.addEventListener("ended", () => {
         screenStreamRef.current = null
         setScreen(false)
+
         if (cameraStreamRef.current) {
           setCamera(true)
           if (videoRef.current) videoRef.current.srcObject = cameraStreamRef.current
           setStatus("previewing")
         } else {
           if (videoRef.current) videoRef.current.srcObject = null
-          setStatus("ready")
+          setStatus(audioStreamRef.current ? "previewing" : "ready")
         }
       })
     } catch (cause) {
@@ -334,8 +380,10 @@ export function LiveStudio() {
 
   function stopAllMedia() {
     cameraStreamRef.current?.getTracks().forEach((track) => track.stop())
+    audioStreamRef.current?.getTracks().forEach((track) => track.stop())
     screenStreamRef.current?.getTracks().forEach((track) => track.stop())
     cameraStreamRef.current = null
+    audioStreamRef.current = null
     screenStreamRef.current = null
   }
 
