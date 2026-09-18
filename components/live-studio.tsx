@@ -108,9 +108,9 @@ export function LiveStudio() {
   const [micDeviceId, setMicDeviceId] = useState("")
   const [layout, setLayout] = useState<Layout>("single")
   const [panel, setPanel] = useState<Panel>("settings")
-  const [showOverlay, setShowOverlay] = useState(true)
-  const [liveStampOn, setLiveStampOn] = useState(true)
-  const [broadcastTimeOn, setBroadcastTimeOn] = useState(true)
+  const [showOverlay, setShowOverlay] = useState(false)
+  const [liveStampOn, setLiveStampOn] = useState(false)
+  const [broadcastTimeOn, setBroadcastTimeOn] = useState(false)
   const [liveClock, setLiveClock] = useState("")
   const [mediaElapsed, setMediaElapsed] = useState(0)
   const [mediaDuration, setMediaDuration] = useState(0)
@@ -121,9 +121,10 @@ export function LiveStudio() {
   const [thumbnailUrl, setThumbnailUrl] = useState("")
   const [avatarUrl, setAvatarUrl] = useState("")
   const [screenText, setScreenText] = useState("WELCOME TO WIGOD LIVE")
+  const [screenTextOn, setScreenTextOn] = useState(false)
   const [screenTextPosition, setScreenTextPosition] = useState<"top" | "middle" | "bottom">("top")
   const [screenTextSize, setScreenTextSize] = useState("medium")
-  const [lowerThird, setLowerThird] = useState(true)
+  const [lowerThird, setLowerThird] = useState(false)
   const [lowerName, setLowerName] = useState("WIGOD LIVE")
   const [lowerRole, setLowerRole] = useState("People. Places. Perspectives.")
   const [primaryColor, setPrimaryColor] = useState("#0f8f4f")
@@ -135,7 +136,7 @@ export function LiveStudio() {
   const [tickerColor, setTickerColor] = useState("#d62828")
   const [ticker, setTicker] = useState("")
   const [tickerOn, setTickerOn] = useState(false)
-  const [headlineOn, setHeadlineOn] = useState(true)
+  const [headlineOn, setHeadlineOn] = useState(false)
   const [headlines, setHeadlines] = useState("BREAKING NEWS: WIGOD LIVE\nLATEST NEWS FROM AFRICA & BEYOND\nPEOPLE. PLACES. PERSPECTIVES.")
   const [headlineIndex, setHeadlineIndex] = useState(0)
   const [scenes, setScenes] = useState<Scene[]>(DEFAULT_SCENES)
@@ -175,11 +176,18 @@ export function LiveStudio() {
       const raw = window.localStorage.getItem("wigod-live-studio-preferences")
       if (raw) {
         const saved = JSON.parse(raw) as Record<string, unknown>
+        const graphicsDefaultsVersion = typeof saved.graphicsDefaultsVersion === "number" ? saved.graphicsDefaultsVersion : 0
         if (typeof saved.layout === "string") setLayout(saved.layout as Layout)
         if (typeof saved.panel === "string") setPanel(saved.panel as Panel)
-        if (typeof saved.showOverlay === "boolean") setShowOverlay(saved.showOverlay)
-        if (typeof saved.liveStampOn === "boolean") setLiveStampOn(saved.liveStampOn)
-        if (typeof saved.broadcastTimeOn === "boolean") setBroadcastTimeOn(saved.broadcastTimeOn)
+        if (graphicsDefaultsVersion >= 2) {
+          if (typeof saved.showOverlay === "boolean") setShowOverlay(saved.showOverlay)
+          if (typeof saved.liveStampOn === "boolean") setLiveStampOn(saved.liveStampOn)
+          if (typeof saved.broadcastTimeOn === "boolean") setBroadcastTimeOn(saved.broadcastTimeOn)
+          if (typeof saved.screenTextOn === "boolean") setScreenTextOn(saved.screenTextOn)
+          if (typeof saved.lowerThird === "boolean") setLowerThird(saved.lowerThird)
+          if (typeof saved.tickerOn === "boolean") setTickerOn(saved.tickerOn)
+          if (typeof saved.headlineOn === "boolean") setHeadlineOn(saved.headlineOn)
+        }
         if (typeof saved.overlayOpacity === "number") setOverlayOpacity(saved.overlayOpacity)
         if (typeof saved.screenText === "string") setScreenText(saved.screenText)
         if (typeof saved.screenTextPosition === "string") setScreenTextPosition(saved.screenTextPosition as typeof screenTextPosition)
@@ -195,8 +203,6 @@ export function LiveStudio() {
         if (typeof saved.bannerRadius === "string") setBannerRadius(saved.bannerRadius as typeof bannerRadius)
         if (typeof saved.tickerColor === "string") setTickerColor(saved.tickerColor)
         if (typeof saved.ticker === "string") setTicker(saved.ticker)
-        if (typeof saved.tickerOn === "boolean") setTickerOn(saved.tickerOn)
-        if (typeof saved.headlineOn === "boolean") setHeadlineOn(saved.headlineOn)
         if (typeof saved.headlines === "string") setHeadlines(saved.headlines)
         if (Array.isArray(saved.scenes)) setScenes(saved.scenes as Scene[])
         if (typeof saved.customCameraSide === "string") setCustomCameraSide(saved.customCameraSide as "left" | "right")
@@ -222,9 +228,9 @@ export function LiveStudio() {
     try {
       window.localStorage.setItem("wigod-live-studio-preferences", JSON.stringify({
         layout, panel, showOverlay, liveStampOn, broadcastTimeOn, overlayOpacity,
-        screenText, screenTextPosition, screenTextSize, lowerThird, lowerName, lowerRole,
+        screenText, screenTextOn, screenTextPosition, screenTextSize, lowerThird, lowerName, lowerRole,
         primaryColor, accentColor, bannerColor, bannerTextColor, bannerLayout, bannerRadius,
-        tickerColor, ticker, tickerOn, headlineOn, headlines, scenes,
+        tickerColor, ticker, tickerOn, headlineOn, headlines, scenes, graphicsDefaultsVersion: 2,
         customCameraSide, customCameraWidth, customCameraZoom, customMediaZoom,
         customCameraPosition, customMediaPosition, logoUrl, overlayUrl, backgroundUrl, thumbnailUrl, avatarUrl
       }))
@@ -233,7 +239,7 @@ export function LiveStudio() {
     }
   }, [
     layout, panel, showOverlay, liveStampOn, broadcastTimeOn, overlayOpacity,
-    screenText, screenTextPosition, screenTextSize, lowerThird, lowerName, lowerRole,
+    screenText, screenTextOn, screenTextPosition, screenTextSize, lowerThird, lowerName, lowerRole,
     primaryColor, accentColor, bannerColor, bannerTextColor, bannerLayout, bannerRadius,
     tickerColor, ticker, tickerOn, headlineOn, headlines, scenes,
     customCameraSide, customCameraWidth, customCameraZoom, customMediaZoom,
@@ -737,7 +743,7 @@ export function LiveStudio() {
               </div>
             ) : null}
 
-            {screenText ? (
+            {screenTextOn && screenText ? (
               <div className={"pointer-events-none absolute left-3 right-3 z-30 " + positionClass}>
                 <div className={"mx-auto w-fit max-w-full rounded-lg bg-black/75 px-4 py-2 text-center font-black tracking-wide text-white " + textSizeClass}>
                   {screenText}
@@ -1017,14 +1023,23 @@ export function LiveStudio() {
               </div>
 
               <div className="rounded-xl bg-secondary/40 p-3">
-                <p className="text-xs font-bold">Broadcast graphics</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold">Broadcast graphics</p>
+                    <p className="mt-0.5 text-[9px] text-muted-foreground">Everything here is off by default. Turn on only what you want on air.</p>
+                  </div>
+                  <Radio className="size-4 text-brand-red" />
+                </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-[10px] font-semibold"><span>LIVE stamp</span><input type="checkbox" checked={liveStampOn} onChange={(event) => setLiveStampOn(event.target.checked)} /></label>
                   <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-[10px] font-semibold"><span>Broadcast time</span><input type="checkbox" checked={broadcastTimeOn} onChange={(event) => setBroadcastTimeOn(event.target.checked)} /></label>
                   <label className="col-span-2 flex items-center justify-between rounded-lg border border-border px-3 py-2 text-[10px] font-semibold"><span>News headlines</span><input type="checkbox" checked={headlineOn} onChange={(event) => setHeadlineOn(event.target.checked)} /></label>
+                  <label className="col-span-2 flex items-center justify-between rounded-lg border border-border px-3 py-2 text-[10px] font-semibold"><span>Scrolling ticker</span><input type="checkbox" checked={tickerOn} onChange={(event) => setTickerOn(event.target.checked)} /></label>
                 </div>
                 <textarea value={headlines} onChange={(event) => { setHeadlines(event.target.value); setHeadlineIndex(0) }} rows={4} placeholder="One headline per line" className="mt-2 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-xs" />
                 <p className="mt-1 text-[9px] text-muted-foreground">Headlines rotate automatically every 6 seconds. Use one headline per line.</p>
+                <input value={ticker} onChange={(event) => setTicker(event.target.value)} placeholder="Add scrolling ticker text..." className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs" />
+                <p className="mt-1 text-[9px] text-muted-foreground">When enabled, the ticker appears directly below the headline graphic.</p>
               </div>
 
               <div className="flex items-center justify-between rounded-xl border border-border px-3 py-3">
@@ -1141,9 +1156,15 @@ export function LiveStudio() {
               </div>
 
               <div className="rounded-xl bg-secondary/40 p-3">
-                <div className="flex items-center gap-2">
-                  <Type className="size-4 text-brand-green" />
-                  <p className="text-xs font-bold">Screen text</p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Type className="size-4 text-brand-green" />
+                    <p className="text-xs font-bold">Screen text</p>
+                  </div>
+                  <label className="flex items-center gap-2 text-[10px] font-semibold">
+                    <span>{screenTextOn ? "On" : "Off"}</span>
+                    <input type="checkbox" checked={screenTextOn} onChange={(event) => setScreenTextOn(event.target.checked)} />
+                  </label>
                 </div>
                 <input value={screenText} onChange={(event) => setScreenText(event.target.value)} placeholder="Headline or name" className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs" />
                 <div className="mt-2 grid grid-cols-2 gap-2">
@@ -1160,13 +1181,7 @@ export function LiveStudio() {
                 </div>
               </div>
 
-              <div className="rounded-xl bg-secondary/40 p-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold">Scrolling ticker</p>
-                  <input type="checkbox" checked={tickerOn} onChange={(event) => setTickerOn(event.target.checked)} />
-                </div>
-                <input value={ticker} onChange={(event) => setTicker(event.target.value)} placeholder="Breaking: add your scrolling ticker..." className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs" />
-              </div>
+
             </div>
           ) : null}
 
