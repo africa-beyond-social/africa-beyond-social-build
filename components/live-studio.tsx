@@ -1402,3 +1402,55 @@ export function LiveStudio() {
                 ))}
               </div>
               <div className="rounded-xl bg-secondary/40 p-3">
+                <p className="text-xs font-bold">Save current setup as a scene</p>
+                <div className="mt-2 flex gap-2">
+                  <input value={customSceneName} onChange={(event) => setCustomSceneName(event.target.value)} placeholder="Scene name" className="min-w-0 flex-1 rounded-lg border border-border bg-background px-2.5 py-2 text-xs" />
+                  <button type="button" onClick={saveCustomScene} className="rounded-lg bg-brand-green px-3 py-2 text-xs font-bold text-white">Save</button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {panel === "media" ? (
+            <div className="space-y-3 rounded-2xl border border-border p-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="size-4 text-brand-red" />
+                <h3 className="text-sm font-bold">Media clips</h3>
+              </div>
+              <label className="cursor-pointer rounded-xl border border-dashed border-border p-4 text-center block hover:bg-secondary">
+                <Video className="mx-auto size-5 text-brand-green" />
+                <p className="mt-2 text-xs font-bold">Add intro, countdown or outro video</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">Playing video automatically mutes your mic; you can unmute it during playback.</p>
+                <input
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    if (!file) return
+                    if (mediaUrl) {
+                      urlsRef.current.delete(mediaUrl)
+                      URL.revokeObjectURL(mediaUrl)
+                    }
+                    setMediaUrl(registerUrl(URL.createObjectURL(file)))
+                    setMediaName(file.name)
+                    setMediaPlaying(false)
+                  }}
+                />
+              </label>
+              {mediaUrl ? (
+                <div className="rounded-xl border border-border p-3">
+                  <p className="truncate text-xs font-bold">{mediaName}</p>
+                  <button type="button" onClick={() => { setMediaPlaying(true); setMediaMicMuted(mic) }} className="mt-2 inline-flex items-center gap-2 rounded-lg bg-brand-green px-3 py-2 text-xs font-bold text-white">
+                    <Video className="size-3.5" /> Play on stage
+                  </button>
+                </div>
+              ) : null}
+              <p className="text-[10px] leading-4 text-muted-foreground">StreamYard uses media assets for intros, countdowns, outros and visual inserts; WIGOD now has the same studio-side workflow for local preview.</p>
+            </div>
+          ) : null}
+        </aside>
+      </div>
+    </div>
+  )
+}
