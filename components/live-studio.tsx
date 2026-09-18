@@ -977,7 +977,7 @@ export function LiveStudio() {
 
           <div className="rounded-2xl border border-border p-4">
             <div className="flex items-center gap-2">
-              <div className="text-right"><p className="text-[9px] font-bold text-brand-green">Brand design</p><p className="text-[10px] font-black">{OVERLAY_DESIGNS.find((item) => item.id === overlayDesign)?.name ?? "Newsroom"}</p></div>
+              <Radio className="size-4 text-brand-red" />
               <div>
                 <h3 className="text-sm font-bold">WIGOD Live</h3>
                 <p className="text-xs text-muted-foreground">Native WIGOD destination</p>
@@ -1101,7 +1101,7 @@ export function LiveStudio() {
                     <p className="text-xs font-bold">Broadcast graphics</p>
                     <p className="mt-0.5 text-[9px] text-muted-foreground">Everything here is off by default. Turn on only what you want on air.</p>
                   </div>
-                  <Radio className="size-4 text-brand-red" />
+                  <div className="text-right"><p className="text-[9px] font-bold text-brand-green">Brand design</p><p className="text-[10px] font-black">{OVERLAY_DESIGNS.find((item) => item.id === overlayDesign)?.name ?? "Newsroom"}</p></div>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-[10px] font-semibold"><span>LIVE stamp</span><input type="checkbox" checked={liveStampOn} onChange={(event) => setLiveStampOn(event.target.checked)} /></label>
