@@ -1188,7 +1188,10 @@ export function LiveStudio() {
                         {item.id === "ribbon" ? (
                           <div className="absolute inset-x-2 bottom-2 h-4 -skew-x-12" style={{ backgroundColor: bannerColor }}><span className="absolute left-1 top-0 h-full w-6" style={{ backgroundColor: accentColor }} /><span className="absolute right-1 top-1 h-2 w-5" style={{ backgroundColor: primaryColor }} /></div>
                         ) : item.id === "badge" ? (
-                          <div className="absolute bottom-2 left-1 size-7 rotate-45 rounded-lg" style={{ backgroundColor: primaryColor }} /><div className="absolute bottom-2 left-4 right-1 h-4 rounded" style={{ backgroundColor: bannerColor, borderBottom: "2px solid " + accentColor }} />
+                          <>
+                            <div className="absolute bottom-2 left-1 size-7 rotate-45 rounded-lg" style={{ backgroundColor: primaryColor }} />
+                            <div className="absolute bottom-2 left-4 right-1 h-4 rounded" style={{ backgroundColor: bannerColor, borderBottom: "2px solid " + accentColor }} />
+                          </>
                         ) : item.id === "capsule" ? (
                           <div className="absolute inset-x-2 bottom-2 h-5 rounded-full" style={{ backgroundColor: bannerColor, border: "2px solid " + primaryColor }}><span className="absolute left-0 top-0 h-full w-8 rounded-full" style={{ backgroundColor: primaryColor }} /><span className="absolute right-0 top-0 h-full w-8 rounded-full" style={{ backgroundColor: accentColor }} /></div>
                         ) : item.id === "angled" ? (
