@@ -42,7 +42,7 @@ type Layout =
 
 type Panel = "settings" | "brand" | "layout" | "scenes" | "media"
 type BannerLayout = "lower-third" | "full-width" | "split" | "pill" | "corner" | "headline"
-type OverlayDesign = "newsroom" | "split-bar" | "modern" | "minimal" | "corner" | "stacked"
+type OverlayDesign = "newsroom" | "split-bar" | "modern" | "minimal" | "corner" | "stacked" | "breaking" | "broadcast"
 
 const OVERLAY_DESIGNS: Array<{ id: OverlayDesign; name: string; description: string }> = [
   { id: "newsroom", name: "Newsroom", description: "Headline bar, clock, logo and ticker" },
@@ -51,6 +51,8 @@ const OVERLAY_DESIGNS: Array<{ id: OverlayDesign; name: string; description: str
   { id: "minimal", name: "Minimal", description: "Light graphics with maximum video space" },
   { id: "corner", name: "Corner", description: "Compact headline and clock corners" },
   { id: "stacked", name: "Stacked News", description: "Headline and ticker form a two-tier news bar" },
+  { id: "breaking", name: "Breaking Alert", description: "Strong alert block for urgent stories" },
+  { id: "broadcast", name: "Broadcast Clean", description: "Balanced TV-style headline and clock treatment" },
 ]
 
 type Scene = {
@@ -837,6 +839,22 @@ export function LiveStudio() {
                       {broadcastTimeOn && liveClock ? <span className="shrink-0 text-[9px] font-black tabular-nums">{liveClock}</span> : null}
                     </div>
                   </div>
+                ) : overlayDesign === "breaking" ? (
+                  <div className="mx-2 overflow-hidden rounded-sm shadow-lg" style={{ backgroundColor: bannerColor, color: bannerTextColor }}>
+                    <div className="flex min-h-9 items-stretch">
+                      <div className="flex shrink-0 items-center px-3 text-[9px] font-black uppercase tracking-widest text-white" style={{ backgroundColor: accentColor }}>BREAKING</div>
+                      <div className="min-w-0 flex-1 px-3 py-2 text-[10px] font-black">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "WIGOD NEWS")}</div>
+                      {broadcastTimeOn && liveClock ? <div className="flex shrink-0 items-center border-l border-white/15 px-3 text-[9px] font-black tabular-nums">{liveClock}</div> : null}
+                    </div>
+                  </div>
+                ) : overlayDesign === "broadcast" ? (
+                  <div className="mx-2 overflow-hidden shadow-lg" style={{ backgroundColor: bannerColor, color: bannerTextColor }}>
+                    <div className="flex min-h-8 items-center border-l-4" style={{ borderColor: primaryColor }}>
+                      <div className="shrink-0 px-3 py-1.5 text-[8px] font-black uppercase tracking-widest" style={{ color: primaryColor }}>WIGOD NEWS</div>
+                      <div className="min-w-0 flex-1 px-3 py-1.5 text-[10px] font-bold">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "WIGOD NEWS")}</div>
+                      {broadcastTimeOn && liveClock ? <div className="shrink-0 border-l border-white/15 px-3 py-1.5 text-[9px] font-black tabular-nums">{liveClock}</div> : null}
+                    </div>
+                  </div>
                 ) : overlayDesign === "corner" ? (
                   <div className="flex items-end justify-between px-3">
                     <div className="max-w-[72%] overflow-hidden rounded-md shadow-lg" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderBottom: "3px solid " + primaryColor }}>
@@ -959,7 +977,7 @@ export function LiveStudio() {
 
           <div className="rounded-2xl border border-border p-4">
             <div className="flex items-center gap-2">
-              <Radio className="size-4 text-brand-red" />
+              <div className="text-right"><p className="text-[9px] font-bold text-brand-green">Brand design</p><p className="text-[10px] font-black">{OVERLAY_DESIGNS.find((item) => item.id === overlayDesign)?.name ?? "Newsroom"}</p></div>
               <div>
                 <h3 className="text-sm font-bold">WIGOD Live</h3>
                 <p className="text-xs text-muted-foreground">Native WIGOD destination</p>
@@ -1107,7 +1125,7 @@ export function LiveStudio() {
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   {OVERLAY_DESIGNS.map((item) => (
-                    <button key={item.id} type="button" onClick={() => { setOverlayDesign(item.id); setShowOverlay(true) }} className={"rounded-xl border p-2 text-left " + (overlayDesign === item.id ? "border-brand-green bg-brand-green/5" : "border-border hover:bg-secondary")}>
+                    <button key={item.id} type="button" onClick={() => setOverlayDesign(item.id)} className={"rounded-xl border p-2 text-left " + (overlayDesign === item.id ? "border-brand-green bg-brand-green/5" : "border-border hover:bg-secondary")}>
                       <div className="mb-2 overflow-hidden rounded-md border border-border bg-black/80">
                         <div className="h-1" style={{ backgroundColor: primaryColor }} />
                         <div className="flex h-5 items-end gap-1 p-1">
@@ -1122,7 +1140,7 @@ export function LiveStudio() {
                     </button>
                   ))}
                 </div>
-                <p className="mt-2 text-[9px] text-muted-foreground">The selected design controls the headline structure, clock treatment and broadcast spacing. Colors remain yours.</p>
+                <p className="mt-2 text-[9px] text-muted-foreground">This is your creator graphics theme. Broadcast Graphics automatically uses the design selected here. You can change the design without turning any graphic on.</p>
               </div>
 
               {overlayUrl ? (
