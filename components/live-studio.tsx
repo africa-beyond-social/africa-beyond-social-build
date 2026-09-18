@@ -42,7 +42,7 @@ type Layout =
 
 type Panel = "settings" | "brand" | "layout" | "scenes" | "media"
 type BannerLayout = "lower-third" | "full-width" | "split" | "pill" | "corner" | "headline"
-type OverlayDesign = "newsroom" | "split-bar" | "modern" | "minimal" | "corner" | "stacked" | "breaking" | "broadcast"
+type OverlayDesign = "ribbon" | "badge" | "capsule" | "angled" | "round"
 
 type BackgroundOption = { id: string; name: string; kind: "picture" | "video"; url: string }
 
@@ -54,14 +54,11 @@ const STUDIO_BACKGROUND_OPTIONS: BackgroundOption[] = [
 ]
 
 const OVERLAY_DESIGNS: Array<{ id: OverlayDesign; name: string; description: string }> = [
-  { id: "newsroom", name: "Newsroom", description: "Headline bar, clock, logo and ticker" },
-  { id: "split-bar", name: "Split Bar", description: "Headline space with dedicated time block" },
-  { id: "modern", name: "Modern", description: "Clean floating headline with accent edge" },
-  { id: "minimal", name: "Minimal", description: "Light graphics with maximum video space" },
-  { id: "corner", name: "Corner", description: "Compact headline and clock corners" },
-  { id: "stacked", name: "Stacked News", description: "Headline and ticker form a two-tier news bar" },
-  { id: "breaking", name: "Breaking Alert", description: "Strong alert block for urgent stories" },
-  { id: "broadcast", name: "Broadcast Clean", description: "Balanced TV-style headline and clock treatment" },
+  { id: "ribbon", name: "Live Ribbon", description: "Slanted live badge with headline, time and clean ticker space" },
+  { id: "badge", name: "News Badge", description: "Creator logo badge with bold headline strap and time tab" },
+  { id: "capsule", name: "News Capsule", description: "Rounded broadcast bar with time, headline and live label" },
+  { id: "angled", name: "Angled Flash", description: "Dynamic angled headline ribbon with live-news marker" },
+  { id: "round", name: "Round Badge", description: "Circular creator mark with a premium rounded headline bar" },
 ]
 
 type Scene = {
@@ -130,7 +127,7 @@ export function LiveStudio() {
   const [layout, setLayout] = useState<Layout>("single")
   const [panel, setPanel] = useState<Panel>("settings")
   const [showOverlay, setShowOverlay] = useState(false)
-  const [overlayDesign, setOverlayDesign] = useState<OverlayDesign>("newsroom")
+  const [overlayDesign, setOverlayDesign] = useState<OverlayDesign>("ribbon")
   const [liveStampOn, setLiveStampOn] = useState(false)
   const [broadcastTimeOn, setBroadcastTimeOn] = useState(false)
   const [liveClock, setLiveClock] = useState("")
@@ -206,7 +203,7 @@ export function LiveStudio() {
         if (typeof saved.panel === "string") setPanel(saved.panel as Panel)
         if (graphicsDefaultsVersion >= 2) {
           if (typeof saved.showOverlay === "boolean") setShowOverlay(saved.showOverlay)
-          if (typeof saved.overlayDesign === "string") setOverlayDesign(saved.overlayDesign as OverlayDesign)
+          if (typeof saved.overlayDesign === "string" && OVERLAY_DESIGNS.some((item) => item.id === saved.overlayDesign)) setOverlayDesign(saved.overlayDesign as OverlayDesign)
           if (typeof saved.liveStampOn === "boolean") setLiveStampOn(saved.liveStampOn)
           if (typeof saved.broadcastTimeOn === "boolean") setBroadcastTimeOn(saved.broadcastTimeOn)
           if (typeof saved.screenTextOn === "boolean") setScreenTextOn(saved.screenTextOn)
@@ -752,17 +749,11 @@ export function LiveStudio() {
               )
             ) : null}
 
-            {logoUrl ? (
+            {logoUrl && !headlineOn ? (
               <img
                 src={logoUrl}
                 alt="WIGOD logo"
-                className={
-                  "absolute z-20 rounded object-contain " +
-                  (overlayDesign === "corner" ? "bottom-12 right-3 h-10 w-10" :
-                    overlayDesign === "modern" ? "right-4 top-4 h-14 w-14" :
-                    overlayDesign === "minimal" ? "right-4 top-4 h-10 w-10 opacity-90" :
-                    "right-3 top-3 h-12 w-12")
-                }
+                className="absolute right-3 top-3 z-20 h-12 w-12 rounded object-contain"
               />
             ) : null}
 
@@ -827,76 +818,97 @@ export function LiveStudio() {
             ) : null}
 
             {headlineOn && headlines.trim() ? (
-              <div className="pointer-events-none absolute left-0 right-0 z-40" style={{ bottom: tickerOn && ticker ? (tickerHeight === "large" ? 44 : tickerHeight === "medium" ? 40 : 36) : 8 }}>
-                {overlayDesign === "newsroom" ? (
-                  <div className="mx-0 flex min-h-8 overflow-hidden" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderTop: "3px solid " + primaryColor }}>
-                    <div className="shrink-0 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider" style={{ backgroundColor: primaryColor }}>HEADLINES</div>
-                    <div className="min-w-0 flex-1 px-3 py-1.5 text-[10px] font-bold">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "WIGOD NEWS")}</div>
-                    {broadcastTimeOn && liveClock ? <div className="shrink-0 border-l border-white/20 px-3 py-1.5 text-[10px] font-black tabular-nums">{liveClock}</div> : null}
-                  </div>
-                ) : overlayDesign === "split-bar" ? (
-                  <div className="mx-3 flex min-h-9 overflow-hidden rounded-md shadow-lg" style={{ backgroundColor: bannerColor, color: bannerTextColor }}>
-                    <div className="flex shrink-0 items-center px-3 text-[9px] font-black uppercase tracking-wider" style={{ backgroundColor: primaryColor }}>HEADLINES</div>
-                    <div className="min-w-0 flex-1 px-3 py-2 text-[10px] font-bold">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "WIGOD NEWS")}</div>
-                    {broadcastTimeOn && liveClock ? <div className="flex shrink-0 items-center border-l-4 px-3 text-[10px] font-black tabular-nums" style={{ borderColor: accentColor }}>{liveClock}</div> : null}
-                  </div>
-                ) : overlayDesign === "modern" ? (
-                  <div className="mx-4 flex items-center gap-2">
-                    <div className="flex min-w-0 flex-1 items-center overflow-hidden rounded-md shadow-lg" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderLeft: "6px solid " + primaryColor }}>
-                      <div className="shrink-0 px-3 py-2 text-[9px] font-black uppercase tracking-wider">{broadcastTimeOn && liveClock ? liveClock : "HEADLINES"}</div>
-                      <div className="min-w-0 flex-1 px-3 py-2 text-[10px] font-bold">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "WIGOD NEWS")}</div>
+              <div className="pointer-events-none absolute bottom-8 left-0 right-0 z-40 px-2 sm:px-4">
+                {overlayDesign === "ribbon" ? (
+                  <div className="mx-auto max-w-[92%]">
+                    <div className="flex items-end gap-2">
+                      <div className="shrink-0 -skew-x-12 px-4 py-1.5 text-[9px] font-black uppercase tracking-widest text-white" style={{ backgroundColor: accentColor }}>
+                        <span className="inline-block skew-x-12">LIVE</span>
+                      </div>
+                      <div className="min-w-0 flex-1 overflow-hidden border-t-2" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderColor: primaryColor, clipPath: "polygon(3% 0, 100% 0, 96% 100%, 0 100%)" }}>
+                        <div className="flex items-center">
+                          <div className="shrink-0 px-3 py-2 text-[8px] font-black uppercase tracking-wider" style={{ color: primaryColor }}>HEADLINES</div>
+                          <div className="min-w-0 flex-1 px-2 py-2 text-[11px] font-black uppercase">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "WIGOD NEWS")}</div>
+                          {broadcastTimeOn && liveClock ? <div className="shrink-0 -skew-x-12 px-3 py-2 text-[9px] font-black tabular-nums" style={{ backgroundColor: accentColor, color: bannerTextColor }}><span className="inline-block skew-x-12">{liveClock}</span></div> : null}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-1 flex items-center justify-end gap-1 text-[7px] font-bold uppercase tracking-wider text-white/80">
+                      <span className="h-1.5 w-6" style={{ backgroundColor: primaryColor }} />
+                      <span>WIGOD LIVE</span>
                     </div>
                   </div>
-                ) : overlayDesign === "minimal" ? (
-                  <div className="mx-5 border-l-4 px-3 py-1.5" style={{ borderColor: primaryColor, color: bannerTextColor, backgroundColor: "rgba(0,0,0,.72)" }}>
-                    <div className="flex items-center gap-3">
-                      <span className="shrink-0 text-[8px] font-black uppercase tracking-widest" style={{ color: primaryColor }}>NEWS</span>
-                      <span className="min-w-0 flex-1 text-[10px] font-bold">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "WIGOD NEWS")}</span>
-                      {broadcastTimeOn && liveClock ? <span className="shrink-0 text-[9px] font-black tabular-nums">{liveClock}</span> : null}
+                ) : overlayDesign === "badge" ? (
+                  <div className="mx-auto max-w-[94%]">
+                    <div className="relative pl-12">
+                      <div className="absolute left-0 top-1/2 z-10 flex size-20 -translate-y-1/2 items-center justify-center overflow-hidden rounded-[22px] border-4 border-white/80 shadow-xl" style={{ backgroundColor: primaryColor, transform: "translateY(-50%) rotate(45deg)" }}>
+                        <div className="-rotate-45">
+                          {logoUrl ? <img src={logoUrl} alt="" className="size-12 object-contain" /> : <span className="text-[10px] font-black text-white">WIGOD<br/>NEWS</span>}
+                        </div>
+                      </div>
+                      <div className="overflow-hidden rounded-md shadow-xl" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderBottom: "4px solid " + accentColor }}>
+                        <div className="flex items-end">
+                          <div className="min-w-0 flex-1 px-4 py-2.5">
+                            <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: primaryColor }}>BREAKING NEWS</p>
+                            <p className="truncate text-[12px] font-black uppercase">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "WIGOD NEWS")}</p>
+                          </div>
+                          {broadcastTimeOn && liveClock ? <div className="mr-2 -translate-y-1 rounded-t-md px-3 py-1 text-[8px] font-black tabular-nums" style={{ backgroundColor: primaryColor, color: bannerTextColor }}>LIVE {liveClock}</div> : null}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                ) : overlayDesign === "breaking" ? (
-                  <div className="mx-2 overflow-hidden rounded-sm shadow-lg" style={{ backgroundColor: bannerColor, color: bannerTextColor }}>
-                    <div className="flex min-h-9 items-stretch">
-                      <div className="flex shrink-0 items-center px-3 text-[9px] font-black uppercase tracking-widest text-white" style={{ backgroundColor: accentColor }}>BREAKING</div>
-                      <div className="min-w-0 flex-1 px-3 py-2 text-[10px] font-black">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "WIGOD NEWS")}</div>
-                      {broadcastTimeOn && liveClock ? <div className="flex shrink-0 items-center border-l border-white/15 px-3 text-[9px] font-black tabular-nums">{liveClock}</div> : null}
+                ) : overlayDesign === "capsule" ? (
+                  <div className="mx-auto flex max-w-[92%] items-center overflow-hidden rounded-full border-2 shadow-xl" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderColor: primaryColor }}>
+                    <div className="shrink-0 px-4 py-2 text-[8px] font-black uppercase tracking-widest" style={{ backgroundColor: primaryColor }}>
+                      {broadcastTimeOn && liveClock ? <><span>NEWS TIME</span><br/>{liveClock}</> : "HEADLINES"}
                     </div>
+                    <div className="min-w-0 flex-1 px-4 py-2.5 text-[11px] font-black uppercase">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "WIGOD NEWS")}</div>
+                    <div className="shrink-0 px-4 py-2 text-[8px] font-black uppercase tracking-wider" style={{ backgroundColor: accentColor, color: bannerTextColor }}>LIVE NEWS</div>
                   </div>
-                ) : overlayDesign === "broadcast" ? (
-                  <div className="mx-2 overflow-hidden shadow-lg" style={{ backgroundColor: bannerColor, color: bannerTextColor }}>
-                    <div className="flex min-h-8 items-center border-l-4" style={{ borderColor: primaryColor }}>
-                      <div className="shrink-0 px-3 py-1.5 text-[8px] font-black uppercase tracking-widest" style={{ color: primaryColor }}>WIGOD NEWS</div>
-                      <div className="min-w-0 flex-1 px-3 py-1.5 text-[10px] font-bold">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "WIGOD NEWS")}</div>
-                      {broadcastTimeOn && liveClock ? <div className="shrink-0 border-l border-white/15 px-3 py-1.5 text-[9px] font-black tabular-nums">{liveClock}</div> : null}
+                ) : overlayDesign === "angled" ? (
+                  <div className="mx-auto max-w-[94%]">
+                    <div className="flex items-center">
+                      <div className="-skew-x-12 shrink-0 px-4 py-2.5 shadow-lg" style={{ backgroundColor: primaryColor }}>
+                        <div className="skew-x-12 text-center text-[8px] font-black uppercase tracking-widest text-white">LIVE<br/>NEWS</div>
+                      </div>
+                      <div className="min-w-0 flex-1 -skew-x-12 shadow-lg" style={{ backgroundColor: bannerColor, color: bannerTextColor }}>
+                        <div className="skew-x-12 flex items-center">
+                          <div className="min-w-0 flex-1 px-4 py-2.5">
+                            <div className="text-[8px] font-black uppercase tracking-widest" style={{ color: accentColor }}>{broadcastTimeOn && liveClock ? "TIME " + liveClock : "WIGOD NEWS"}</div>
+                            <div className="truncate text-[12px] font-black uppercase">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "BREAKING NEWS")}</div>
+                          </div>
+                          <div className="shrink-0 px-3 text-[8px] font-black uppercase" style={{ color: accentColor }}>LIVE</div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ) : overlayDesign === "corner" ? (
-                  <div className="flex items-end justify-between px-3">
-                    <div className="max-w-[72%] overflow-hidden rounded-md shadow-lg" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderBottom: "3px solid " + primaryColor }}>
-                      <div className="px-3 py-2 text-[10px] font-black">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "WIGOD NEWS")}</div>
-                    </div>
-                    {broadcastTimeOn && liveClock ? <div className="rounded-md px-3 py-2 text-[10px] font-black tabular-nums shadow-lg" style={{ backgroundColor: bannerColor, color: bannerTextColor }}>{liveClock}</div> : null}
+                    <div className="mt-1 ml-8 h-1 -skew-x-12" style={{ backgroundColor: accentColor, clipPath: "polygon(0 0, 92% 0, 100% 100%, 6% 100%)" }} />
                   </div>
                 ) : (
-                  <div className="mx-0 overflow-hidden shadow-lg" style={{ backgroundColor: bannerColor, color: bannerTextColor }}>
-                    <div className="flex min-h-7 items-center">
-                      <div className="shrink-0 px-3 py-1 text-[8px] font-black uppercase tracking-widest" style={{ backgroundColor: primaryColor }}>HEADLINES</div>
-                      <div className="min-w-0 flex-1 px-3 py-1 text-[10px] font-bold">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "WIGOD NEWS")}</div>
-                      {broadcastTimeOn && liveClock ? <div className="shrink-0 px-3 py-1 text-[9px] font-black tabular-nums" style={{ backgroundColor: accentColor }}>{liveClock}</div> : null}
+                  <div className="mx-auto flex max-w-[92%] items-center">
+                    <div className="relative z-10 flex size-18 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-white shadow-xl" style={{ backgroundColor: primaryColor }}>
+                      {logoUrl ? <img src={logoUrl} alt="" className="size-11 object-contain" /> : <span className="text-[8px] font-black text-white">HD<br/>NEWS</span>}
+                    </div>
+                    <div className="-ml-2 min-w-0 flex-1 overflow-hidden rounded-r-full shadow-xl" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderTop: "3px solid " + primaryColor }}>
+                      <div className="flex items-center">
+                        <div className="min-w-0 flex-1 px-5 py-2.5">
+                          <p className="text-[7px] font-black uppercase tracking-widest" style={{ color: accentColor }}>{broadcastTimeOn && liveClock ? "LIVE " + liveClock : "WIGOD LIVE"}</p>
+                          <p className="truncate text-[12px] font-black uppercase">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "BREAKING NEWS")}</p>
+                        </div>
+                        <div className="mr-3 rounded-full px-3 py-1 text-[8px] font-black uppercase" style={{ backgroundColor: accentColor, color: bannerTextColor }}>LIVE</div>
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
             ) : broadcastTimeOn && liveClock ? (
-              <div className="pointer-events-none absolute right-3 z-40 rounded-md px-3 py-1.5 text-[10px] font-black tabular-nums" style={{ bottom: tickerOn && ticker ? (tickerHeight === "large" ? 44 : tickerHeight === "medium" ? 40 : 36) : 8, backgroundColor: bannerColor, color: bannerTextColor }}>
+              <div className="pointer-events-none absolute right-3 bottom-8 z-40 rounded-md px-3 py-1.5 text-[10px] font-black tabular-nums" style={{ backgroundColor: bannerColor, color: bannerTextColor }}>
                 {liveClock}
               </div>
             ) : null}
 
             {tickerOn && ticker ? (
               <div
-                className={"pointer-events-none absolute bottom-2 left-0 right-0 z-50 overflow-hidden px-3 " + (tickerHeight === "large" ? "py-2.5 text-[10px]" : tickerHeight === "medium" ? "py-2 text-[9px]" : "py-1.5 text-[8px]") + " font-bold"}
+                className={"pointer-events-none absolute bottom-2 left-0 right-0 z-50 overflow-hidden px-2 sm:px-4 " + (tickerHeight === "large" ? "py-2.5 text-[10px]" : tickerHeight === "medium" ? "py-2 text-[9px]" : "py-1.5 text-[8px]") + " font-bold"}
                 style={{ backgroundColor: tickerColor, color: bannerTextColor }}
               >
                 <div className="flex w-max min-w-full whitespace-nowrap" style={{ animation: "wigodTicker " + tickerSpeed + "s linear infinite" }}>
@@ -1398,17 +1410,3 @@ export function LiveStudio() {
           {panel === "media" ? (
             <div className="space-y-3 rounded-2xl border border-border p-4">
               <div className="flex items-center gap-2">
-                <Sparkles className="size-4 text-brand-red" />
-                <h3 className="text-sm font-bold">Media clips</h3>
-              </div>
-              <label className="cursor-pointer rounded-xl border border-dashed border-border p-4 text-center block hover:bg-secondary">
-                <Video className="mx-auto size-5 text-brand-green" />
-                <p className="mt-2 text-xs font-bold">Add intro, countdown or outro video</p>
-                <p className="mt-1 text-[10px] text-muted-foreground">Playing video automatically mutes your mic; you can unmute it during playback.</p>
-                <input
-                  type="file"
-                  accept="video/mp4,video/webm,video/quicktime"
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0]
-                    if (!file) return
