@@ -5,6 +5,13 @@ import { Camera, MonitorUp, Mic, Play, Square, Radio, Image as ImageIcon, Video 
 
 const WIDTH = 1920
 const HEIGHT = 1080
+const STUDIO_SCENES = [
+  { id: "opening", name: "Opening", scene: "camera" as const, lowerThird: true, ticker: true, headline: "WELCOME TO WIGOD LIVE", name: "WIGOD LIVE", role: "People. Places. Perspectives." },
+  { id: "interview", name: "Interview", scene: "split" as const, lowerThird: true, ticker: true, headline: "LIVE INTERVIEW", name: "AFRICA & BEYOND", role: "News | Analysis | Perspective" },
+  { id: "screen", name: "Screen Demo", scene: "screen" as const, lowerThird: false, ticker: true, headline: "SCREEN DEMO", name: "WIGOD LIVE", role: "Live presentation" },
+  { id: "full", name: "Full Screen", scene: "media" as const, lowerThird: false, ticker: false, headline: "", name: "", role: "" },
+] as const
+
 
 export function BroadcastCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -31,6 +38,7 @@ export function BroadcastCanvas() {
   const [mediaType, setMediaType] = useState<"image" | "video">("image")
   const [mediaUrl, setMediaUrl] = useState("")
   const [mediaLoaded, setMediaLoaded] = useState(false)
+  const [activePreset, setActivePreset] = useState("opening")
 
   useEffect(() => () => stopAll(), [])
 
@@ -46,6 +54,17 @@ export function BroadcastCanvas() {
     setMicOn(false)
     setScreenOn(false)
     setRunning(false)
+  }
+
+
+  function applyStudioScene(preset: typeof STUDIO_SCENES[number]) {
+    setActivePreset(preset.id)
+    setScene(preset.scene)
+    setShowLowerThird(preset.lowerThird)
+    setShowTicker(preset.ticker)
+    setHeadline(preset.headline)
+    setLowerName(preset.name)
+    setLowerRole(preset.role)
   }
 
   async function startCamera() {
@@ -223,6 +242,13 @@ export function BroadcastCanvas() {
       <video ref={mediaVideoRef} muted loop playsInline className="hidden" />
       <img ref={mediaImageRef} alt="" crossOrigin="anonymous" className="hidden" />
 
+
+      <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div><p className="text-xs font-bold uppercase tracking-wider">Studio Scene Presets</p><p className="mt-1 text-[11px] text-muted-foreground">Presets mirror the existing WIGOD Live Studio scene system.</p></div>
+          <div className="flex flex-wrap gap-2">{STUDIO_SCENES.map((preset) => <button key={preset.id} onClick={() => applyStudioScene(preset)} className={activePreset === preset.id ? "rounded-lg bg-brand-green px-3 py-2 text-xs font-bold text-white" : "rounded-lg border px-3 py-2 text-xs font-semibold"}>{preset.name}</button>)}</div>
+        </div>
+      </div>
       <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div><p className="text-xs font-bold uppercase tracking-wider">Scenes</p><p className="mt-1 text-[11px] text-muted-foreground">Choose what the programme canvas shows.</p></div>
