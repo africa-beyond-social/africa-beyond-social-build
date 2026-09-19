@@ -2,6 +2,9 @@
 # MediaMTX accepts the browser WebRTC/WHIP publish and exposes the stream
 # internally over RTSP. FFmpeg then normalizes the media for YouTube RTMPS.
 #
+# TLS is expected to terminate at the public reverse proxy. MediaMTX receives
+# the proxied WHIP request over the private/local HTTP listener.
+#
 # Configure YOUTUBE_RTMPS_URL in the relay container environment.
 # Example shape:
 # rtmps://<youtube-ingest-host>/<application>/<stream-key>
@@ -10,7 +13,7 @@ logLevel: info
 
 webrtc: true
 webrtcAddress: :8889
-webrtcEncryption: true
+webrtcEncryption: false
 webrtcAllowOrigins: ["*"]
 webrtcLocalUDPAddress: :8189
 webrtcLocalTCPAddress: :8190
