@@ -139,6 +139,11 @@ export function ProgrammeOutputMonitor() {
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
+    const liveGraphics = (window as Window & { __wigodStudioGraphics?: StudioGraphics }).__wigodStudioGraphics
+    if (liveGraphics) graphicsRef.current = liveGraphics
+    const liveMedia = (window as Window & { __wigodStudioMedia?: StudioMedia }).__wigodStudioMedia
+    if (liveMedia) mediaRefState.current = liveMedia
+
     const g = graphicsRef.current
     const media = mediaRefState.current
     const camera = cameraRef.current
