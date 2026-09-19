@@ -34,6 +34,17 @@ export type WigodGraphicsState = {
   customMediaPosition?: string
 }
 
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath()
+  ctx.roundRect(x, y, w, h, r)
+}
+
+function drawLogo(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, width: number) {
+  if (!logo?.naturalWidth) return
+  const scale = Math.min(170 / logo.naturalWidth, 62 / logo.naturalHeight)
+  ctx.drawImage(logo, 34, 28, logo.naturalWidth * scale, logo.naturalHeight * scale)
+}
+
 export function drawWigodGraphics(
   ctx: CanvasRenderingContext2D,
   g: WigodGraphicsState,
@@ -46,89 +57,128 @@ export function drawWigodGraphics(
   const accent = g.accentColor || "#d62828"
   const banner = g.bannerColor || "#111111"
   const text = g.bannerTextColor || "#ffffff"
+  const tickerColor = g.tickerColor || accent
 
-  if (g.logoUrl && !g.headlineOn && logo?.naturalWidth) {
-    const scale = Math.min(120 / logo.naturalWidth, 90 / logo.naturalHeight)
-    ctx.drawImage(logo, width - logo.naturalWidth * scale - 36, 30, logo.naturalWidth * scale, logo.naturalHeight * scale)
-  }
+  // Clean top identity: one WIGOD/Africa & Beyond mark and one live/time cluster.
+  drawLogo(ctx, logo, width)
 
-  if (g.liveStampOn) {
-    ctx.fillStyle = accent
-    ctx.beginPath()
-    ctx.roundRect(28, 28, 112, 42, 8)
-    ctx.fill()
-    ctx.fillStyle = "#fff"
-    ctx.font = "900 20px Arial"
-    ctx.fillText("● LIVE", 47, 56)
-  }
+  if (g.liveStampOn || (g.broadcastTimeOn && g.liveClock)) {
+    const liveW = g.liveStampOn ? 112 : 0
+    const timeW = g.broadcastTimeOn && g.liveClock ? 154 : 0
+    const gap = liveW && timeW ? 6 : 0
+    const totalW = liveW + gap + timeW
+    const x = width - totalW - 34
+    const y = 28
 
-  if (g.broadcastTimeOn && g.liveClock) {
-    ctx.fillStyle = "rgba(0,0,0,.78)"
-    ctx.beginPath()
-    ctx.roundRect(width - 230, 28, 202, 42, 8)
-    ctx.fill()
-    ctx.fillStyle = text
-    ctx.font = "700 18px Arial"
-    ctx.fillText(g.liveClock, width - 205, 56)
+    if (g.liveStampOn) {
+      ctx.fillStyle = accent
+      roundRect(ctx, x, y, liveW, 42, 7)
+      ctx.fill()
+      ctx.fillStyle = "#fff"
+      ctx.font = "900 18px Arial"
+      ctx.fillText("● LIVE", x + 21, y + 27)
+    }
+
+    if (g.broadcastTimeOn && g.liveClock) {
+      const tx = x + liveW + gap
+      ctx.fillStyle = "rgba(10,10,10,.86)"
+      roundRect(ctx, tx, y, timeW, 42, 7)
+      ctx.fill()
+      ctx.fillStyle = text
+      ctx.font = "700 17px Arial"
+      ctx.fillText(g.liveClock, tx + 18, y + 27)
+    }
   }
 
   if (g.screenTextOn && g.screenText) {
     ctx.font = "700 30px Arial"
     const tw = Math.min(ctx.measureText(g.screenText).width + 70, width - 140)
-    const y = g.screenTextPosition === "middle" ? height / 2 - 30 : g.screenTextPosition === "bottom" ? height - 180 : 120
-    ctx.fillStyle = "rgba(0,0,0,.75)"
-    ctx.beginPath(); ctx.roundRect(70, y, tw, 64, 10); ctx.fill()
+    const y = g.screenTextPosition === "middle" ? height / 2 - 30 : g.screenTextPosition === "bottom" ? height - 260 : 120
+    ctx.fillStyle = "rgba(0,0,0,.78)"
+    roundRect(ctx, 70, y, tw, 64, 8)
+    ctx.fill()
     ctx.fillStyle = "#fff"
-    ctx.fillText(g.screenText.slice(0, 100), 100, y + 42)
+    ctx.fillText(g.screenText.slice(0, 100), 105, y + 42)
   }
 
+  // Presenter identification sits above the headline band.
   if (g.lowerThird) {
     const name = g.lowerName || "WIGOD LIVE"
     const role = g.lowerRole || ""
-    ctx.fillStyle = banner
-    ctx.fillRect(50, height - 270, 760, 82)
+    const y = height - 292
+    ctx.fillStyle = "rgba(10,10,10,.92)"
+    roundRect(ctx, 54, y, 700, 82, 8)
+    ctx.fill()
     ctx.fillStyle = primary
-    ctx.fillRect(50, height - 270, 7, 82)
+    ctx.fillRect(54, y, 8, 82)
     ctx.fillStyle = text
-    ctx.font = "900 28px Arial"
-    ctx.fillText(name, 78, height - 222)
-    ctx.font = "400 20px Arial"
-    ctx.fillText(role, 78, height - 192)
+    ctx.font = "900 27px Arial"
+    ctx.fillText(name.slice(0, 42), 84, y + 35)
+    ctx.font = "500 18px Arial"
+    ctx.fillStyle = "rgba(255,255,255,.78)"
+    ctx.fillText(role.slice(0, 58), 84, y + 63)
   }
 
+  // Main newsroom headline: a single strong, readable strap.
   if (g.headlineOn && g.headlines?.trim()) {
     const lines = g.headlines.split("\n").map(v => v.trim()).filter(Boolean)
     const headline = lines[g.headlineIndex || 0] || lines[0] || "WIGOD NEWS"
-    const y = height - 165
-    ctx.fillStyle = banner
-    ctx.fillRect(90, y, width - 180, 72)
+    const y = height - 204
+    const h = 82
+    const x = 54
+    const w = width - 108
+
+    ctx.fillStyle = "rgba(8,8,8,.94)"
+    ctx.fillRect(x, y, w, h)
     ctx.fillStyle = primary
-    ctx.fillRect(90, y, 8, 72)
+    ctx.fillRect(x, y, 9, h)
+
     ctx.fillStyle = accent
-    ctx.fillRect(width - 260, y, 170, 72)
-    ctx.fillStyle = text
+    ctx.fillRect(x + 9, y, 154, h)
+
+    ctx.fillStyle = "#fff"
     ctx.font = "900 15px Arial"
-    ctx.fillText("HEADLINES", 120, y + 25)
-    ctx.font = "900 27px Arial"
-    ctx.fillText(headline.slice(0, 86), 120, y + 54)
-    ctx.fillStyle = text
-    ctx.font = "900 16px Arial"
-    ctx.fillText(g.liveStampOn ? "LIVE" : "WIGOD", width - 215, y + 42)
+    ctx.fillText("AFRICA & BEYOND", x + 28, y + 28)
+    ctx.font = "900 29px Arial"
+    ctx.fillText(headline.slice(0, 92), x + 190, y + 50)
+
+    if (g.liveStampOn) {
+      ctx.fillStyle = "#fff"
+      ctx.font = "900 14px Arial"
+      ctx.fillText("LIVE", x + w - 76, y + 30)
+    }
     if (g.broadcastTimeOn && g.liveClock) {
-      ctx.font = "700 14px Arial"
-      ctx.fillText(g.liveClock, width - 215, y + 61)
+      ctx.fillStyle = "rgba(255,255,255,.72)"
+      ctx.font = "600 14px Arial"
+      ctx.fillText(g.liveClock, x + w - 108, y + 54)
     }
   }
 
+  // Full-width ticker remains visually separate from the headline.
   if (g.tickerOn && g.ticker) {
-    const h = g.tickerHeight === "large" ? 72 : g.tickerHeight === "medium" ? 58 : 46
-    ctx.fillStyle = g.tickerColor || accent
-    ctx.fillRect(0, height - h, width, h)
+    const h = g.tickerHeight === "large" ? 68 : g.tickerHeight === "medium" ? 56 : 48
+    const y = height - h
+
+    ctx.fillStyle = tickerColor
+    ctx.fillRect(0, y, width, h)
+
+    ctx.fillStyle = "#111"
+    ctx.fillRect(0, y, 132, h)
+    ctx.fillStyle = "#fff"
+    ctx.font = "900 17px Arial"
+    ctx.fillText("NEWS", 48, y + Math.round(h / 2) + 6)
+
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(132, y, width - 132, h)
+    ctx.clip()
+
     ctx.fillStyle = text
-    ctx.font = g.tickerHeight === "large" ? "700 28px Arial" : g.tickerHeight === "medium" ? "700 24px Arial" : "700 20px Arial"
-    tickerX.current -= Math.max(0.5, (g.tickerSpeed || 36) / 12)
+    ctx.font = g.tickerHeight === "large" ? "700 28px Arial" : g.tickerHeight === "medium" ? "700 23px Arial" : "700 20px Arial"
+    tickerX.current -= Math.max(0.5, (g.tickerSpeed || 36) / 14)
     const tw = ctx.measureText(g.ticker).width
-    if (tickerX.current < -tw - 100) tickerX.current = width
-    ctx.fillText(g.ticker, tickerX.current, height - Math.max(17, Math.round(h / 2) + 7))
+    if (tickerX.current < 132 - tw - 80) tickerX.current = width
+    ctx.fillText(g.ticker, tickerX.current, y + Math.round(h / 2) + 7)
+    ctx.restore()
   }
 }
