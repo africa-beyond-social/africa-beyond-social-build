@@ -264,6 +264,16 @@ export function LiveStudio() {
   }, [])
 
   useEffect(() => {
+    window.dispatchEvent(new CustomEvent("wigod-studio-media", {
+      detail: {
+        camera: cameraStreamRef.current,
+        microphone: audioStreamRef.current,
+        screen: screenStreamRef.current
+      }
+    }))
+  }, [camera, mic, screen])
+
+  useEffect(() => {
     window.dispatchEvent(new CustomEvent("wigod-studio-graphics", {
       detail: {
         layout, showOverlay, overlayDesign, screenText, screenTextOn, screenTextPosition,
