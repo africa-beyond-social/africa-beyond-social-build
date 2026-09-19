@@ -24,6 +24,7 @@ export function BroadcastCanvas() {
   const mediaImageRef = useRef<HTMLImageElement>(null)
   const logoImageRef = useRef<HTMLImageElement>(null)
   const backgroundImageRef = useRef<HTMLImageElement>(null)
+  const overlayImageRef = useRef<HTMLImageElement>(null)
   const animationRef = useRef<number | null>(null)
   const tickerXRef = useRef(WIDTH)
   const [cameraOn, setCameraOn] = useState(false)
@@ -58,6 +59,9 @@ export function BroadcastCanvas() {
   const [accentColor, setAccentColor] = useState("#d62828")
   const [tickerColor, setTickerColor] = useState("#d62828")
   const [tickerSpeed, setTickerSpeed] = useState(2.2)
+  const [overlayUrl, setOverlayUrl] = useState("")
+  const [overlayLoaded, setOverlayLoaded] = useState(false)
+  const [studioSynced, setStudioSynced] = useState(false)
 
   useEffect(() => () => stopAll(), [])
 
@@ -75,6 +79,47 @@ export function BroadcastCanvas() {
     setRunning(false)
   }
 
+
+  function syncFromStudio(detail: Record<string, unknown>) {
+    const layout = typeof detail.layout === "string" ? detail.layout : ""
+    const nextScene = ["screen"].includes(layout) ? "screen" : ["media", "cinema"].includes(layout) ? "media" : ["group", "split", "news", "pip"].includes(layout) ? "split" : "camera"
+    setScene(nextScene as "camera" | "screen" | "split" | "media")
+    if (typeof detail.showOverlay === "boolean") setShowLowerThird(detail.showOverlay)
+    if (typeof detail.overlayDesign === "string") setOverlayDesign(detail.overlayDesign as typeof overlayDesign)
+    if (typeof detail.screenText === "string") setScreenText(detail.screenText)
+    if (typeof detail.screenTextOn === "boolean") setScreenTextOn(detail.screenTextOn)
+    if (typeof detail.lowerThird === "boolean") setShowLowerThird(detail.lowerThird)
+    if (typeof detail.lowerName === "string") setLowerName(detail.lowerName)
+    if (typeof detail.lowerRole === "string") setLowerRole(detail.lowerRole)
+    if (typeof detail.primaryColor === "string") setPrimaryColor(detail.primaryColor)
+    if (typeof detail.accentColor === "string") setAccentColor(detail.accentColor)
+    if (typeof detail.bannerColor === "string") setBannerColor(detail.bannerColor)
+    if (typeof detail.bannerTextColor === "string") setBannerTextColor(detail.bannerTextColor)
+    if (typeof detail.tickerColor === "string") setTickerColor(detail.tickerColor)
+    if (typeof detail.tickerSpeed === "number") setTickerSpeed(Math.max(0.5, detail.tickerSpeed / 16))
+    if (typeof detail.ticker === "string") setTicker(detail.ticker)
+    if (typeof detail.tickerOn === "boolean") setShowTicker(detail.tickerOn)
+    if (typeof detail.headlineOn === "boolean") setHeadlineRotationOn(detail.headlineOn)
+    if (typeof detail.headlines === "string") setHeadlines(detail.headlines.replace(/\n/g, "|"))
+    if (typeof detail.headlineIndex === "number") setHeadlineIndex(detail.headlineIndex)
+    if (typeof detail.logoUrl === "string") { setLogoUrl(detail.logoUrl); if (detail.logoUrl) loadGraphicImage(detail.logoUrl, logoImageRef, setLogoLoaded) }
+    if (typeof detail.backgroundUrl === "string") { setBackgroundUrl(detail.backgroundUrl); if (detail.backgroundUrl && detail.backgroundKind !== "video") loadGraphicImage(detail.backgroundUrl, backgroundImageRef, setBackgroundLoaded) }
+    if (typeof detail.overlayUrl === "string") { setOverlayUrl(detail.overlayUrl); if (detail.overlayUrl) loadGraphicImage(detail.overlayUrl, overlayImageRef, setOverlayLoaded) }
+    setStudioSynced(true)
+  }
+
+  useEffect(() => {
+    const apply = (event: Event) => {
+      const detail = (event as CustomEvent<Record<string, unknown>>).detail
+      if (detail) syncFromStudio(detail)
+    }
+    window.addEventListener("wigod-studio-graphics", apply)
+    try {
+      const raw = window.localStorage.getItem("wigod-live-studio-preferences")
+      if (raw) syncFromStudio(JSON.parse(raw) as Record<string, unknown>)
+    } catch {}
+    return () => window.removeEventListener("wigod-studio-graphics", apply)
+  }, [])
 
   function loadGraphicImage(url: string, target: React.RefObject<HTMLImageElement | null>, onLoaded: (loaded: boolean) => void) {
     const image = target.current
@@ -277,6 +322,12 @@ export function BroadcastCanvas() {
       ctx.fillText(headline.slice(0, 70), 76, HEIGHT - 254)
     }
 
+    if (overlayLoaded && overlayImageRef.current?.naturalWidth) {
+      ctx.globalAlpha = 0.95
+      ctx.drawImage(overlayImageRef.current, 0, 0, WIDTH, HEIGHT)
+      ctx.globalAlpha = 1
+    }
+
     if (showLowerThird) {
       ctx.fillStyle = bannerColor
       if (overlayDesign === "capsule" || overlayDesign === "round") {
@@ -359,6 +410,7 @@ export function BroadcastCanvas() {
       <img ref={mediaImageRef} alt="" crossOrigin="anonymous" className="hidden" />
       <img ref={logoImageRef} alt="" crossOrigin="anonymous" className="hidden" />
       <img ref={backgroundImageRef} alt="" crossOrigin="anonymous" className="hidden" />
+      <img ref={overlayImageRef} alt="" crossOrigin="anonymous" className="hidden" />
 
 
       <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3">
