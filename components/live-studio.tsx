@@ -2,6 +2,7 @@
 
 import Script from "next/script"
 import { type ChangeEvent, useEffect, useRef, useState } from "react"
+import { WigodGraphicsPreview } from "./wigod-graphics-preview"
 import {
   AlertCircle,
   Camera,
@@ -43,7 +44,6 @@ type Layout =
 
 type Panel = "settings" | "brand" | "layout" | "scenes" | "media"
 type BannerLayout = "lower-third" | "full-width" | "split" | "pill" | "corner" | "headline"
-type OverlayDesign = "ribbon" | "badge" | "capsule" | "angled" | "round"
 
 declare global {
   interface Window {
@@ -61,12 +61,6 @@ const STUDIO_BACKGROUND_OPTIONS: BackgroundOption[] = [
   { id: "studio-news", name: "Newsroom", kind: "picture", url: "data:image/svg+xml," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1280 720'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='0'><stop stop-color='#070b14'/><stop offset='.5' stop-color='#182235'/><stop offset='1' stop-color='#070b14'/></linearGradient></defs><rect width='1280' height='720' fill='url(#g)'/><path d='M0 560 L1280 420 L1280 720 L0 720Z' fill='#d62828' opacity='.13'/><path d='M0 0 L1280 0 L1280 180 L0 300Z' fill='#0f8f4f' opacity='.12'/><text x='640' y='390' text-anchor='middle' fill='#ffffff' opacity='.16' font-family='Arial' font-size='68' font-weight='700'>NEWSROOM</text></svg>") },
   { id: "studio-dark", name: "Dark Broadcast", kind: "picture", url: "data:image/svg+xml," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1280 720'><defs><radialGradient id='g'><stop stop-color='#303642'/><stop offset='1' stop-color='#050608'/></radialGradient></defs><rect width='1280' height='720' fill='url(#g)'/><rect x='70' y='70' width='1140' height='580' rx='30' fill='none' stroke='#ffffff' stroke-opacity='.08' stroke-width='3'/><text x='640' y='390' text-anchor='middle' fill='#ffffff' opacity='.13' font-family='Arial' font-size='62' font-weight='700'>BROADCAST STUDIO</text></svg>") },
   { id: "motion", name: "Motion Background", kind: "video", url: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" },
-]
-
-const OVERLAY_DESIGNS: Array<{ id: OverlayDesign; name: string; description: string }> = [
-  { id: "ribbon", name: "WIGOD Headline", description: "Clean WIGOD headline strap with an integrated LIVE marker." },
-  { id: "badge", name: "WIGOD Breaking", description: "WIGOD breaking-news bar with creator mark and headline." },
-  { id: "round", name: "WIGOD Signature", description: "WIGOD signature lower-third with logo, headline and LIVE badge." },
 ]
 
 type Scene = {
@@ -139,7 +133,6 @@ export function LiveStudio() {
   const [layout, setLayout] = useState<Layout>("single")
   const [panel, setPanel] = useState<Panel>("settings")
   const [showOverlay, setShowOverlay] = useState(true)
-  const [overlayDesign, setOverlayDesign] = useState<OverlayDesign>("ribbon")
   const [liveStampOn, setLiveStampOn] = useState(true)
   const [broadcastTimeOn, setBroadcastTimeOn] = useState(true)
   const [liveClock, setLiveClock] = useState("")
@@ -216,8 +209,7 @@ export function LiveStudio() {
         if (typeof saved.panel === "string") setPanel(saved.panel as Panel)
         if (graphicsDefaultsVersion >= 2) {
           if (typeof saved.showOverlay === "boolean") setShowOverlay(saved.showOverlay)
-          if (typeof saved.overlayDesign === "string" && OVERLAY_DESIGNS.some((item) => item.id === saved.overlayDesign)) setOverlayDesign(saved.overlayDesign as OverlayDesign)
-          if (typeof saved.liveStampOn === "boolean") setLiveStampOn(saved.liveStampOn)
+            if (typeof saved.liveStampOn === "boolean") setLiveStampOn(saved.liveStampOn)
           if (typeof saved.broadcastTimeOn === "boolean") setBroadcastTimeOn(saved.broadcastTimeOn)
           if (typeof saved.screenTextOn === "boolean") setScreenTextOn(saved.screenTextOn)
           if (typeof saved.lowerThird === "boolean") setLowerThird(saved.lowerThird)
@@ -273,18 +265,44 @@ export function LiveStudio() {
 
   useEffect(() => {
     const graphics = {
-      layout, showOverlay, overlayDesign, screenText, screenTextOn, screenTextPosition, liveStampOn, broadcastTimeOn, liveClock, overlayOpacity, tickerHeight,
-      lowerThird, lowerName, lowerRole, primaryColor, accentColor, bannerColor, bannerTextColor,
-      bannerLayout, bannerRadius, tickerColor, tickerSpeed, ticker, tickerOn, headlineOn, headlines,
-      headlineIndex, logoUrl, overlayUrl, backgroundUrl, backgroundKind, thumbnailUrl, avatarUrl,
-      mediaUrl, mediaName, mediaPlaying,
-      customCameraSide, customCameraWidth, customCameraZoom, customMediaZoom,
-      customCameraPosition, customMediaPosition
+      layout,
+      screenText,
+      screenTextOn,
+      screenTextPosition,
+      liveStampOn,
+      broadcastTimeOn,
+      liveClock,
+      lowerThird,
+      lowerName,
+      lowerRole,
+      primaryColor,
+      accentColor,
+      bannerColor,
+      bannerTextColor,
+      tickerColor,
+      tickerSpeed,
+      ticker,
+      tickerOn,
+      tickerHeight,
+      headlineOn,
+      headlines,
+      headlineIndex,
+      logoUrl,
+      backgroundUrl,
+      backgroundKind,
+      mediaUrl,
+      mediaPlaying,
+      customCameraSide,
+      customCameraWidth,
+      customCameraZoom,
+      customMediaZoom,
+      customCameraPosition,
+      customMediaPosition
     }
     ;(window as Window & { __wigodStudioGraphics?: typeof graphics }).__wigodStudioGraphics = graphics
     window.dispatchEvent(new CustomEvent("wigod-studio-graphics", { detail: graphics }))
   }, [
-    layout, showOverlay, overlayDesign, screenText, screenTextOn, screenTextPosition,
+    layout, showOverlay, screenText, screenTextOn, screenTextPosition,
     lowerThird, lowerName, lowerRole, primaryColor, accentColor, bannerColor, bannerTextColor,
     bannerLayout, bannerRadius, tickerColor, tickerSpeed, ticker, tickerOn, headlineOn, headlines,
     headlineIndex, logoUrl, overlayUrl, backgroundUrl, backgroundKind, thumbnailUrl, avatarUrl,
@@ -296,10 +314,9 @@ export function LiveStudio() {
     if (!preferencesLoadedRef.current) return
     try {
       window.localStorage.setItem("wigod-live-studio-preferences", JSON.stringify({
-        layout, panel, showOverlay, liveStampOn, broadcastTimeOn, overlayOpacity,
-        overlayDesign, screenText, screenTextOn, screenTextPosition, screenTextSize, lowerThird, lowerName, lowerRole,
+        layout, panel, showOverlay, liveStampOn, broadcastTimeOn, overlayOpacity, screenText, screenTextOn, screenTextPosition, screenTextSize, lowerThird, lowerName, lowerRole,
         primaryColor, accentColor, bannerColor, bannerTextColor, bannerLayout, bannerRadius,
-        tickerColor, tickerSpeed, tickerHeight, ticker, tickerOn, headlineOn, headlines, scenes, graphicsDefaultsVersion: 2,
+        tickerColor, tickerSpeed, tickerHeight, ticker, tickerOn, headlineOn, headlines, scenes, graphicsDefaultsVersion: 3,
         customCameraSide, customCameraWidth, customCameraZoom, customMediaZoom,
         customCameraPosition, customMediaPosition, logoUrl, overlayUrl, backgroundUrl, backgroundKind, thumbnailUrl, avatarUrl
       }))
@@ -307,8 +324,7 @@ export function LiveStudio() {
       // Storage can be unavailable or full; never break the studio.
     }
   }, [
-    layout, panel, showOverlay, liveStampOn, broadcastTimeOn, overlayOpacity,
-    overlayDesign, screenText, screenTextOn, screenTextPosition, screenTextSize, lowerThird, lowerName, lowerRole,
+    layout, panel, showOverlay, liveStampOn, broadcastTimeOn, overlayOpacity, screenText, screenTextOn, screenTextPosition, screenTextSize, lowerThird, lowerName, lowerRole,
     primaryColor, accentColor, bannerColor, bannerTextColor, bannerLayout, bannerRadius,
     tickerColor, tickerSpeed, tickerHeight, ticker, tickerOn, headlineOn, headlines, scenes,
     customCameraSide, customCameraWidth, customCameraZoom, customMediaZoom,
@@ -934,156 +950,7 @@ export function LiveStudio() {
               />
             ) : null}
 
-            {liveStampOn ? (
-              <div className="pointer-events-none absolute left-3 top-3 z-30 inline-flex items-center gap-1.5 rounded-md bg-red-600 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white">
-                <span className="size-1.5 animate-pulse rounded-full bg-white" />
-                LIVE
-              </div>
-            ) : null}
-
-            {screenTextOn && screenText ? (
-              <div className={"pointer-events-none absolute left-3 right-3 z-30 " + positionClass}>
-                <div className={"mx-auto w-fit max-w-full rounded-lg bg-black/75 px-4 py-2 text-center font-black tracking-wide text-white " + textSizeClass}>
-                  {screenText}
-                </div>
-              </div>
-            ) : null}
-
-            {lowerThird ? (
-              bannerLayout === "full-width" ? (
-                <div className="pointer-events-none absolute bottom-12 left-0 right-0 z-30 px-3">
-                  <div className="w-full px-5 py-3" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderTop: "4px solid " + primaryColor }}>
-                    <p className="text-sm font-black">{lowerName || "WIGOD LIVE"}</p>
-                    <p className="mt-0.5 text-[10px] opacity-70">{lowerRole}</p>
-                  </div>
-                </div>
-              ) : bannerLayout === "split" ? (
-                <div className="pointer-events-none absolute bottom-12 left-3 z-30 flex max-w-[82%] overflow-hidden" style={{ borderRadius: bannerRadius === "pill" ? 999 : bannerRadius === "rounded" ? 12 : 0 }}>
-                  <div className="px-4 py-2 text-sm font-black" style={{ backgroundColor: primaryColor, color: bannerTextColor }}>{lowerName || "WIGOD LIVE"}</div>
-                  <div className="px-4 py-2 text-[10px] font-semibold" style={{ backgroundColor: bannerColor, color: bannerTextColor }}>{lowerRole}</div>
-                </div>
-              ) : bannerLayout === "pill" ? (
-                <div className="pointer-events-none absolute bottom-12 left-3 z-30 max-w-[75%] px-5 py-2.5 shadow-lg" style={{ backgroundColor: bannerColor, color: bannerTextColor, border: "2px solid " + accentColor, borderRadius: 999 }}>
-                  <p className="text-sm font-black">{lowerName || "WIGOD LIVE"}</p>
-                  <p className="mt-0.5 text-[10px] opacity-70">{lowerRole}</p>
-                </div>
-              ) : bannerLayout === "corner" ? (
-                <div className="pointer-events-none absolute bottom-12 right-3 z-30 max-w-[45%] px-4 py-2" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderRight: "4px solid " + accentColor, borderRadius: bannerRadius === "rounded" ? 12 : bannerRadius === "pill" ? 999 : 0 }}>
-                  <p className="text-sm font-black">{lowerName || "WIGOD LIVE"}</p>
-                  <p className="mt-0.5 text-[10px] opacity-70">{lowerRole}</p>
-                </div>
-              ) : bannerLayout === "headline" ? (
-                <div className="pointer-events-none absolute bottom-12 left-3 right-3 z-30 px-4 py-2" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderLeft: "5px solid " + primaryColor }}>
-                  <p className="text-sm font-black uppercase">{lowerName || "WIGOD LIVE"}</p>
-                  <p className="mt-0.5 text-[10px] opacity-70">{lowerRole}</p>
-                </div>
-              ) : (
-                <div className="pointer-events-none absolute bottom-12 left-3 z-30 max-w-[75%] px-4 py-2" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderLeft: "5px solid " + primaryColor, borderRadius: bannerRadius === "rounded" ? 12 : bannerRadius === "pill" ? 999 : 0 }}>
-                  <p className="text-sm font-black">{lowerName || "WIGOD LIVE"}</p>
-                  <p className="mt-0.5 text-[10px] opacity-70">{lowerRole}</p>
-                </div>
-              )
-            ) : null}
-
-            {headlineOn && headlines.trim() ? (
-              <div className="pointer-events-none absolute bottom-8 left-0 right-0 z-40 px-2 sm:px-4">
-                {overlayDesign === "ribbon" ? (
-                  <div className="mx-auto max-w-[92%]">
-                    <div className="flex items-end gap-2">
-                      <div className="shrink-0 -skew-x-12 px-4 py-1.5 text-[9px] font-black uppercase tracking-widest text-white" style={{ backgroundColor: accentColor }}>
-                        <span className="inline-block skew-x-12">LIVE</span>
-                      </div>
-                      <div className="min-w-0 flex-1 overflow-hidden border-t-2" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderColor: primaryColor, clipPath: "polygon(3% 0, 100% 0, 96% 100%, 0 100%)" }}>
-                        <div className="flex items-center">
-                          <div className="shrink-0 px-3 py-2 text-[8px] font-black uppercase tracking-wider" style={{ color: primaryColor }}>HEADLINES</div>
-                          <div className="min-w-0 flex-1 px-2 py-2 text-[11px] font-black uppercase">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "WIGOD NEWS")}</div>
-                          {broadcastTimeOn && liveClock ? <div className="shrink-0 -skew-x-12 px-3 py-2 text-[9px] font-black tabular-nums" style={{ backgroundColor: accentColor, color: bannerTextColor }}><span className="inline-block skew-x-12">{liveClock}</span></div> : null}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-1 flex items-center justify-end gap-1 text-[7px] font-bold uppercase tracking-wider text-white/80">
-                      <span className="h-1.5 w-6" style={{ backgroundColor: primaryColor }} />
-                      <span>WIGOD LIVE</span>
-                    </div>
-                  </div>
-                ) : overlayDesign === "badge" ? (
-                  <div className="mx-auto max-w-[94%]">
-                    <div className="relative pl-12">
-                      <div className="absolute left-0 top-1/2 z-10 flex size-20 -translate-y-1/2 items-center justify-center overflow-hidden rounded-[22px] border-4 border-white/80 shadow-xl" style={{ backgroundColor: primaryColor, transform: "translateY(-50%) rotate(45deg)" }}>
-                        <div className="-rotate-45">                          {logoUrl ? <img src={logoUrl} alt="" className="size-12 object-contain" /> : <span className="text-[10px] font-black text-white">WIGOD<br/>NEWS</span>}
-                        </div>
-                      </div>
-                      <div className="overflow-hidden rounded-md shadow-xl" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderBottom: "4px solid " + accentColor }}>
-                        <div className="flex items-end">
-                          <div className="min-w-0 flex-1 px-4 py-2.5">
-                            <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: primaryColor }}>BREAKING NEWS</p>
-                            <p className="truncate text-[12px] font-black uppercase">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "WIGOD NEWS")}</p>
-                          </div>
-                          {broadcastTimeOn && liveClock ? <div className="mr-2 -translate-y-1 rounded-t-md px-3 py-1 text-[8px] font-black tabular-nums" style={{ backgroundColor: primaryColor, color: bannerTextColor }}>LIVE {liveClock}</div> : null}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : overlayDesign === "capsule" ? (
-                  <div className="mx-auto flex max-w-[92%] items-center overflow-hidden rounded-full border-2 shadow-xl" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderColor: primaryColor }}>
-                    <div className="shrink-0 px-4 py-2 text-[8px] font-black uppercase tracking-widest" style={{ backgroundColor: primaryColor }}>
-                      {broadcastTimeOn && liveClock ? <><span>NEWS TIME</span><br/>{liveClock}</> : "HEADLINES"}
-                    </div>
-                    <div className="min-w-0 flex-1 px-4 py-2.5 text-[11px] font-black uppercase">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "WIGOD NEWS")}</div>
-                    <div className="shrink-0 px-4 py-2 text-[8px] font-black uppercase tracking-wider" style={{ backgroundColor: accentColor, color: bannerTextColor }}>LIVE NEWS</div>
-                  </div>
-                ) : overlayDesign === "angled" ? (
-                  <div className="mx-auto max-w-[94%]">
-                    <div className="flex items-center">
-                      <div className="-skew-x-12 shrink-0 px-4 py-2.5 shadow-lg" style={{ backgroundColor: primaryColor }}>
-                        <div className="skew-x-12 text-center text-[8px] font-black uppercase tracking-widest text-white">LIVE<br/>NEWS</div>
-                      </div>
-                      <div className="min-w-0 flex-1 -skew-x-12 shadow-lg" style={{ backgroundColor: bannerColor, color: bannerTextColor }}>
-                        <div className="skew-x-12 flex items-center">
-                          <div className="min-w-0 flex-1 px-4 py-2.5">
-                            <div className="text-[8px] font-black uppercase tracking-widest" style={{ color: accentColor }}>{broadcastTimeOn && liveClock ? "TIME " + liveClock : "WIGOD NEWS"}</div>
-                            <div className="truncate text-[12px] font-black uppercase">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "BREAKING NEWS")}</div>
-                          </div>
-                          <div className="shrink-0 px-3 text-[8px] font-black uppercase" style={{ color: accentColor }}>LIVE</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-1 ml-8 h-1 -skew-x-12" style={{ backgroundColor: accentColor, clipPath: "polygon(0 0, 92% 0, 100% 100%, 6% 100%)" }} />
-                  </div>
-                ) : (
-                  <div className="mx-auto flex max-w-[92%] items-center">
-                    <div className="relative z-10 flex size-18 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-white shadow-xl" style={{ backgroundColor: primaryColor }}>
-                      {logoUrl ? <img src={logoUrl} alt="" className="size-11 object-contain" /> : <span className="text-[8px] font-black text-white">HD<br/>NEWS</span>}
-                    </div>
-                    <div className="-ml-2 min-w-0 flex-1 overflow-hidden rounded-r-full shadow-xl" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderTop: "3px solid " + primaryColor }}>
-                      <div className="flex items-center">
-                        <div className="min-w-0 flex-1 px-5 py-2.5">
-                          <p className="text-[7px] font-black uppercase tracking-widest" style={{ color: accentColor }}>{broadcastTimeOn && liveClock ? "LIVE " + liveClock : "WIGOD LIVE"}</p>
-                          <p className="truncate text-[12px] font-black uppercase">{(headlines.split("\n").map((item) => item.trim()).filter(Boolean)[headlineIndex] || "BREAKING NEWS")}</p>
-                        </div>
-                        <div className="mr-3 rounded-full px-3 py-1 text-[8px] font-black uppercase" style={{ backgroundColor: accentColor, color: bannerTextColor }}>LIVE</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : broadcastTimeOn && liveClock ? (
-              <div className="pointer-events-none absolute right-3 bottom-8 z-40 rounded-md px-3 py-1.5 text-[10px] font-black tabular-nums" style={{ backgroundColor: bannerColor, color: bannerTextColor }}>
-                {liveClock}
-              </div>
-            ) : null}
-
-            {tickerOn && ticker ? (
-              <div
-                className={"pointer-events-none absolute bottom-2 left-0 right-0 z-50 overflow-hidden px-2 sm:px-4 " + (tickerHeight === "large" ? "py-2.5 text-[10px]" : tickerHeight === "medium" ? "py-2 text-[9px]" : "py-1.5 text-[8px]") + " font-bold"}
-                style={{ backgroundColor: tickerColor, color: bannerTextColor }}
-              >
-                <div className="flex w-max min-w-full whitespace-nowrap" style={{ animation: "wigodTicker " + tickerSpeed + "s linear infinite" }}>
-                  <span className="pr-16">{ticker}</span>
-                  <span className="pr-16">{ticker}</span>
-                </div>
-              </div>
-            ) : null}
+            <WigodGraphicsPreview />
           </div>
 
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
@@ -1310,9 +1177,9 @@ export function LiveStudio() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-bold">Broadcast graphics</p>
-                    <p className="mt-0.5 text-[9px] text-muted-foreground">Everything here is off by default. Turn on only what you want on air.</p>
+                    <p className="mt-0.5 text-[9px] text-muted-foreground">These are the live programme controls. The same internal graphics engine renders Studio and Programme Output.</p>
                   </div>
-                  <div className="text-right"><p className="text-[9px] font-bold text-brand-green">Brand design</p><p className="text-[10px] font-black">{OVERLAY_DESIGNS.find((item) => item.id === overlayDesign)?.name ?? "Live Ribbon"}</p></div>
+                  <div className="text-right"><p className="text-[9px] font-bold text-brand-green">Shared renderer</p><p className="text-[10px] font-black">WIGOD Graphics Engine</p></div>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <label className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-[10px] font-semibold"><span>LIVE stamp</span><input type="checkbox" checked={liveStampOn} onChange={(event) => setLiveStampOn(event.target.checked)} /></label>
@@ -1351,129 +1218,7 @@ export function LiveStudio() {
                 <p className="mt-2 text-[9px] text-muted-foreground">The ticker runs full width beneath the headline/time graphic and leaves a clean margin below.</p>
               </div>
 
-              <div className="rounded-xl bg-secondary/40 p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold">Overlay design</p>
-                    <p className="text-[10px] text-muted-foreground">Choose a broadcast structure that gives your channel its own visual identity.</p>
-                  </div>
-                  <input type="checkbox" checked={showOverlay} onChange={(event) => setShowOverlay(event.target.checked)} />
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {OVERLAY_DESIGNS.map((item) => (
-                    <button key={item.id} type="button" onClick={() => setOverlayDesign(item.id)} className={"rounded-xl border p-2 text-left " + (overlayDesign === item.id ? "border-brand-green bg-brand-green/5" : "border-border hover:bg-secondary")}>
-                      <div className="relative mb-2 aspect-[16/7] overflow-hidden rounded-md border border-border bg-black/90">
-                        {item.id === "ribbon" ? (
-                          <div className="absolute inset-x-2 bottom-2 h-4 -skew-x-12" style={{ backgroundColor: bannerColor }}><span className="absolute left-1 top-0 h-full w-6" style={{ backgroundColor: accentColor }} /><span className="absolute right-1 top-1 h-2 w-5" style={{ backgroundColor: primaryColor }} /></div>
-                        ) : item.id === "badge" ? (
-                          <>
-                            <div className="absolute bottom-2 left-1 size-7 rotate-45 rounded-lg" style={{ backgroundColor: primaryColor }} />
-                            <div className="absolute bottom-2 left-4 right-1 h-4 rounded" style={{ backgroundColor: bannerColor, borderBottom: "2px solid " + accentColor }} />
-                          </>
-                        ) : item.id === "capsule" ? (
-                          <div className="absolute inset-x-2 bottom-2 h-5 rounded-full" style={{ backgroundColor: bannerColor, border: "2px solid " + primaryColor }}><span className="absolute left-0 top-0 h-full w-8 rounded-full" style={{ backgroundColor: primaryColor }} /><span className="absolute right-0 top-0 h-full w-8 rounded-full" style={{ backgroundColor: accentColor }} /></div>
-                        ) : item.id === "angled" ? (
-                          <div className="absolute inset-x-2 bottom-2 flex h-5 -skew-x-12"><span className="w-1/5" style={{ backgroundColor: primaryColor }} /><span className="flex-1" style={{ backgroundColor: bannerColor }} /><span className="w-1/6" style={{ backgroundColor: accentColor }} /></div>
-                        ) : (
-                          <div className="absolute inset-x-2 bottom-2 flex h-5 items-center"><span className="z-10 mr-[-8px] size-7 rounded-full" style={{ backgroundColor: primaryColor, border: "2px solid white" }} /><span className="h-full flex-1 rounded-r-full" style={{ backgroundColor: bannerColor, borderTop: "2px solid " + primaryColor }} /><span className="mr-1 size-4 rounded-full" style={{ backgroundColor: accentColor }} /></div>
-                        )}
-                      </div>
-                      <p className="text-[10px] font-bold">{item.name}</p>
-                      <p className="mt-0.5 text-[8px] leading-3 text-muted-foreground">{item.description}</p>
-                    </button>
-                  ))}
-                </div>
-                <p className="mt-2 text-[9px] text-muted-foreground">WIGOD renders these graphics internally so the programme output can use the same broadcast design without depending on custom overlay images.</p>
-              </div>
-
-              {thumbnailUrl ? <div className="rounded-xl border border-border p-2"><img src={thumbnailUrl} alt="Live thumbnail preview" className="aspect-video w-full rounded-lg object-cover" /></div> : null}
-              {logoUrl ? <div className="rounded-xl border border-border p-2"><img src={logoUrl} alt="WIGOD logo preview" className="mx-auto h-16 w-16 object-contain" /></div> : null}
-
-              <div className="rounded-xl bg-secondary/40 p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold">Creator colors & banners</p>
-                    <p className="mt-0.5 text-[9px] text-muted-foreground">Choose the visual identity used by your scenes.</p>
-                  </div>
-                  <Sparkles className="size-4 text-brand-red" />
-                </div>
-
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <label className="rounded-lg border border-border p-2 text-[10px] font-semibold">Primary
-                    <div className="mt-1 flex items-center gap-2">
-                      <input type="color" value={primaryColor} onChange={(event) => setPrimaryColor(event.target.value)} className="h-8 w-10 cursor-pointer rounded border-0 bg-transparent p-0" />
-                      <span className="font-mono text-[9px]">{primaryColor}</span>
-                    </div>
-                  </label>
-                  <label className="rounded-lg border border-border p-2 text-[10px] font-semibold">Accent
-                    <div className="mt-1 flex items-center gap-2">
-                      <input type="color" value={accentColor} onChange={(event) => setAccentColor(event.target.value)} className="h-8 w-10 cursor-pointer rounded border-0 bg-transparent p-0" />
-                      <span className="font-mono text-[9px]">{accentColor}</span>
-                    </div>
-                  </label>
-                  <label className="rounded-lg border border-border p-2 text-[10px] font-semibold">Banner
-                    <div className="mt-1 flex items-center gap-2">
-                      <input type="color" value={bannerColor} onChange={(event) => setBannerColor(event.target.value)} className="h-8 w-10 cursor-pointer rounded border-0 bg-transparent p-0" />
-                      <span className="font-mono text-[9px]">{bannerColor}</span>
-                    </div>
-                  </label>
-                  <label className="rounded-lg border border-border p-2 text-[10px] font-semibold">Banner text
-                    <div className="mt-1 flex items-center gap-2">
-                      <input type="color" value={bannerTextColor} onChange={(event) => setBannerTextColor(event.target.value)} className="h-8 w-10 cursor-pointer rounded border-0 bg-transparent p-0" />
-                      <span className="font-mono text-[9px]">{bannerTextColor}</span>
-                    </div>
-                  </label>
-                  <label className="rounded-lg border border-border p-2 text-[10px] font-semibold">Banner shape
-                    <select value={bannerRadius} onChange={(event) => setBannerRadius(event.target.value as typeof bannerRadius)} className="mt-1 w-full rounded-lg border border-border bg-background px-2 py-2 text-[10px]">
-                      <option value="square">Square</option>
-                      <option value="rounded">Rounded</option>
-                      <option value="pill">Pill</option>
-                    </select>
-                  </label>
-                </div>
-
-                <div className="mt-3">
-                  <p className="text-[10px] font-bold">Banner layout</p>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    {([
-                      ["lower-third", "Lower third"],
-                      ["full-width", "Full width"],
-                      ["split", "Split name + role"],
-                      ["pill", "Pill"],
-                      ["corner", "Corner"],
-                      ["headline", "Headline bar"],
-                    ] as Array<[BannerLayout, string]>).map(([id, name]) => (
-                      <button key={id} type="button" onClick={() => setBannerLayout(id)} className={"rounded-lg border p-2 text-left text-[10px] font-semibold " + (bannerLayout === id ? "border-brand-green bg-brand-green/5" : "border-border hover:bg-secondary")}>
-                        <div className="mb-1 h-3 overflow-hidden rounded-sm" style={{ backgroundColor: bannerColor }}>
-                          <div className="h-full w-1/3" style={{ backgroundColor: primaryColor }} />
-                        </div>
-                        {name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-3 rounded-lg border border-border p-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-bold">Live banner preview</p>
-                    <span className="text-[9px] text-muted-foreground">Updates instantly</span>
-                  </div>
-                  <div className="mt-2 overflow-hidden p-2" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderRadius: bannerRadius === "pill" ? 999 : bannerRadius === "rounded" ? 12 : 0 }}>
-                    <p className="text-[10px] font-black">{lowerName || "CREATOR NAME"}</p>
-                    <p className="text-[8px] opacity-70">{lowerRole || "Creator / Show title"}</p>
-                  </div>
-                </div>
-
-                <div className="mt-3 border-t border-border pt-3">
-                  <p className="text-xs font-bold">Lower third</p>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground">Show lower third</span>
-                    <input type="checkbox" checked={lowerThird} onChange={(event) => setLowerThird(event.target.checked)} />
-                  </div>
-                  <input value={lowerName} onChange={(event) => setLowerName(event.target.value)} placeholder="Name / show title" className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs" />
-                  <input value={lowerRole} onChange={(event) => setLowerRole(event.target.value)} placeholder="Role / subtitle" className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-xs" />
-                </div>
-              </div>
+/div>
 
               <div className="rounded-xl bg-secondary/40 p-3">
                 <div className="flex items-center justify-between">
