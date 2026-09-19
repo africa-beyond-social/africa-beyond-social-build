@@ -148,6 +148,26 @@ export function BroadcastCanvas() {
     return () => window.removeEventListener("wigod-studio-graphics", apply)
   }, [])
 
+  useEffect(() => {
+    const applyScene = (event: Event) => {
+      const detail = (event as CustomEvent<Record<string, unknown>>).detail
+      if (!detail) return
+      const layout = typeof detail.layout === "string" ? detail.layout : ""
+      const nextScene =
+        ["screen"].includes(layout) ? "screen" :
+        ["media", "cinema"].includes(layout) ? "media" :
+        ["group", "split", "news", "pip"].includes(layout) ? "split" :
+        "camera"
+      setScene(nextScene as "camera" | "screen" | "split" | "media")
+      setActivePreset(typeof detail.id === "string" ? detail.id : "")
+    }
+
+    window.addEventListener("wigod-studio-scene", applyScene)
+    const current = (window as Window & { __wigodStudioScene?: Record<string, unknown> }).__wigodStudioScene
+    if (current) applyScene(new CustomEvent("wigod-studio-scene", { detail: current }))
+    return () => window.removeEventListener("wigod-studio-scene", applyScene)
+  }, [])
+
   function loadGraphicImage(url: string, target: React.RefObject<HTMLImageElement | null>, onLoaded: (loaded: boolean) => void) {
     const image = target.current
     if (!image) return
@@ -247,8 +267,7 @@ export function BroadcastCanvas() {
   function loadMedia() {
     setMediaLoaded(false)
     if (!mediaUrl.trim()) return
-    if (mediaType === "image") {
-      const image = mediaImageRef.current
+    if (mediaType === "image") {      const image = mediaImageRef.current
       if (!image) return
       image.src = mediaUrl.trim(); image.onload = () => setMediaLoaded(true); image.onerror = () => setMediaLoaded(false)
     } else {
