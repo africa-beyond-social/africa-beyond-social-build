@@ -22,6 +22,16 @@ export type WigodGraphicsState = {
   headlines?: string
   headlineIndex?: number
   logoUrl?: string
+  backgroundUrl?: string
+  backgroundKind?: "picture" | "video" | ""
+  mediaUrl?: string
+  mediaPlaying?: boolean
+  customCameraSide?: "left" | "right"
+  customCameraWidth?: number
+  customCameraZoom?: number
+  customMediaZoom?: number
+  customCameraPosition?: string
+  customMediaPosition?: string
 }
 
 export function drawWigodGraphics(
