@@ -1218,7 +1218,6 @@ export function LiveStudio() {
                 <p className="mt-2 text-[9px] text-muted-foreground">The ticker runs full width beneath the headline/time graphic and leaves a clean margin below.</p>
               </div>
 
-              </div>
 
               <div className="rounded-xl bg-secondary/40 p-3">
                 <div className="flex items-center justify-between">
