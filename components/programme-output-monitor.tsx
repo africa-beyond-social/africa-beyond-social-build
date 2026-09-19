@@ -26,6 +26,7 @@ type StudioGraphics = {
   tickerSpeed?: number
   ticker?: string
   tickerOn?: boolean
+  tickerHeight?: "small" | "medium" | "large"
   headlineOn?: boolean
   headlines?: string
   headlineIndex?: number
@@ -219,15 +220,16 @@ export function ProgrammeOutputMonitor() {
     if (g.headlineOn && g.headlines) drawHeadline(ctx, g)
 
     if (g.tickerOn && g.ticker) {
+      const tickerHeight = g.tickerHeight === "large" ? 72 : g.tickerHeight === "medium" ? 58 : 46
       ctx.fillStyle = g.tickerColor || "#d62828"
-      ctx.fillRect(0, HEIGHT - 58, WIDTH, 58)
-      ctx.font = "700 24px Arial"
+      ctx.fillRect(0, HEIGHT - tickerHeight, WIDTH, tickerHeight)
+      ctx.font = g.tickerHeight === "large" ? "700 28px Arial" : g.tickerHeight === "medium" ? "700 24px Arial" : "700 20px Arial"
       ctx.fillStyle = g.bannerTextColor || "#fff"
       const text = g.ticker
       tickerXRef.current -= Math.max(0.5, (g.tickerSpeed || 36) / 12)
       const width = ctx.measureText(text).width
       if (tickerXRef.current < -width - 80) tickerXRef.current = WIDTH
-      ctx.fillText(text, tickerXRef.current, HEIGHT - 21)
+      ctx.fillText(text, tickerXRef.current, HEIGHT - Math.max(17, Math.round(tickerHeight / 2) + 7))
     }
 
     frameRef.current = requestAnimationFrame(draw)
