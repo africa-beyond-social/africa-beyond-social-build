@@ -247,8 +247,7 @@ export function LiveStudio() {
         if (typeof saved.customCameraSide === "string") setCustomCameraSide(saved.customCameraSide as "left" | "right")
         if (typeof saved.customCameraWidth === "number") setCustomCameraWidth(saved.customCameraWidth)
         if (typeof saved.customCameraZoom === "number") setCustomCameraZoom(saved.customCameraZoom)
-        if (typeof saved.customMediaZoom === "number") setCustomMediaZoom(saved.customMediaZoom)
-        if (typeof saved.customCameraPosition === "string") setCustomCameraPosition(saved.customCameraPosition)
+        if (typeof saved.customMediaZoom === "number") setCustomMediaZoom(saved.customMediaZoom)        if (typeof saved.customCameraPosition === "string") setCustomCameraPosition(saved.customCameraPosition)
         if (typeof saved.customMediaPosition === "string") setCustomMediaPosition(saved.customMediaPosition)
         if (typeof saved.logoUrl === "string") setLogoUrl(saved.logoUrl)
         if (typeof saved.overlayUrl === "string") setOverlayUrl(saved.overlayUrl)
@@ -497,8 +496,7 @@ export function LiveStudio() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: cameraDeviceId
           ? { deviceId: { exact: cameraDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
-          : { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
-      })
+          : { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },      })
 
       cameraStreamRef.current = stream
 
@@ -656,6 +654,9 @@ export function LiveStudio() {
     setBannerLayout(scene.bannerLayout)
     setBannerRadius(scene.bannerRadius)
     setTickerColor(scene.tickerColor)
+
+    ;(window as Window & { __wigodStudioScene?: Scene }).__wigodStudioScene = scene
+    window.dispatchEvent(new CustomEvent("wigod-studio-scene", { detail: scene }))
   }
 
   async function endWigodLive() {
@@ -747,8 +748,7 @@ export function LiveStudio() {
 
       liveRoomNameRef.current = roomName
       setLiveRoomName(roomName)
-      setStatus("live")
-    } catch (cause) {
+      setStatus("live")    } catch (cause) {
       await fetch("/api/live/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -997,8 +997,7 @@ export function LiveStudio() {
                   <div className="mx-auto max-w-[94%]">
                     <div className="relative pl-12">
                       <div className="absolute left-0 top-1/2 z-10 flex size-20 -translate-y-1/2 items-center justify-center overflow-hidden rounded-[22px] border-4 border-white/80 shadow-xl" style={{ backgroundColor: primaryColor, transform: "translateY(-50%) rotate(45deg)" }}>
-                        <div className="-rotate-45">
-                          {logoUrl ? <img src={logoUrl} alt="" className="size-12 object-contain" /> : <span className="text-[10px] font-black text-white">WIGOD<br/>NEWS</span>}
+                        <div className="-rotate-45">                          {logoUrl ? <img src={logoUrl} alt="" className="size-12 object-contain" /> : <span className="text-[10px] font-black text-white">WIGOD<br/>NEWS</span>}
                         </div>
                       </div>
                       <div className="overflow-hidden rounded-md shadow-xl" style={{ backgroundColor: bannerColor, color: bannerTextColor, borderBottom: "4px solid " + accentColor }}>
@@ -1247,7 +1246,6 @@ export function LiveStudio() {
                   </label>
                 </div>
               </div>
-
               <div className="rounded-xl bg-secondary/40 p-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -1497,8 +1495,7 @@ export function LiveStudio() {
                     <option value="small">Small</option>
                     <option value="medium">Medium</option>
                     <option value="large">Large</option>
-                  </select>
-                </div>
+                  </select>                </div>
               </div>
 
 
