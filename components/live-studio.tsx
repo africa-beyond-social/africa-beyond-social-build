@@ -592,14 +592,28 @@ export function LiveStudio() {
     }
   }
 
+  function stopScreenSharing() {
+    const displayStream = screenStreamRef.current
+    screenStreamRef.current = null
+    displayStream?.getTracks().forEach((track) => track.stop())
+
+    setScreen(false)
+
+    if (cameraStreamRef.current) {
+      setCamera(true)
+      if (videoRef.current) videoRef.current.srcObject = cameraStreamRef.current
+      setStatus("previewing")
+    } else {
+      if (videoRef.current) videoRef.current.srcObject = null
+      setStatus(audioStreamRef.current ? "previewing" : "ready")
+    }
+  }
+
   async function shareScreen() {
     setError("")
     try {
       if (!navigator.mediaDevices?.getDisplayMedia) throw new Error("unsupported")
       const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
-
-      const micTrack = audioStreamRef.current?.getAudioTracks()[0]
-      if (micTrack && micTrack.enabled) displayStream.addTrack(micTrack)
 
       screenStreamRef.current = displayStream
 
@@ -615,6 +629,7 @@ export function LiveStudio() {
 
       const screenTrack = displayStream.getVideoTracks()[0]
       screenTrack.addEventListener("ended", () => {
+        if (screenStreamRef.current !== displayStream) return
         screenStreamRef.current = null
         setScreen(false)
 
@@ -631,6 +646,14 @@ export function LiveStudio() {
       if (cause instanceof DOMException && cause.name === "AbortError") return
       setError("Screen sharing could not be started. Please try again.")
     }
+  }
+
+  function toggleScreenSharing() {
+    if (screenStreamRef.current) {
+      stopScreenSharing()
+      return
+    }
+    void shareScreen()
   }
 
   function stopAllMedia() {
@@ -1093,9 +1116,13 @@ export function LiveStudio() {
               {mic ? "Mic on" : mediaMicMuted ? "Mic muted for video" : "Mic muted"}
             </button>
 
-            <button type="button" onClick={shareScreen} className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-3 py-2.5 text-xs font-bold">
+            <button
+              type="button"
+              onClick={toggleScreenSharing}
+              className={"inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold " + (screen ? "border-brand-red bg-brand-red/10 text-brand-red" : "border-border")}
+            >
               <MonitorUp className="size-4" />
-              {screen ? "Screen sharing" : "Share screen"}
+              {screen ? "Stop sharing" : "Share screen"}
             </button>
 
             <button type="button" onClick={() => setPanel("layout")} className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-3 py-2.5 text-xs font-bold">
