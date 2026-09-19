@@ -275,7 +275,7 @@ export function LiveStudio() {
 
   useEffect(() => {
     const graphics = {
-      layout, showOverlay, overlayDesign, screenText, screenTextOn, screenTextPosition,
+      layout, showOverlay, overlayDesign, screenText, screenTextOn, screenTextPosition, liveStampOn, broadcastTimeOn, liveClock, overlayOpacity, tickerHeight,
       lowerThird, lowerName, lowerRole, primaryColor, accentColor, bannerColor, bannerTextColor,
       bannerLayout, bannerRadius, tickerColor, tickerSpeed, ticker, tickerOn, headlineOn, headlines,
       headlineIndex, logoUrl, overlayUrl, backgroundUrl, backgroundKind, thumbnailUrl, avatarUrl,
@@ -290,7 +290,7 @@ export function LiveStudio() {
     lowerThird, lowerName, lowerRole, primaryColor, accentColor, bannerColor, bannerTextColor,
     bannerLayout, bannerRadius, tickerColor, tickerSpeed, ticker, tickerOn, headlineOn, headlines,
     headlineIndex, logoUrl, overlayUrl, backgroundUrl, backgroundKind, thumbnailUrl, avatarUrl,
-    mediaUrl, mediaName, mediaPlaying, customCameraSide, customCameraWidth, customCameraZoom,
+    mediaUrl, mediaName, mediaPlaying, liveStampOn, broadcastTimeOn, liveClock, overlayOpacity, tickerHeight, customCameraSide, customCameraWidth, customCameraZoom,
     customMediaZoom, customCameraPosition, customMediaPosition
   ])
 
