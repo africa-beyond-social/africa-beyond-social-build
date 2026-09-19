@@ -274,17 +274,17 @@ export function LiveStudio() {
   }, [camera, mic, screen])
 
   useEffect(() => {
-    window.dispatchEvent(new CustomEvent("wigod-studio-graphics", {
-      detail: {
-        layout, showOverlay, overlayDesign, screenText, screenTextOn, screenTextPosition,
-        lowerThird, lowerName, lowerRole, primaryColor, accentColor, bannerColor, bannerTextColor,
-        bannerLayout, bannerRadius, tickerColor, tickerSpeed, ticker, tickerOn, headlineOn, headlines,
-        headlineIndex, logoUrl, overlayUrl, backgroundUrl, backgroundKind, thumbnailUrl, avatarUrl,
-        mediaUrl, mediaName, mediaPlaying,
-        customCameraSide, customCameraWidth, customCameraZoom, customMediaZoom,
-        customCameraPosition, customMediaPosition
-      }
-    }))
+    const graphics = {
+      layout, showOverlay, overlayDesign, screenText, screenTextOn, screenTextPosition,
+      lowerThird, lowerName, lowerRole, primaryColor, accentColor, bannerColor, bannerTextColor,
+      bannerLayout, bannerRadius, tickerColor, tickerSpeed, ticker, tickerOn, headlineOn, headlines,
+      headlineIndex, logoUrl, overlayUrl, backgroundUrl, backgroundKind, thumbnailUrl, avatarUrl,
+      mediaUrl, mediaName, mediaPlaying,
+      customCameraSide, customCameraWidth, customCameraZoom, customMediaZoom,
+      customCameraPosition, customMediaPosition
+    }
+    ;(window as Window & { __wigodStudioGraphics?: typeof graphics }).__wigodStudioGraphics = graphics
+    window.dispatchEvent(new CustomEvent("wigod-studio-graphics", { detail: graphics }))
   }, [
     layout, showOverlay, overlayDesign, screenText, screenTextOn, screenTextPosition,
     lowerThird, lowerName, lowerRole, primaryColor, accentColor, bannerColor, bannerTextColor,
