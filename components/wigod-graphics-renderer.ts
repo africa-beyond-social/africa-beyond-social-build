@@ -76,14 +76,14 @@ export function drawWigodGraphics(
     const name = g.lowerName || "WIGOD LIVE"
     const role = g.lowerRole || ""
     ctx.fillStyle = banner
-    ctx.fillRect(50, height - 188, 760, 82)
+    ctx.fillRect(50, height - 270, 760, 82)
     ctx.fillStyle = primary
-    ctx.fillRect(50, height - 188, 7, 82)
+    ctx.fillRect(50, height - 270, 7, 82)
     ctx.fillStyle = text
     ctx.font = "900 28px Arial"
-    ctx.fillText(name, 78, height - 140)
+    ctx.fillText(name, 78, height - 222)
     ctx.font = "400 20px Arial"
-    ctx.fillText(role, 78, height - 110)
+    ctx.fillText(role, 78, height - 192)
   }
 
   if (g.headlineOn && g.headlines?.trim()) {
