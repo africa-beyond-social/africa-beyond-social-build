@@ -62,6 +62,7 @@ export function BroadcastCanvas() {
   const [overlayUrl, setOverlayUrl] = useState("")
   const [overlayLoaded, setOverlayLoaded] = useState(false)
   const [studioSynced, setStudioSynced] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const externalMediaRef = useRef(false)
 
   useEffect(() => () => stopAll(), [])
@@ -436,14 +437,14 @@ export function BroadcastCanvas() {
     <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-brand-red">Broadcast Canvas V1</p>
-          <h2 className="mt-1 text-lg font-bold">Programme output</h2>
-          <p className="mt-1 text-xs text-muted-foreground">1080p30 canvas composition with scenes, camera, screen share, media, lower third, headline and ticker.</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-brand-red">Programme Output</p>
+          <h2 className="mt-1 text-lg font-bold">Your broadcast picture</h2>
+          <p className="mt-1 text-xs text-muted-foreground">This is the final 1080p programme picture that will be sent to the broadcast system.</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => void startCamera()} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold"><Camera className="size-4"/>{cameraOn ? "Camera ready" : "Camera"}</button>
           <button onClick={() => void startMic()} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold"><Mic className="size-4"/>{micOn ? "Mic ready" : "Microphone"}</button>
-          {!running ? <button onClick={startCanvas} className="inline-flex items-center gap-2 rounded-lg bg-brand-green px-3 py-2 text-xs font-semibold text-white"><Play className="size-4"/>Start Canvas</button> : <button onClick={stopCanvas} className="inline-flex items-center gap-2 rounded-lg bg-brand-red px-3 py-2 text-xs font-semibold text-white"><Square className="size-4"/>Stop Canvas</button>}
+          {!running ? <button onClick={startCanvas} className="inline-flex items-center gap-2 rounded-lg bg-brand-green px-3 py-2 text-xs font-semibold text-white"><Play className="size-4"/>Start Programme</button> : <button onClick={stopCanvas} className="inline-flex items-center gap-2 rounded-lg bg-brand-red px-3 py-2 text-xs font-semibold text-white"><Square className="size-4"/>Stop Programme</button>}
         </div>
       </div>
 
@@ -459,6 +460,110 @@ export function BroadcastCanvas() {
       <img ref={overlayImageRef} alt="" crossOrigin="anonymous" className="hidden" />
 
 
+      <div className="mt-4 rounded-2xl border border-border bg-muted/30 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-brand-green">Programme controls</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">Simple controls for the broadcast operator. The technical graphics controls stay hidden unless you need them.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAdvanced((value) => !value)}
+            className="rounded-lg border border-border px-3 py-2 text-xs font-bold"
+          >
+            {showAdvanced ? "Hide advanced controls" : "Advanced controls"}
+          </button>
+        </div>
+
+        <div className="mt-4">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Scenes</p>
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {STUDIO_SCENES.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => applyStudioScene(preset)}
+                className={activePreset === preset.id ? "rounded-xl bg-brand-green px-3 py-3 text-xs font-bold text-white" : "rounded-xl border border-border bg-background px-3 py-3 text-xs font-bold"}
+              >
+                {preset.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <label className="text-xs font-semibold">
+            Headline
+            <input
+              value={headline}
+              onChange={(event) => setHeadline(event.target.value)}
+              className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
+              placeholder="Enter programme headline"
+            />
+          </label>
+          <label className="text-xs font-semibold">
+            Name
+            <input
+              value={lowerName}
+              onChange={(event) => setLowerName(event.target.value)}
+              className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
+              placeholder="Presenter or programme name"
+            />
+          </label>
+          <label className="text-xs font-semibold">
+            Description
+            <input
+              value={lowerRole}
+              onChange={(event) => setLowerRole(event.target.value)}
+              className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
+              placeholder="Role or description"
+            />
+          </label>
+          <label className="text-xs font-semibold">
+            Ticker
+            <input
+              value={ticker}
+              onChange={(event) => setTicker(event.target.value)}
+              className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
+              placeholder="Scrolling ticker"
+            />
+          </label>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button type="button" onClick={() => setShowLowerThird((value) => !value)} className="rounded-lg border border-border px-3 py-2 text-xs font-bold">
+            {showLowerThird ? "Hide lower third" : "Show lower third"}
+          </button>
+          <button type="button" onClick={() => setShowTicker((value) => !value)} className="rounded-lg border border-border px-3 py-2 text-xs font-bold">
+            {showTicker ? "Hide ticker" : "Show ticker"}
+          </button>
+        </div>
+
+        <div className="mt-4">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Colours</p>
+          <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <label className="text-xs font-semibold">
+              Primary
+              <input type="color" value={primaryColor} onChange={(event) => setPrimaryColor(event.target.value)} className="mt-1 h-10 w-full rounded-lg border border-border bg-background" />
+            </label>
+            <label className="text-xs font-semibold">
+              Accent
+              <input type="color" value={accentColor} onChange={(event) => setAccentColor(event.target.value)} className="mt-1 h-10 w-full rounded-lg border border-border bg-background" />
+            </label>
+            <label className="text-xs font-semibold">
+              Banner
+              <input type="color" value={bannerColor} onChange={(event) => setBannerColor(event.target.value)} className="mt-1 h-10 w-full rounded-lg border border-border bg-background" />
+            </label>
+            <label className="text-xs font-semibold">
+              Ticker
+              <input type="color" value={tickerColor} onChange={(event) => setTickerColor(event.target.value)} className="mt-1 h-10 w-full rounded-lg border border-border bg-background" />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {showAdvanced ? (
+        <>
       <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div><p className="text-xs font-bold uppercase tracking-wider">Studio Scene Presets</p><p className="mt-1 text-[11px] text-muted-foreground">Presets mirror the existing WIGOD Live Studio scene system.</p></div>
@@ -512,6 +617,10 @@ export function BroadcastCanvas() {
         <button onClick={() => setShowTicker((v) => !v)} className="rounded-lg border px-3 py-2 font-semibold">{showTicker ? "Hide" : "Show"} ticker</button>
         <span className="inline-flex items-center gap-1 rounded-lg bg-muted px-3 py-2"><Radio className="size-3.5"/>Canvas output: 1920×1080 / 30fps</span>
       </div>
+
+
+        </>
+      ) : null}
 
       <p className="mt-4 text-[11px] text-muted-foreground">The canvas is the programme source. Scene changes, screen sharing and media are rendered into the same captureStream() sent to the WIGOD WHIP transport.</p>
     </section>
