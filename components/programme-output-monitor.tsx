@@ -88,10 +88,15 @@ export function ProgrammeOutputMonitor() {
     const currentMedia = (window as Window & { __wigodStudioMedia?: StudioMedia }).__wigodStudioMedia
     if (currentMedia) syncMedia(new CustomEvent("wigod-studio-media", { detail: currentMedia }))
 
-    try {
-      const raw = window.localStorage.getItem("wigod-live-studio-preferences")
-      if (raw) syncGraphics(new CustomEvent("wigod-studio-graphics", { detail: JSON.parse(raw) }))
-    } catch {}
+    const currentGraphics = (window as Window & { __wigodStudioGraphics?: StudioGraphics }).__wigodStudioGraphics
+    if (currentGraphics) {
+      syncGraphics(new CustomEvent("wigod-studio-graphics", { detail: currentGraphics }))
+    } else {
+      try {
+        const raw = window.localStorage.getItem("wigod-live-studio-preferences")
+        if (raw) syncGraphics(new CustomEvent("wigod-studio-graphics", { detail: JSON.parse(raw) }))
+      } catch {}
+    }
 
     return () => {
       window.removeEventListener("wigod-studio-media", syncMedia)
