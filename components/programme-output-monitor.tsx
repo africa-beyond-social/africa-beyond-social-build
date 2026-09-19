@@ -35,6 +35,9 @@ type StudioGraphics = {
   backgroundKind?: string
   mediaUrl?: string
   mediaPlaying?: boolean
+  liveStampOn?: boolean
+  broadcastTimeOn?: boolean
+  liveClock?: string
 }
 
 type StudioMedia = {
@@ -312,44 +315,77 @@ export function ProgrammeOutputMonitor() {
     const accent = g.accentColor || "#d62828"
     const banner = g.bannerColor || "#111"
     const text = g.bannerTextColor || "#fff"
+    const time = g.broadcastTimeOn && g.liveClock ? g.liveClock : ""
+    const logo = logoRef.current?.naturalWidth ? logoRef.current : null
 
-    if (g.overlayDesign === "capsule") {
-      ctx.fillStyle = banner
-      roundRect(ctx, 110, HEIGHT - 145, WIDTH - 220, 68, 34)
-      ctx.strokeStyle = primary
-      ctx.lineWidth = 3
-      ctx.stroke()
-      ctx.fillStyle = primary
-      ctx.font = "700 18px Arial"
-      ctx.fillText("HEADLINES", 145, HEIGHT - 103)
-      ctx.fillStyle = text
-      ctx.font = "700 28px Arial"
-      ctx.fillText(headline.slice(0, 90), 290, HEIGHT - 103)
+    ctx.save()
+    ctx.font = "700 24px Arial"
+
+    if (g.overlayDesign === "ribbon") {
+      const x = 90, y = HEIGHT - 175, w = WIDTH - 180, h = 78
       ctx.fillStyle = accent
-      ctx.fillRect(WIDTH - 210, HEIGHT - 145, 150, 68)
-      ctx.fillStyle = text
-      ctx.font = "700 18px Arial"
-      ctx.fillText("LIVE NEWS", WIDTH - 190, HEIGHT - 103)
+      ctx.beginPath()
+      ctx.moveTo(x, y + h); ctx.lineTo(x + 90, y); ctx.lineTo(x + 190, y); ctx.lineTo(x + 100, y + h); ctx.closePath(); ctx.fill()
+      ctx.fillStyle = text; ctx.font = "900 20px Arial"; ctx.fillText("LIVE", x + 42, y + 49)
+      ctx.fillStyle = banner; ctx.fillRect(x + 150, y, w - 150, h)
+      ctx.fillStyle = primary; ctx.fillRect(x + 150, y, 4, h)
+      ctx.fillStyle = primary; ctx.font = "900 18px Arial"; ctx.fillText("HEADLINES", x + 180, y + 31)
+      ctx.fillStyle = text; ctx.font = "900 28px Arial"; ctx.fillText(headline.slice(0, 78), x + 180, y + 62)
+      if (time) {
+        ctx.fillStyle = accent; ctx.fillRect(x + w - 170, y, 170, h)
+        ctx.fillStyle = text; ctx.font = "900 18px Arial"; ctx.fillText(time, x + w - 145, y + 48)
+      }
     } else if (g.overlayDesign === "badge") {
-      ctx.fillStyle = banner
-      roundRect(ctx, 110, HEIGHT - 150, WIDTH - 170, 75, 10)
-      ctx.fillStyle = accent
-      ctx.fillRect(110, HEIGHT - 75, WIDTH - 170, 4)
-      ctx.fillStyle = primary
-      ctx.font = "700 18px Arial"
-      ctx.fillText("BREAKING NEWS", 150, HEIGHT - 115)
-      ctx.fillStyle = text
-      ctx.font = "700 28px Arial"
-      ctx.fillText(headline.slice(0, 90), 150, HEIGHT - 85)
+      const x = 90, y = HEIGHT - 175, w = WIDTH - 140, h = 82
+      if (logo) {
+        ctx.fillStyle = primary
+        ctx.beginPath(); ctx.arc(x + 42, y + 41, 42, 0, Math.PI * 2); ctx.fill()
+        ctx.save(); ctx.beginPath(); ctx.arc(x + 42, y + 41, 34, 0, Math.PI * 2); ctx.clip()
+        ctx.drawImage(logo, x + 8, y + 7, 68, 68); ctx.restore()
+      }
+      ctx.fillStyle = banner; roundRect(ctx, x + 62, y, w - 62, h, 12)
+      ctx.fillStyle = accent; ctx.fillRect(x + 62, y + h - 5, w - 62, 5)
+      ctx.fillStyle = primary; ctx.font = "900 18px Arial"; ctx.fillText("BREAKING NEWS", x + 95, y + 31)
+      ctx.fillStyle = text; ctx.font = "900 28px Arial"; ctx.fillText(headline.slice(0, 75), x + 95, y + 62)
+      if (time) {
+        ctx.fillStyle = primary; roundRect(ctx, x + w - 190, y - 20, 170, 34, 8)
+        ctx.fillStyle = text; ctx.font = "900 16px Arial"; ctx.fillText("LIVE " + time, x + w - 178, y + 3)
+      }
+    } else if (g.overlayDesign === "capsule") {
+      const x = 100, y = HEIGHT - 145, w = WIDTH - 200, h = 68
+      ctx.fillStyle = banner; roundRect(ctx, x, y, w, h, 34)
+      ctx.strokeStyle = primary; ctx.lineWidth = 3; ctx.stroke()
+      ctx.fillStyle = primary; roundRect(ctx, x, y, 190, h, 34)
+      ctx.fillStyle = text; ctx.font = "900 16px Arial"; ctx.fillText(time ? "NEWS TIME" : "HEADLINES", x + 28, y + 27)
+      if (time) ctx.fillText(time, x + 28, y + 48)
+      ctx.fillStyle = text; ctx.font = "900 26px Arial"; ctx.fillText(headline.slice(0, 60), x + 215, y + 41)
+      ctx.fillStyle = accent; ctx.fillRect(x + w - 155, y, 155, h)
+      ctx.fillStyle = text; ctx.font = "900 16px Arial"; ctx.fillText("LIVE NEWS", x + w - 135, y + 41)
+    } else if (g.overlayDesign === "angled") {
+      const x = 100, y = HEIGHT - 160, w = WIDTH - 200, h = 72
+      ctx.save(); ctx.translate(x, y)
+      ctx.fillStyle = primary; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(170, 0); ctx.lineTo(150, h); ctx.lineTo(-20, h); ctx.closePath(); ctx.fill()
+      ctx.fillStyle = text; ctx.font = "900 16px Arial"; ctx.fillText("LIVE", 48, 28); ctx.fillText("NEWS", 48, 51)
+      ctx.fillStyle = banner; ctx.fillRect(145, 0, w - 145, h)
+      ctx.fillStyle = accent; ctx.font = "900 15px Arial"; ctx.fillText(time ? "TIME " + time : "WIGOD NEWS", 180, 25)
+      ctx.fillStyle = text; ctx.font = "900 26px Arial"; ctx.fillText(headline.slice(0, 62), 180, 53)
+      ctx.fillStyle = accent; ctx.font = "900 16px Arial"; ctx.fillText("LIVE", x + w - 65, 42)
+      ctx.restore()
     } else {
-      ctx.fillStyle = banner
-      ctx.fillRect(48, HEIGHT - 175, WIDTH - 96, 78)
-      ctx.fillStyle = text
-      ctx.font = "700 30px Arial"
-      ctx.fillText(headline.slice(0, 100), 78, HEIGHT - 125)
-      ctx.fillStyle = accent
-      ctx.fillRect(48, HEIGHT - 175, 8, 78)
+      const x = 100, y = HEIGHT - 175, w = WIDTH - 200, h = 82
+      if (logo) {
+        ctx.fillStyle = primary; ctx.beginPath(); ctx.arc(x + 42, y + 41, 42, 0, Math.PI * 2); ctx.fill()
+        ctx.save(); ctx.beginPath(); ctx.arc(x + 42, y + 41, 34, 0, Math.PI * 2); ctx.clip()
+        ctx.drawImage(logo, x + 8, y + 7, 68, 68); ctx.restore()
+      }
+      ctx.fillStyle = banner; roundRect(ctx, x + 38, y, w - 38, h, 41)
+      ctx.fillStyle = primary; ctx.fillRect(x + 38, y, w - 38, 3)
+      ctx.fillStyle = accent; ctx.font = "900 16px Arial"; ctx.fillText(time ? "LIVE " + time : "WIGOD LIVE", x + 75, y + 31)
+      ctx.fillStyle = text; ctx.font = "900 27px Arial"; ctx.fillText(headline.slice(0, 70), x + 75, y + 62)
+      ctx.fillStyle = accent; roundRect(ctx, x + w - 125, y + 21, 95, 40, 20)
+      ctx.fillStyle = text; ctx.font = "900 15px Arial"; ctx.fillText("LIVE", x + w - 102, y + 47)
     }
+    ctx.restore()
   }
 
   function startProgramme() {
