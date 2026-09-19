@@ -264,6 +264,27 @@ export function LiveStudio() {
   }, [])
 
   useEffect(() => {
+    window.dispatchEvent(new CustomEvent("wigod-studio-graphics", {
+      detail: {
+        layout, showOverlay, overlayDesign, screenText, screenTextOn, screenTextPosition,
+        lowerThird, lowerName, lowerRole, primaryColor, accentColor, bannerColor, bannerTextColor,
+        bannerLayout, bannerRadius, tickerColor, tickerSpeed, ticker, tickerOn, headlineOn, headlines,
+        headlineIndex, logoUrl, overlayUrl, backgroundUrl, backgroundKind, thumbnailUrl, avatarUrl,
+        mediaUrl, mediaName, mediaPlaying,
+        customCameraSide, customCameraWidth, customCameraZoom, customMediaZoom,
+        customCameraPosition, customMediaPosition
+      }
+    }))
+  }, [
+    layout, showOverlay, overlayDesign, screenText, screenTextOn, screenTextPosition,
+    lowerThird, lowerName, lowerRole, primaryColor, accentColor, bannerColor, bannerTextColor,
+    bannerLayout, bannerRadius, tickerColor, tickerSpeed, ticker, tickerOn, headlineOn, headlines,
+    headlineIndex, logoUrl, overlayUrl, backgroundUrl, backgroundKind, thumbnailUrl, avatarUrl,
+    mediaUrl, mediaName, mediaPlaying, customCameraSide, customCameraWidth, customCameraZoom,
+    customMediaZoom, customCameraPosition, customMediaPosition
+  ])
+
+  useEffect(() => {
     if (!preferencesLoadedRef.current) return
     try {
       window.localStorage.setItem("wigod-live-studio-preferences", JSON.stringify({
