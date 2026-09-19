@@ -22,6 +22,8 @@ export function BroadcastCanvas() {
   const screenPreviewRef = useRef<HTMLVideoElement>(null)
   const mediaVideoRef = useRef<HTMLVideoElement>(null)
   const mediaImageRef = useRef<HTMLImageElement>(null)
+  const logoImageRef = useRef<HTMLImageElement>(null)
+  const backgroundImageRef = useRef<HTMLImageElement>(null)
   const animationRef = useRef<number | null>(null)
   const tickerXRef = useRef(WIDTH)
   const [cameraOn, setCameraOn] = useState(false)
@@ -39,6 +41,23 @@ export function BroadcastCanvas() {
   const [mediaUrl, setMediaUrl] = useState("")
   const [mediaLoaded, setMediaLoaded] = useState(false)
   const [activePreset, setActivePreset] = useState("opening")
+  const [logoUrl, setLogoUrl] = useState("")
+  const [logoLoaded, setLogoLoaded] = useState(false)
+  const [backgroundUrl, setBackgroundUrl] = useState("")
+  const [backgroundLoaded, setBackgroundLoaded] = useState(false)
+  const [screenText, setScreenText] = useState("")
+  const [screenTextOn, setScreenTextOn] = useState(false)
+  const [headlineRotationOn, setHeadlineRotationOn] = useState(false)
+  const [headlines, setHeadlines] = useState("BREAKING NEWS|AFRICA & BEYOND LIVE|PEOPLE. PLACES. PERSPECTIVES.")
+  const [headlineIndex, setHeadlineIndex] = useState(0)
+  const [headlineInterval, setHeadlineInterval] = useState(5)
+  const [overlayDesign, setOverlayDesign] = useState<"ribbon" | "badge" | "capsule" | "angled" | "round">("ribbon")
+  const [bannerColor, setBannerColor] = useState("#050f0a")
+  const [bannerTextColor, setBannerTextColor] = useState("#ffffff")
+  const [primaryColor, setPrimaryColor] = useState("#0f8f4f")
+  const [accentColor, setAccentColor] = useState("#d62828")
+  const [tickerColor, setTickerColor] = useState("#d62828")
+  const [tickerSpeed, setTickerSpeed] = useState(2.2)
 
   useEffect(() => () => stopAll(), [])
 
@@ -57,6 +76,25 @@ export function BroadcastCanvas() {
   }
 
 
+  function loadGraphicImage(url: string, target: React.RefObject<HTMLImageElement | null>, onLoaded: (loaded: boolean) => void) {
+    const image = target.current
+    if (!image) return
+    onLoaded(false)
+    image.onload = () => onLoaded(true)
+    image.onerror = () => onLoaded(false)
+    image.src = url.trim()
+  }
+
+  function applyLogo() {
+    if (!logoUrl.trim()) { setLogoLoaded(false); return }
+    loadGraphicImage(logoUrl, logoImageRef, setLogoLoaded)
+  }
+
+  function applyBackground() {
+    if (!backgroundUrl.trim()) { setBackgroundLoaded(false); return }
+    loadGraphicImage(backgroundUrl, backgroundImageRef, setBackgroundLoaded)
+  }
+
   function applyStudioScene(preset: typeof STUDIO_SCENES[number]) {
     setActivePreset(preset.id)
     setScene(preset.scene)
@@ -65,6 +103,35 @@ export function BroadcastCanvas() {
     setHeadline(preset.headline)
     setLowerName(preset.name)
     setLowerRole(preset.role)
+    if (preset.id === "opening") {
+      setOverlayDesign("ribbon")
+      setPrimaryColor("#0f8f4f")
+      setAccentColor("#d62828")
+      setBannerColor("#050f0a")
+      setBannerTextColor("#ffffff")
+      setTickerColor("#d62828")
+    } else if (preset.id === "interview") {
+      setOverlayDesign("capsule")
+      setPrimaryColor("#0f8f4f")
+      setAccentColor("#d62828")
+      setBannerColor("#07110d")
+      setBannerTextColor("#ffffff")
+      setTickerColor("#1d4ed8")
+    } else if (preset.id === "screen") {
+      setOverlayDesign("badge")
+      setPrimaryColor("#0f8f4f")
+      setAccentColor("#d62828")
+      setBannerColor("#07110d")
+      setBannerTextColor("#ffffff")
+      setTickerColor("#0f8f4f")
+    } else {
+      setOverlayDesign("round")
+      setPrimaryColor("#111111")
+      setAccentColor("#d62828")
+      setBannerColor("#111111")
+      setBannerTextColor("#ffffff")
+      setTickerColor("#111111")
+    }
   }
 
   async function startCamera() {
@@ -125,6 +192,19 @@ export function BroadcastCanvas() {
     const w = sourceWidth * scale; const h = sourceHeight * scale
     ctx.drawImage(source, x + (width - w) / 2, y + (height - h) / 2, w, h)
   }
+  useEffect(() => {
+    if (!running || !headlineRotationOn) return
+    const items = headlines.split("|").map((item) => item.trim()).filter(Boolean)
+    if (items.length < 2) return
+    const timer = window.setInterval(() => setHeadlineIndex((index) => (index + 1) % items.length), Math.max(2, headlineInterval) * 1000)
+    return () => window.clearInterval(timer)
+  }, [running, headlineRotationOn, headlines, headlineInterval])
+
+  useEffect(() => {
+    const items = headlines.split("|").map((item) => item.trim()).filter(Boolean)
+    if (items.length) setHeadline(items[Math.min(headlineIndex, items.length - 1)])
+  }, [headlineIndex, headlines])
+
   function draw() {
     const canvas = canvasRef.current
     const video = previewRef.current
@@ -134,6 +214,9 @@ export function BroadcastCanvas() {
 
     ctx.fillStyle = "#07110d"
     ctx.fillRect(0, 0, WIDTH, HEIGHT)
+    if (backgroundLoaded && backgroundImageRef.current?.naturalWidth) {
+      drawFit(ctx, backgroundImageRef.current, backgroundImageRef.current.naturalWidth, backgroundImageRef.current.naturalHeight, 0, 0, WIDTH, HEIGHT)
+    }
 
     const screenVideo = screenPreviewRef.current
     const mediaVideo = mediaVideoRef.current
@@ -150,27 +233,60 @@ export function BroadcastCanvas() {
 
     ctx.fillStyle = "rgba(4, 12, 8, .48)"
     ctx.fillRect(0, 0, WIDTH, 96)
-    ctx.fillStyle = "#0f8f4f"
+    ctx.fillStyle = primaryColor
     ctx.fillRect(0, 0, 12, 96)
-    ctx.font = "700 34px Arial"
-    ctx.fillStyle = "#fff"
-    ctx.fillText("AFRICA & BEYOND", 42, 62)
+    if (logoLoaded && logoImageRef.current?.naturalWidth) {
+      const logo = logoImageRef.current
+      const scale = Math.min(170 / logo.naturalWidth, 72 / logo.naturalHeight)
+      ctx.drawImage(logo, 42, 12, logo.naturalWidth * scale, logo.naturalHeight * scale)
+    } else {
+      ctx.font = "700 34px Arial"
+      ctx.fillStyle = "#fff"
+      ctx.fillText("AFRICA & BEYOND", 42, 62)
+    }
     ctx.font = "700 24px Arial"
-    ctx.fillStyle = "#d62828"
+    ctx.fillStyle = accentColor
     ctx.fillText("LIVE", WIDTH - 100, 60)
 
-    if (headline.trim()) {
-      ctx.fillStyle = "rgba(0,0,0,.78)"
-      ctx.fillRect(48, HEIGHT - 310, WIDTH - 96, 88)
-      ctx.font = "700 40px Arial"
+    if (screenTextOn && screenText.trim()) {
+      ctx.fillStyle = "rgba(0,0,0,.72)"
+      ctx.font = "700 30px Arial"
+      const textWidth = Math.min(ctx.measureText(screenText).width + 44, WIDTH - 160)
+      ctx.fillRect(80, 118, textWidth, 58)
       ctx.fillStyle = "#fff"
+      ctx.fillText(screenText.slice(0, 90), 102, 157)
+    }
+
+    if (headline.trim()) {
+      ctx.fillStyle = bannerColor
+      const headlineWidth = WIDTH - 96
+      if (overlayDesign === "capsule" || overlayDesign === "round") {
+        ctx.beginPath()
+        ctx.roundRect(48, HEIGHT - 310, headlineWidth, 88, overlayDesign === "round" ? 44 : 18)
+        ctx.fill()
+      } else if (overlayDesign === "angled") {
+        ctx.beginPath()
+        ctx.moveTo(48, HEIGHT - 310); ctx.lineTo(WIDTH - 80, HEIGHT - 310); ctx.lineTo(WIDTH - 48, HEIGHT - 222); ctx.lineTo(48, HEIGHT - 222); ctx.closePath(); ctx.fill()
+      } else if (overlayDesign === "badge") {
+        ctx.fillRect(48, HEIGHT - 310, 420, 88)
+      } else {
+        ctx.fillRect(48, HEIGHT - 310, headlineWidth, 88)
+      }
+      ctx.font = "700 40px Arial"
+      ctx.fillStyle = bannerTextColor
       ctx.fillText(headline.slice(0, 70), 76, HEIGHT - 254)
     }
 
     if (showLowerThird) {
-      ctx.fillStyle = "rgba(5, 15, 10, .92)"
-      ctx.fillRect(48, HEIGHT - 215, 720, 92)
-      ctx.fillStyle = "#0f8f4f"
+      ctx.fillStyle = bannerColor
+      if (overlayDesign === "capsule" || overlayDesign === "round") {
+        ctx.beginPath()
+        ctx.roundRect(48, HEIGHT - 215, 720, 92, overlayDesign === "round" ? 46 : 18)
+        ctx.fill()
+      } else {
+        ctx.fillRect(48, HEIGHT - 215, 720, 92)
+      }
+      ctx.fillStyle = primaryColor
       ctx.fillRect(48, HEIGHT - 215, 12, 92)
       ctx.font = "700 30px Arial"
       ctx.fillStyle = "#fff"
@@ -182,11 +298,11 @@ export function BroadcastCanvas() {
 
     if (showTicker) {
       const text = ticker || ""
-      ctx.fillStyle = "#d62828"
+      ctx.fillStyle = tickerColor
       ctx.fillRect(0, HEIGHT - 82, WIDTH, 82)
       ctx.font = "700 26px Arial"
       ctx.fillStyle = "#fff"
-      tickerXRef.current -= 2.2
+      tickerXRef.current -= tickerSpeed
       const width = ctx.measureText(text).width
       if (tickerXRef.current < -width - 60) tickerXRef.current = WIDTH
       ctx.fillText(text, tickerXRef.current, HEIGHT - 31)
@@ -241,6 +357,8 @@ export function BroadcastCanvas() {
       <video ref={screenPreviewRef} muted playsInline className="hidden" />
       <video ref={mediaVideoRef} muted loop playsInline className="hidden" />
       <img ref={mediaImageRef} alt="" crossOrigin="anonymous" className="hidden" />
+      <img ref={logoImageRef} alt="" crossOrigin="anonymous" className="hidden" />
+      <img ref={backgroundImageRef} alt="" crossOrigin="anonymous" className="hidden" />
 
 
       <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3">
@@ -257,6 +375,33 @@ export function BroadcastCanvas() {
         <div className="mt-3 flex flex-wrap gap-2"><button onClick={() => void startScreen()} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold"><MonitorUp className="size-4"/>{screenOn ? "Screen ready" : "Share screen"}</button><span className="inline-flex items-center gap-2 rounded-lg bg-background px-3 py-2 text-[11px]">{screenOn ? "SCREEN CAPTURE ACTIVE" : "SCREEN CAPTURE OFF"}</span></div>
         <div className="mt-3 grid gap-2 md:grid-cols-[120px_1fr_auto]"><select value={mediaType} onChange={(e) => { setMediaType(e.target.value as "image" | "video"); setMediaLoaded(false) }} className="rounded-lg border bg-background px-3 py-2 text-sm"><option value="image">Image</option><option value="video">Video</option></select><input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="Media URL (HTTPS)" className="rounded-lg border bg-background px-3 py-2 text-sm" /><button onClick={loadMedia} className="inline-flex items-center justify-center gap-2 rounded-lg bg-background px-3 py-2 text-xs font-semibold border">{mediaType === "image" ? <ImageIcon className="size-4"/> : <Video className="size-4"/>}Load media</button></div>
         <p className="mt-2 text-[11px] text-muted-foreground">{mediaLoaded ? "Media loaded into the programme canvas." : "Use media hosted with CORS enabled; remote media may be blocked by the browser."}</p>
+      </div>
+      <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3">
+        <p className="text-xs font-bold uppercase tracking-wider">Broadcast Graphics Sync</p>
+        <p className="mt-1 text-[11px] text-muted-foreground">These graphics are rendered into the programme capture, so they travel to the WHIP transport and downstream broadcast.</p>
+        <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto]">
+          <input value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} placeholder="Logo URL (HTTPS)" className="rounded-lg border bg-background px-3 py-2 text-sm" />
+          <button onClick={applyLogo} className="rounded-lg border px-3 py-2 text-xs font-semibold">{logoLoaded ? "Logo loaded" : "Load logo"}</button>
+          <input value={backgroundUrl} onChange={(e) => setBackgroundUrl(e.target.value)} placeholder="Background image URL (HTTPS)" className="rounded-lg border bg-background px-3 py-2 text-sm" />
+          <button onClick={applyBackground} className="rounded-lg border px-3 py-2 text-xs font-semibold">{backgroundLoaded ? "Background loaded" : "Load background"}</button>
+        </div>
+        <div className="mt-3 grid gap-2 md:grid-cols-2">
+          <label className="text-xs font-semibold">Screen text<input value={screenText} onChange={(e) => setScreenText(e.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm" /></label>
+          <label className="flex items-end gap-2 text-xs font-semibold"><input type="checkbox" checked={screenTextOn} onChange={(e) => setScreenTextOn(e.target.checked)} className="mb-2" /> Show screen text</label>
+          <label className="text-xs font-semibold">Overlay design<select value={overlayDesign} onChange={(e) => setOverlayDesign(e.target.value as typeof overlayDesign)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm"><option value="ribbon">Ribbon</option><option value="badge">Badge</option><option value="capsule">Capsule</option><option value="angled">Angled</option><option value="round">Round</option></select></label>
+          <label className="text-xs font-semibold">Ticker speed<input type="number" min="0.5" max="8" step="0.1" value={tickerSpeed} onChange={(e) => setTickerSpeed(Number(e.target.value) || 2.2)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm" /></label>
+        </div>
+        <div className="mt-3 grid gap-2 md:grid-cols-4">
+          <label className="text-xs font-semibold">Primary<input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="mt-1 h-9 w-full rounded border bg-background" /></label>
+          <label className="text-xs font-semibold">Accent<input type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="mt-1 h-9 w-full rounded border bg-background" /></label>
+          <label className="text-xs font-semibold">Banner<input type="color" value={bannerColor} onChange={(e) => setBannerColor(e.target.value)} className="mt-1 h-9 w-full rounded border bg-background" /></label>
+          <label className="text-xs font-semibold">Ticker<input type="color" value={tickerColor} onChange={(e) => setTickerColor(e.target.value)} className="mt-1 h-9 w-full rounded border bg-background" /></label>
+        </div>
+        <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto]">
+          <label className="text-xs font-semibold">Headline rotation (separate with |)<input value={headlines} onChange={(e) => setHeadlines(e.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm" /></label>
+          <label className="text-xs font-semibold">Seconds<input type="number" min="2" max="60" value={headlineInterval} onChange={(e) => setHeadlineInterval(Number(e.target.value) || 5)} className="mt-1 w-24 rounded-lg border bg-background px-3 py-2 text-sm" /></label>
+        </div>
+        <button onClick={() => setHeadlineRotationOn((v) => !v)} className="mt-3 rounded-lg border px-3 py-2 text-xs font-semibold">{headlineRotationOn ? "Disable" : "Enable"} headline rotation</button>
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <label className="text-xs font-semibold">Headline<input value={headline} onChange={(e) => setHeadline(e.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm" /></label>
