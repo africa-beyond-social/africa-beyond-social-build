@@ -130,6 +130,8 @@ export function BroadcastCanvas() {
       setScreenOn(Boolean(detail.screen))
     }
     window.addEventListener("wigod-studio-media", applyMedia)
+    const current = (window as Window & { __wigodStudioMedia?: {camera?: MediaStream | null; microphone?: MediaStream | null; screen?: MediaStream | null} }).__wigodStudioMedia
+    if (current) applyMedia(new CustomEvent("wigod-studio-media", { detail: current }))
     return () => window.removeEventListener("wigod-studio-media", applyMedia)
   }, [])
 
