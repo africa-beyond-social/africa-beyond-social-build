@@ -64,11 +64,9 @@ const STUDIO_BACKGROUND_OPTIONS: BackgroundOption[] = [
 ]
 
 const OVERLAY_DESIGNS: Array<{ id: OverlayDesign; name: string; description: string }> = [
-  { id: "ribbon", name: "Live Ribbon", description: "Slanted live badge with headline, time and clean ticker space" },
-  { id: "badge", name: "News Badge", description: "Creator logo badge with bold headline strap and time tab" },
-  { id: "capsule", name: "News Capsule", description: "Rounded broadcast bar with time, headline and live label" },
-  { id: "angled", name: "Angled Flash", description: "Dynamic angled headline ribbon with live-news marker" },
-  { id: "round", name: "Round Badge", description: "Circular creator mark with a premium rounded headline bar" },
+  { id: "ribbon", name: "WIGOD Headline", description: "Clean WIGOD headline strap with an integrated LIVE marker." },
+  { id: "badge", name: "WIGOD Breaking", description: "WIGOD breaking-news bar with creator mark and headline." },
+  { id: "round", name: "WIGOD Signature", description: "WIGOD signature lower-third with logo, headline and LIVE badge." },
 ]
 
 type Scene = {
@@ -943,15 +941,6 @@ export function LiveStudio() {
               </div>
             ) : null}
 
-            {showOverlay && overlayUrl ? (
-              <img
-                src={overlayUrl}
-                alt=""
-                className="pointer-events-none absolute inset-0 z-10 size-full object-cover"
-                style={{ opacity: overlayOpacity / 100 }}
-              />
-            ) : null}
-
             {screenTextOn && screenText ? (
               <div className={"pointer-events-none absolute left-3 right-3 z-30 " + positionClass}>
                 <div className={"mx-auto w-fit max-w-full rounded-lg bg-black/75 px-4 py-2 text-center font-black tracking-wide text-white " + textSizeClass}>
@@ -1306,11 +1295,6 @@ export function LiveStudio() {
                   <input type="file" accept="image/*" className="hidden" onChange={(event) => handleAsset(event, setLogoUrl, true)} />
                 </label>
                 <label className="cursor-pointer rounded-xl border border-border p-3 text-center text-[11px] font-semibold hover:bg-secondary">
-                  <Layers3 className="mx-auto size-4 text-brand-red" />
-                  <span className="mt-1 block">Overlay</span>
-                  <input type="file" accept="image/png,image/jpeg,image/gif" className="hidden" onChange={(event) => handleAsset(event, setOverlayUrl, true)} />
-                </label>
-                <label className="cursor-pointer rounded-xl border border-border p-3 text-center text-[11px] font-semibold hover:bg-secondary">
                   <ImageIcon className="mx-auto size-4 text-brand-green" />
                   <span className="mt-1 block">Background</span>
                   <input type="file" accept="image/*" className="hidden" onChange={(event) => handleAsset(event, setBackgroundUrl, true)} />
@@ -1399,18 +1383,8 @@ export function LiveStudio() {
                     </button>
                   ))}
                 </div>
-                <p className="mt-2 text-[9px] text-muted-foreground">This is your creator graphics theme. Broadcast Graphics automatically uses the design selected here. You can change the design without turning any graphic on.</p>
+                <p className="mt-2 text-[9px] text-muted-foreground">WIGOD renders these graphics internally so the programme output can use the same broadcast design without depending on custom overlay images.</p>
               </div>
-
-              {overlayUrl ? (
-                <div>
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span>Overlay opacity</span>
-                    <span>{overlayOpacity}%</span>
-                  </div>
-                  <input type="range" min="20" max="100" value={overlayOpacity} onChange={(event) => setOverlayOpacity(Number(event.target.value))} className="mt-2 w-full" />
-                </div>
-              ) : null}
 
               {thumbnailUrl ? <div className="rounded-xl border border-border p-2"><img src={thumbnailUrl} alt="Live thumbnail preview" className="aspect-video w-full rounded-lg object-cover" /></div> : null}
               {logoUrl ? <div className="rounded-xl border border-border p-2"><img src={logoUrl} alt="WIGOD logo preview" className="mx-auto h-16 w-16 object-contain" /></div> : null}
