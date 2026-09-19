@@ -62,14 +62,15 @@ export function BroadcastCanvas() {
   const [overlayUrl, setOverlayUrl] = useState("")
   const [overlayLoaded, setOverlayLoaded] = useState(false)
   const [studioSynced, setStudioSynced] = useState(false)
+  const externalMediaRef = useRef(false)
 
   useEffect(() => () => stopAll(), [])
 
   function stopAll() {
     if (animationRef.current) cancelAnimationFrame(animationRef.current)
-    cameraRef.current?.getTracks().forEach((track) => track.stop())
-    audioRef.current?.getTracks().forEach((track) => track.stop())
-    screenRef.current?.getTracks().forEach((track) => track.stop())
+    if (!externalMediaRef.current) cameraRef.current?.getTracks().forEach((track) => track.stop())
+    if (!externalMediaRef.current) audioRef.current?.getTracks().forEach((track) => track.stop())
+    if (!externalMediaRef.current) screenRef.current?.getTracks().forEach((track) => track.stop())
     cameraRef.current = null
     screenRef.current = null
     audioRef.current = null
@@ -107,6 +108,30 @@ export function BroadcastCanvas() {
     if (typeof detail.overlayUrl === "string") { setOverlayUrl(detail.overlayUrl); if (detail.overlayUrl) loadGraphicImage(detail.overlayUrl, overlayImageRef, setOverlayLoaded) }
     setStudioSynced(true)
   }
+
+  useEffect(() => {
+    const applyMedia = (event: Event) => {
+      const detail = (event as CustomEvent<{camera?: MediaStream | null; microphone?: MediaStream | null; screen?: MediaStream | null}>).detail
+      if (!detail) return
+      externalMediaRef.current = true
+      cameraRef.current = detail.camera ?? null
+      audioRef.current = detail.microphone ?? null
+      screenRef.current = detail.screen ?? null
+      if (previewRef.current) {
+        previewRef.current.srcObject = cameraRef.current
+        if (cameraRef.current) void previewRef.current.play().catch(() => {})
+      }
+      if (screenPreviewRef.current) {
+        screenPreviewRef.current.srcObject = screenRef.current
+        if (screenRef.current) void screenPreviewRef.current.play().catch(() => {})
+      }
+      setCameraOn(Boolean(detail.camera))
+      setMicOn(Boolean(detail.microphone))
+      setScreenOn(Boolean(detail.screen))
+    }
+    window.addEventListener("wigod-studio-media", applyMedia)
+    return () => window.removeEventListener("wigod-studio-media", applyMedia)
+  }, [])
 
   useEffect(() => {
     const apply = (event: Event) => {
