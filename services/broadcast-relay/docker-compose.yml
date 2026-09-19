@@ -1,0 +1,10 @@
+services:
+  wigod-broadcast-relay:
+    image: bluenviron/mediamtx:1.21.0-ffmpeg
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      YOUTUBE_RTMPS_URL: ${YOUTUBE_RTMPS_URL}
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+    command: ["/mediamtx", "/mediamtx.yml"]
