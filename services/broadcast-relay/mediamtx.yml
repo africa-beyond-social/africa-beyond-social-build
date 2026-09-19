@@ -33,7 +33,7 @@ paths:
       -i rtsp://127.0.0.1:$RTSP_PORT/$MTX_PATH
       -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p
       -r 30 -g 60 -keyint_min 60
-      -b:v 3500k -maxrate 3500k -bufsize 7000k
+      -b:v 10M -maxrate 10M -bufsize 20M
       -c:a aac -b:a 128k -ar 48000 -ac 2
       -f flv "$YOUTUBE_RTMPS_URL"
     runOnAvailableRestart: yes
