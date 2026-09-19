@@ -132,12 +132,14 @@ export function BroadcastCanvas() {
     setRunning(true)
     tickerXRef.current = WIDTH
     animationRef.current = requestAnimationFrame(draw)
+    window.dispatchEvent(new CustomEvent("wigod-program-stream", { detail: getProgramStream() }))
   }
 
   function stopCanvas() {
     if (animationRef.current) cancelAnimationFrame(animationRef.current)
     animationRef.current = null
     setRunning(false)
+    window.dispatchEvent(new CustomEvent("wigod-program-stream", { detail: null }))
   }
 
   function getProgramStream() {
