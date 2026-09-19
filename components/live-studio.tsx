@@ -264,13 +264,13 @@ export function LiveStudio() {
   }, [])
 
   useEffect(() => {
-    window.dispatchEvent(new CustomEvent("wigod-studio-media", {
-      detail: {
-        camera: cameraStreamRef.current,
-        microphone: audioStreamRef.current,
-        screen: screenStreamRef.current
-      }
-    }))
+    const mediaDetail = {
+      camera: cameraStreamRef.current,
+      microphone: audioStreamRef.current,
+      screen: screenStreamRef.current
+    }
+    ;(window as Window & { __wigodStudioMedia?: typeof mediaDetail }).__wigodStudioMedia = mediaDetail
+    window.dispatchEvent(new CustomEvent("wigod-studio-media", { detail: mediaDetail }))
   }, [camera, mic, screen])
 
   useEffect(() => {
