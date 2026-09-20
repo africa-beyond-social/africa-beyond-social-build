@@ -27,17 +27,40 @@ export function BroadcastTransport() {
   const [ready, setReady] = useState(false)
   const [state, setState] = useState<"idle" | "connecting" | "live" | "error">("idle")
   const [error, setError] = useState("")
+  const autoStartRef = useRef(false)
 
   useEffect(() => {
     const onStream = (event: Event) => {
       const stream = (event as CustomEvent<MediaStream | null>).detail
       streamRef.current = stream
       setReady(Boolean(stream))
-      if (!stream && state !== "live") setState("idle")
+      if (!stream) {
+        if (state !== "live") setState("idle")
+        return
+      }
+      if (autoStartRef.current) {
+        autoStartRef.current = false
+        void start()
+      }
+    }
+    const onStartRequested = () => {
+      autoStartRef.current = true
+      if (streamRef.current) {
+        autoStartRef.current = false
+        void start()
+      }
+    }
+    const onStopRequested = () => {
+      autoStartRef.current = false
+      void stop()
     }
     window.addEventListener("wigod-program-stream", onStream)
+    window.addEventListener("wigod-start-broadcast", onStartRequested)
+    window.addEventListener("wigod-stop-broadcast", onStopRequested)
     return () => {
       window.removeEventListener("wigod-program-stream", onStream)
+      window.removeEventListener("wigod-start-broadcast", onStartRequested)
+      window.removeEventListener("wigod-stop-broadcast", onStopRequested)
       void stop()
     }
   }, [])
@@ -63,14 +86,19 @@ export function BroadcastTransport() {
 
     try {
       setState("connecting")
+      window.dispatchEvent(new CustomEvent("wigod-transport-state", { detail: "connecting" }))
       const pc = new RTCPeerConnection()
       pcRef.current = pc
       stream.getTracks().forEach((track) => pc.addTrack(track, stream))
       pc.onconnectionstatechange = () => {
-        if (pc.connectionState === "connected") setState("live")
+        if (pc.connectionState === "connected") {
+          setState("live")
+          window.dispatchEvent(new CustomEvent("wigod-transport-state", { detail: "live" }))
+        }
         if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
           setError("The WHIP connection was interrupted.")
           setState("error")
+          window.dispatchEvent(new CustomEvent("wigod-transport-state", { detail: "error" }))
         }
       }
       await pc.setLocalDescription(await pc.createOffer())
@@ -89,10 +117,12 @@ export function BroadcastTransport() {
       await pc.setRemoteDescription({ type: "answer", sdp: answer })
       resourceUrlRef.current = location ? new URL(location, WHIP_URL).toString() : ""
       setState("live")
+      window.dispatchEvent(new CustomEvent("wigod-transport-state", { detail: "live" }))
     } catch (cause) {
       await stop()
       setError(cause instanceof Error ? cause.message : "Unable to start the broadcast transport.")
       setState("error")
+      window.dispatchEvent(new CustomEvent("wigod-transport-state", { detail: "error" }))
     }
   }
 
@@ -103,6 +133,7 @@ export function BroadcastTransport() {
     pcRef.current?.close()
     pcRef.current = null
     setState("idle")
+    window.dispatchEvent(new CustomEvent("wigod-transport-state", { detail: "idle" }))
   }
 
   return (
