@@ -53,6 +53,10 @@ export function NewsroomDashboard() {
   const [selectedStory, setSelectedStory] = useState<string | null>(null)
   const [sourceError, setSourceError] = useState("")
   const [refreshing, setRefreshing] = useState(false)
+  const [deskOpen, setDeskOpen] = useState(false)
+  const [deskEvents, setDeskEvents] = useState<any[]>([])
+  const [deskLoading, setDeskLoading] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState<any>(null)
 
   async function loadNewsroom(showLoading = true) {
     if (showLoading) setRefreshing(true)
@@ -149,6 +153,10 @@ export function NewsroomDashboard() {
 
   return (
     <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-green/20 bg-brand-green/5 p-4">
+        <div><p className="text-sm font-bold">Editors Desk</p><p className="mt-1 text-xs text-muted-foreground">Review every scheduled livestream, website link, story summary and critical watchpoint from one place.</p></div>
+        <button onClick={() => { setDeskOpen(true); loadDesk() }} className="inline-flex items-center gap-2 rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white"><Radio className="size-3.5" /> Open Editors Desk</button>
+      </div>
       <section className="grid gap-3 sm:grid-cols-3">
         {[
           ["Incoming", stories.filter((s) => s.status === "NEW").length, Activity],
