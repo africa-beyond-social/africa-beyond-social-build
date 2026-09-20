@@ -254,6 +254,18 @@ export function LiveStudio() {
   }, [])
 
   useEffect(() => {
+    const onTransportState = (event: Event) => {
+      const state = (event as CustomEvent<string>).detail
+      if (state === "connecting") setStatus("previewing")
+      if (state === "live") setStatus("live")
+      if (state === "idle") setStatus(camera || screen || audioStreamRef.current ? "previewing" : "ready")
+      if (state === "error") setStatus("previewing")
+    }
+    window.addEventListener("wigod-transport-state", onTransportState)
+    return () => window.removeEventListener("wigod-transport-state", onTransportState)
+  }, [camera, screen])
+
+  useEffect(() => {
     const mediaDetail = {
       camera: cameraStreamRef.current,
       microphone: audioStreamRef.current,
@@ -722,81 +734,13 @@ export function LiveStudio() {
     setStatus(camera || screen || audioStreamRef.current ? "previewing" : "ready")
   }
 
-  async function startWigodLive() {
+  function startWigodLive() {
     setError("")
-
-    if (!liveSdkReady || !window.LivekitClient) {
-      setError("The WIGOD live video engine is still loading. Please wait a moment and try again.")
-      return
-    }
-
-    const source = screen ? screenStreamRef.current : cameraStreamRef.current
-    if (!source?.getVideoTracks().length) {
+    if (!camera && !screen) {
       setError("Turn on the camera or share your screen before starting WIGOD Live.")
       return
     }
-
-    try {
-      const sessionResponse = await fetch("/api/live/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: "WIGOD Live",
-          description: lowerName || "Live on WIGOD",
-          thumbnailUrl: thumbnailUrl || null,
-          category: "community",
-          action: "start",
-        }),
-      })
-      const sessionPayload = await sessionResponse.json()
-      if (!sessionResponse.ok) throw new Error(sessionPayload.error || "WIGOD could not create the live session.")
-
-      const roomName = String(sessionPayload.live?.room_name || "")
-      if (!roomName) throw new Error("WIGOD did not receive a live room.")
-
-      const tokenResponse = await fetch("/api/live/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ room: roomName, role: "publisher" }),
-      })
-      const tokenPayload = await tokenResponse.json()
-      if (!tokenResponse.ok) throw new Error(tokenPayload.error || "WIGOD could not authorise the broadcast.")
-
-      const livekit = window.LivekitClient
-      const room = new livekit.Room({ adaptiveStream: true, dynacast: true })
-      liveRoomRef.current = room
-
-      await room.connect(tokenPayload.serverUrl, tokenPayload.token)
-
-      const videoTrack = source.getVideoTracks()[0]
-      await room.localParticipant.publishTrack(videoTrack, {
-        name: "wigod-video",
-        source: screen ? livekit.Track.Source.ScreenShare : livekit.Track.Source.Camera,
-        simulcast: true,
-      })
-
-      const audioTrack = source.getAudioTracks()[0] || audioStreamRef.current?.getAudioTracks()[0]
-      if (audioTrack && audioTrack.enabled) {
-        await room.localParticipant.publishTrack(audioTrack, {
-          name: "wigod-audio",
-          source: livekit.Track.Source.Microphone,
-          stream: "wigod",
-        })
-      }
-
-      liveRoomNameRef.current = roomName
-      setLiveRoomName(roomName)
-      setStatus("live")    } catch (cause) {
-      await fetch("/api/live/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "stop" }),
-        keepalive: true,
-      }).catch(() => {})
-      liveRoomRef.current = null
-      setStatus(camera || screen || audioStreamRef.current ? "previewing" : "ready")
-      setError(cause instanceof Error ? cause.message : "WIGOD could not start the live broadcast.")
-    }
+    window.dispatchEvent(new CustomEvent("wigod-start-broadcast"))
   }
 
   function saveCustomScene() {
@@ -1031,8 +975,8 @@ export function LiveStudio() {
                   End WIGOD Live
                 </button>
               ) : (
-                <button type="button" onClick={() => void startWigodLive()} disabled={!camera && !screen || !liveSdkReady} className="flex-1 rounded-xl bg-brand-red px-4 py-3 text-sm font-bold text-white disabled:opacity-40">
-                  {liveSdkReady ? "Start WIGOD Live" : "Loading live engine…"}
+                <button type="button" onClick={() => void startWigodLive()} disabled={!camera && !screen} className="flex-1 rounded-xl bg-brand-red px-4 py-3 text-sm font-bold text-white disabled:opacity-40">
+                  Start WIGOD Live
                 </button>
               )}
               <div className="min-w-[118px] rounded-xl border border-border bg-background px-3 py-2 text-center">
