@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { buildNavItems } from "@/components/nav-items"
-import { BrandMark, BrandWordmark } from "@/components/brand-logo"
+import { BrandWordmark } from "@/components/brand-logo"
 import { ComposeDialog } from "@/components/compose-dialog"
 import { SignOutMenuItem } from "@/components/sign-out-button"
 import { UserAvatar } from "@/components/user-avatar"
@@ -27,11 +27,7 @@ export function LeftSidebar({ profile, unreadCount }: { profile: Profile | null;
     <aside className="sticky top-0 hidden h-dvh w-[76px] shrink-0 flex-col justify-between px-2 py-4 md:flex lg:w-64 lg:px-3">
       <div className="flex flex-col gap-1">
         <Link href="/" className="mb-6 flex items-center justify-center px-1 lg:justify-start" aria-label="WIGOD home">
-          <BrandMark className="h-12 w-12 lg:hidden" />
-          <span className="hidden items-center gap-2 lg:flex">
-            <BrandMark className="h-12 w-12" />
-            <BrandWordmark className="h-12 w-40" />
-          </span>
+          <BrandWordmark className="h-16 w-full max-w-[220px]" />
         </Link>
 
         <nav className="flex flex-col gap-1">
