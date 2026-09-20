@@ -50,8 +50,13 @@ export function ProgrammeOutputMonitor() {
       if (detail.mediaPlaying) void mediaRef.current?.play().catch(() => {})
     }
 
+    const startRequested = () => startProgramme()
+    const stopRequested = () => stopProgramme()
+
     window.addEventListener("wigod-studio-media", syncMedia)
     window.addEventListener("wigod-studio-graphics", syncGraphics)
+    window.addEventListener("wigod-start-broadcast", startRequested)
+    window.addEventListener("wigod-stop-broadcast", stopRequested)
 
     const currentMedia = (window as Window & { __wigodStudioMedia?: StudioMedia }).__wigodStudioMedia
     if (currentMedia) syncMedia(new CustomEvent("wigod-studio-media", { detail: currentMedia }))
@@ -61,6 +66,8 @@ export function ProgrammeOutputMonitor() {
     return () => {
       window.removeEventListener("wigod-studio-media", syncMedia)
       window.removeEventListener("wigod-studio-graphics", syncGraphics)
+      window.removeEventListener("wigod-start-broadcast", startRequested)
+      window.removeEventListener("wigod-stop-broadcast", stopRequested)
     }
   }, [])
 
