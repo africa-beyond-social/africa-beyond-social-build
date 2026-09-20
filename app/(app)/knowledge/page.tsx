@@ -336,7 +336,7 @@ export default function KnowledgeHubPage() {
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">Choose one activity below. Each activity has its own workspace, so you do not need to make the same selection in several places.</p>
               </div>
               <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                [
+                {[
                   ["learn","Learn","Open the curriculum learning workspace.",GraduationCap],
                   ["ask","Ask WIGOD","Ask questions against processed Knowledge materials.",Brain],
                   ["research","Research","Search your source-linked Knowledge Archive.",FileText],
