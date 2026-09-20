@@ -191,7 +191,7 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
               <button disabled={saving} onClick={() => save("draft")} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Save draft</button>
               <button disabled={saving} onClick={() => save("review")} className="rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white">Send to review</button>
               <button disabled={saving} onClick={() => save("held")} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Hold</button>
-              <button disabled={saving} onClick={() => save("approved")} className="rounded-full bg-brand-red px-4 py-2 text-xs font-semibold text-white">Approve</button>
+              <button disabled={saving || story.status !== "review" || story.confidence === "unverified" || !draft.trim()} onClick={() => save("approved")} title={story.status !== "review" ? "Send the story to review first" : story.confidence === "unverified" ? "Cross-check the story before approval" : !draft.trim() ? "Create or enter a draft before approval" : ""} className="rounded-full bg-brand-red px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Approve</button>
 
             </div>
           </div>
