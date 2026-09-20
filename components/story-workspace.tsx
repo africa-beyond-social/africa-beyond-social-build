@@ -10,13 +10,17 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
   const [related, setRelated] = useState<any[]>([])
   const [notes, setNotes] = useState("")
   const [draft, setDraft] = useState("")
-  const [saving, setSaving] = useState(false)\n  const [article, setArticle] = useState<any>(null)\n  const [articleBusy, setArticleBusy] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [article, setArticle] = useState<any>(null)
+  const [articleBusy, setArticleBusy] = useState(false)
 
   useEffect(() => {
     fetch("/api/newsroom/story?id=" + encodeURIComponent(storyId))
       .then((r) => r.json())
       .then((data) => { setStory(data.story); setRelated(data.related ?? []); setNotes(data.story?.verification_notes ?? ""); setDraft(data.story?.ai_draft ?? "") })
-  }, [storyId])\n\n  useEffect(() => { loadArticle() }, [storyId])
+  }, [storyId])
+
+  useEffect(() => { loadArticle() }, [storyId])
 
   async function runVerify() {
     const response = await fetch("/api/newsroom/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: storyId }) })
@@ -37,7 +41,40 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
     }
   }
 
-  async function publish() {\n    const response = await fetch("/api/newsroom/publish", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: storyId }) })\n    if (response.ok) { const data = await response.json(); setStory((current: any) => current ? { ...current, status: "published" } : current) }\n  }\n\n  async function loadArticle() {\n    const response = await fetch("/api/newsroom/article?id=" + encodeURIComponent(storyId))\n    if (response.ok) { const data = await response.json(); setArticle(data.article ?? null) }\n  }\n\n  async function createArticle() {\n    setArticleBusy(true)\n    const response = await fetch("/api/newsroom/article", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: storyId }) })\n    if (response.ok) { const data = await response.json(); setArticle(data.article) }\n    setArticleBusy(false)\n  }\n\n  async function publishWebsite() {\n    if (!article) return\n    setArticleBusy(true)\n    const response = await fetch("/api/newsroom/publish-website", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: article.id, status: "published" }) })\n    if (response.ok) { const data = await response.json(); setArticle((current: any) => current ? { ...current, website_status: "published", website_url: data.url } : current) }\n    setArticleBusy(false)\n  }\n\n  async function saveArticle() {\n    if (!article) return\n    setArticleBusy(true)\n    const response = await fetch("/api/newsroom/article", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: article.id, title: article.title, dek: article.dek, bodyHtml: article.body_html, seoTitle: article.seo_title, seoDescription: article.seo_description, category: article.category, tags: article.tags }) })\n    if (response.ok) { const data = await response.json(); setArticle(data.article) }\n    setArticleBusy(false)\n  }\n\n  async function save(status?: string) {
+  async function publish() {
+    const response = await fetch("/api/newsroom/publish", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: storyId }) })
+    if (response.ok) { const data = await response.json(); setStory((current: any) => current ? { ...current, status: "published" } : current) }
+  }
+
+  async function loadArticle() {
+    const response = await fetch("/api/newsroom/article?id=" + encodeURIComponent(storyId))
+    if (response.ok) { const data = await response.json(); setArticle(data.article ?? null) }
+  }
+
+  async function createArticle() {
+    setArticleBusy(true)
+    const response = await fetch("/api/newsroom/article", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: storyId }) })
+    if (response.ok) { const data = await response.json(); setArticle(data.article) }
+    setArticleBusy(false)
+  }
+
+  async function publishWebsite() {
+    if (!article) return
+    setArticleBusy(true)
+    const response = await fetch("/api/newsroom/publish-website", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: article.id, status: "published" }) })
+    if (response.ok) { const data = await response.json(); setArticle((current: any) => current ? { ...current, website_status: "published", website_url: data.url } : current) }
+    setArticleBusy(false)
+  }
+
+  async function saveArticle() {
+    if (!article) return
+    setArticleBusy(true)
+    const response = await fetch("/api/newsroom/article", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: article.id, title: article.title, dek: article.dek, bodyHtml: article.body_html, seoTitle: article.seo_title, seoDescription: article.seo_description, category: article.category, tags: article.tags }) })
+    if (response.ok) { const data = await response.json(); setArticle(data.article) }
+    setArticleBusy(false)
+  }
+
+  async function save(status?: string) {
     setSaving(true)
     const response = await fetch("/api/newsroom/story", {
       method: "PATCH",
@@ -92,6 +129,25 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-5">
+            <h2 className="font-bold">Article Production</h2>
+            <p className="mt-2 text-xs text-muted-foreground">Create the long-form article that will be prepared for the Africa & Beyond news website. This is the core publication output.</p>
+            {!article ? (
+              <button disabled={articleBusy} onClick={createArticle} className="mt-4 rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white">{articleBusy ? "Creating article…" : "Create publication-ready article"}</button>
+            ) : (
+              <div className="mt-4 space-y-3">
+                <input value={article.title || ""} onChange={(e) => setArticle((a: any) => ({ ...a, title: e.target.value }))} className="w-full rounded-xl border border-input bg-background p-3 text-sm font-semibold" />
+                <textarea value={article.dek || ""} onChange={(e) => setArticle((a: any) => ({ ...a, dek: e.target.value }))} placeholder="Article standfirst / dek" className="min-h-20 w-full rounded-xl border border-input bg-background p-3 text-sm" />
+                <textarea value={article.body_html || ""} onChange={(e) => setArticle((a: any) => ({ ...a, body_html: e.target.value }))} className="min-h-72 w-full rounded-xl border border-input bg-background p-3 font-mono text-xs leading-5" />
+                <div className="flex flex-wrap gap-2">
+                  <button disabled={articleBusy} onClick={saveArticle} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Save article</button>
+                  {article.website_status !== "published" && story.status === "approved" && <button disabled={articleBusy} onClick={publishWebsite} className="rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white">Publish to Africa & Beyond</button>}
+                  {article.website_url && <a href={article.website_url} target="_blank" rel="noreferrer" className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Open published article</a>}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-5">
             <h2 className="font-bold">Editorial Decision</h2>
             <p className="mt-2 text-xs text-muted-foreground">Save notes/draft first, then move the story to the appropriate stage.</p>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -99,7 +155,8 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
               <button disabled={saving} onClick={() => save("draft")} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Save draft</button>
               <button disabled={saving} onClick={() => save("review")} className="rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white">Send to review</button>
               <button disabled={saving} onClick={() => save("held")} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Hold</button>
-              <button disabled={saving} onClick={() => save("approved")} className="rounded-full bg-brand-red px-4 py-2 text-xs font-semibold text-white">Approve</button>\n
+              <button disabled={saving} onClick={() => save("approved")} className="rounded-full bg-brand-red px-4 py-2 text-xs font-semibold text-white">Approve</button>
+
             </div>
           </div>
         </section>
