@@ -57,6 +57,11 @@ export function NewsroomDashboard() {
   async function loadNewsroom(showLoading = true) {
     if (showLoading) setRefreshing(true)
     try {
+      if (showLoading) {
+        const ingestRes = await fetch("/api/newsroom/ingest", { cache: "no-store" })
+        const ingestData = await ingestRes.json()
+        if (!ingestRes.ok) throw new Error(ingestData.error || "Unable to scan newsroom sources")
+      }
       const [sourceRes, storyRes] = await Promise.all([
         fetch("/api/newsroom/sources", { cache: "no-store" }),
         fetch("/api/newsroom/stories", { cache: "no-store" }),
