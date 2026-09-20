@@ -51,18 +51,40 @@ export function NewsroomDashboard() {
   const [sourceUrl, setSourceUrl] = useState("")
   const [loading, setLoading] = useState(true)
   const [selectedStory, setSelectedStory] = useState<string | null>(null)
+  const [sourceError, setSourceError] = useState("")
+  const [refreshing, setRefreshing] = useState(false)
+
+  async function loadNewsroom(showLoading = true) {
+    if (showLoading) setRefreshing(true)
+    try {
+      const [sourceRes, storyRes] = await Promise.all([
+        fetch("/api/newsroom/sources", { cache: "no-store" }),
+        fetch("/api/newsroom/stories", { cache: "no-store" }),
+      ])
+      const sourceData = await sourceRes.json()
+      const storyData = await storyRes.json()
+      if (!sourceRes.ok) throw new Error(sourceData.error || "Unable to load newsroom sources")
+      if (!storyRes.ok) throw new Error(storyData.error || "Unable to load newsroom stories")
+      setSources((sourceData.sources ?? []).map((s: { name: string }) => s.name))
+      setStories((storyData.stories ?? []).map((s: any) => ({
+        id: s.id,
+        title: s.title,
+        source: s.source_name ?? "Unknown source",
+        time: s.published_at ? new Date(s.published_at).toLocaleString() : "Detected",
+        status: String(s.status).toUpperCase(),
+        confidence: s.confidence === "cross_checked" ? "Cross-checked" : s.confidence === "developing" ? "Developing" : "Unverified",
+        url: s.canonical_url ?? s.source_url,
+      })))
+    } catch (error) {
+      setSourceError(error instanceof Error ? error.message : "Unable to load newsroom data")
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
 
   useEffect(() => {
-    async function load() {
-      try {
-        const [sourceRes, storyRes] = await Promise.all([fetch("/api/newsroom/sources"), fetch("/api/newsroom/stories")])
-        const sourceData = await sourceRes.json()
-        const storyData = await storyRes.json()
-        setSources((sourceData.sources ?? []).map((s: { name: string }) => s.name))
-        setStories((storyData.stories ?? []).map((s: any) => ({ id: s.id, title: s.title, source: s.source_name ?? "Unknown source", time: s.published_at ? new Date(s.published_at).toLocaleString() : "Detected", status: String(s.status).toUpperCase(), confidence: s.confidence === "cross_checked" ? "Cross-checked" : s.confidence === "developing" ? "Developing" : "Unverified", url: s.canonical_url ?? s.source_url })))
-      } finally { setLoading(false) }
-    }
-    load()
+    loadNewsroom(false)
   }, [])
 
   const filtered = useMemo(
@@ -77,18 +99,28 @@ export function NewsroomDashboard() {
 
   async function addSource() {
     const name = sourceInput.trim()
-    const url = sourceUrl.trim()
-    if (!name || !url) return
-    const response = await fetch("/api/newsroom/sources", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name, url, sourceType }),
-    })
-    const data = await response.json()
-    if (response.ok) {
+    let url = sourceUrl.trim()
+    setSourceError("")
+    if (!name || !url) {
+      setSourceError("Enter both a source name and source URL.")
+      return
+    }
+    if (!/^https?:\\/\\//i.test(url)) url = "https://" + url
+
+    try {
+      const response = await fetch("/api/newsroom/sources", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name, url, sourceType }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || "Unable to add source")
       setSources((current) => [...current, data.source.name])
       setSourceInput("")
       setSourceUrl("")
+      setSourceError("")
+    } catch (error) {
+      setSourceError(error instanceof Error ? error.message : "Unable to add source")
     }
   }
 
@@ -155,10 +187,12 @@ export function NewsroomDashboard() {
           />
           <input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="RSS/Atom feed URL" className="min-w-0 flex-1 rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none" />
           <select value={sourceType} onChange={(e) => setSourceType(e.target.value)} className="rounded-xl border border-input bg-background px-3 py-2.5 text-sm"><option value="rss">RSS/Atom</option><option value="website">Website</option><option value="x">X</option><option value="facebook">Facebook</option><option value="google_news">Google News</option></select>
-          <button onClick={addSource} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white">
+          <button type="button" onClick={addSource} disabled={!sourceInput.trim() || !sourceUrl.trim()} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
             <Plus className="size-4" /> Add
           </button>
-        </div>
+        {sourceError && (
+          <p className="mt-2 rounded-xl border border-brand-red/20 bg-brand-red/5 px-3 py-2 text-xs text-brand-red">{sourceError}</p>
+        )}
       </section>
 
       <section className="rounded-2xl border border-border bg-card">
@@ -168,8 +202,8 @@ export function NewsroomDashboard() {
               <h2 className="font-bold">News Detection Queue</h2>
               <p className="text-xs text-muted-foreground">Detected items move through verification before editorial review.</p>
             </div>
-            <button className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold">
-              <RefreshCw className="size-3.5" /> Refresh
+            <button onClick={() => loadNewsroom(true)} disabled={refreshing} className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold disabled:opacity-50">
+              <RefreshCw className={`size-3.5 ${refreshing ? "animate-spin" : ""}`} /> {refreshing ? "Refreshing" : "Refresh"}
             </button>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
