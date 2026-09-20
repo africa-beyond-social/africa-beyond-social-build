@@ -40,9 +40,7 @@ export async function POST(
     const assignedGrade = String(metadata.grade || "")
     const validationFlags = Array.isArray(metadata.validation_flags) ? [...(metadata.validation_flags as string[])] : []
     const sample = `${document.title} ${String(metadata.original_name || "")} ${assignedLevel} ${assignedGrade}`
-    if (assignedLevel === "tertiary" && /\\b(grade|form)\\s*[1-7]\\b/i.test(sample)) validationFlags.push("Tertiary material is assigned to a school Grade/Form.")
-    if (assignedLevel !== "tertiary" && /\\b(university|undergraduate|postgraduate|diploma|degree|tertiary|polytechnic)\\b/i.test(text || sample)) validationFlags.push("Document text or title contains tertiary-level indicators.")
-    if (assignedLevel === "tertiary" && /\\b(grade\\s*[1-7]|primary school|secondary school|form\\s*[1-6])\\b/i.test(text || sample)) validationFlags.push("Document text contains school-level indicators.")
+    if (assignedLevel === "tertiary" && /\b(grade|form)\s*[1-7]\b/i.test(sample)) validationFlags.push("Tertiary material is assigned to a school Grade/Form.")
     const name = String(metadata.original_name || document.title || "").toLowerCase()
 
     let text = ""
