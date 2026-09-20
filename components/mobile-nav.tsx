@@ -33,8 +33,8 @@ export function MobileNav({ profile, unreadCount }: { profile: Profile | null; u
         </button>
       </ComposeDialog>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-        {primaryItems.slice(0, 3).map((item) => {
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+        {primaryItems.map((item) => {
           if (!item) return null
           const active = item.match(pathname)
           const Icon = item.icon
@@ -53,63 +53,7 @@ export function MobileNav({ profile, unreadCount }: { profile: Profile | null; u
           )
         })}
 
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            aria-label="WIGOD menu"
-            className="flex min-h-16 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[0.65rem] font-medium"
-          >
-            <span className="flex size-7 items-center justify-center overflow-hidden rounded-full">
-              <BrandMark className="size-7" />
-            </span>
-            <span className="text-muted-foreground">WIGOD</span>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="center" side="top" sideOffset={8} className="w-56 p-2">
-            <DropdownMenuLabel className="px-2 py-1.5 font-bold text-foreground">WIGOD</DropdownMenuLabel>
-            <DropdownMenuItem render={<Link href="/marketplace" />}>
-              <Store className="text-brand-green" />
-              MARKETPLACE
-            </DropdownMenuItem>
-            <DropdownMenuItem render={<Link href="/advertise" />}>
-              <Megaphone className="text-brand-red" />
-              ADVERTISE
-            </DropdownMenuItem>
-            <DropdownMenuItem render={<Link href="/live/studio" />}>
-              <Clapperboard className="text-brand-green" />
-              CREATOR STUDIO
-            </DropdownMenuItem>
-            <DropdownMenuItem render={<Link href="/explore" />}>
-              <MapPin className="text-[#d4a017]" />
-              EXPLORE THE WORLD
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
 
-        {primaryItems.slice(3).map((item) => {
-          if (!item) return null
-          const active = item.match(pathname)
-          const Icon = item.icon
-          const isNotifications = item.label === "Notifications"
-          return (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="flex min-h-16 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[0.65rem] font-medium"
-            >
-              <span className="relative">
-                <Icon
-                  className={cn("size-5", active ? "text-brand-red" : "text-muted-foreground")}
-                  strokeWidth={active ? 2.5 : 2}
-                />
-                {isNotifications && unreadCount > 0 && (
-                  <span className="absolute -right-2 -top-1.5 flex min-w-4 items-center justify-center rounded-full bg-brand-red px-1 text-[0.55rem] font-bold text-white">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
-              </span>
-              <span className={cn(active ? "text-foreground" : "text-muted-foreground")}>{item.label}</span>
-            </Link>
-          )
-        })}
       </nav>
     </>
   )
