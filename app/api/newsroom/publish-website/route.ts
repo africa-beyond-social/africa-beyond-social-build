@@ -31,6 +31,9 @@ export async function POST(request: Request) {
   const db = createAdminClient()
   const { data: article, error } = await db.from("newsroom_articles").select("*").eq("id", id).single()
   if (error || !article) return NextResponse.json({ error: error?.message || "Article not found" }, { status: 404 })
+  const { data: story } = await db.from("newsroom_stories").select("status,confidence").eq("id", article.story_id).single()
+  if (!story || story.status !== "approved") return NextResponse.json({ error: "Only an approved newsroom story can be published to Africa & Beyond" }, { status: 409 })
+  if (!String(article.body_html || "").trim()) return NextResponse.json({ error: "Article body is empty" }, { status: 400 })
   if (article.website_post_id) return NextResponse.json({ ok: true, alreadyPublished: true, url: article.website_url })
 
   const base = process.env.GHOST_ADMIN_API_URL.replace(/\/$/, "")
