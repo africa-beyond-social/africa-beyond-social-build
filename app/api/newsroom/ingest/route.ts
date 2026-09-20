@@ -45,7 +45,7 @@ function blocks(xml: string) {
 export async function GET(request: Request) {
   if (!(await auth(request))) return NextResponse.json({ error: "Not authorised" }, { status: 401 })
   const db = createAdminClient()
-  const { data: sources, error } = await db.from("news_sources").select("*").eq("active", true).eq("source_type", "rss")
+  const { data: sources, error } = await db.from("news_sources").select("*").eq("active", true).eq("monitoring_enabled", true).eq("source_type", "rss")
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   let detected = 0
@@ -67,7 +67,7 @@ export async function GET(request: Request) {
         const { error: insertError } = await db.from("newsroom_stories").insert({
           title, source_id: source.id, source_name: source.name, source_url: source.url,
           canonical_url: link, author: itemValue(block, ["author","dc:creator"]),
-          published_at: publishedAt, summary, image_url: imageUrl
+          published_at: publishedAt, summary, image_url: imageUrl, focus_areas: Array.isArray(source.focus_areas) ? source.focus_areas : []
         })
         if (!insertError) detected++
       }
