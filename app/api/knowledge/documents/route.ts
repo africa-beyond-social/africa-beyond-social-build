@@ -78,3 +78,20 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true, document: data }, { status: 201 })
 }
+
+
+export async function GET() {
+  const user = await getSessionUser()
+  if (!user) return NextResponse.json({ error: "Please sign in first." }, { status: 401 })
+
+  const db = createAdminClient()
+  const { data, error } = await db
+    .from("knowledge_documents")
+    .select("id,title,processing_status,education_level,subject,module,syllabus_version,metadata,created_at,updated_at")
+    .eq("uploaded_by", user.id)
+    .order("created_at", { ascending: false })
+    .limit(50)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ documents: data || [] })
+}
