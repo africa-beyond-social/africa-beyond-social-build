@@ -16,10 +16,10 @@ export async function POST(request: Request) {
     title, description: b.description ? String(b.description).trim() : null,
     location: b.location ? String(b.location).trim() : null, start_at: startAt,
     end_at: b.endAt ? String(b.endAt).trim() : null, status: "scheduled",
-    provider: "youtube", video_id: b.videoId ? String(b.videoId).trim() : null,
+    provider: b.provider ? String(b.provider).trim() : "youtube", video_id: b.videoId ? String(b.videoId).trim() : null,
     stream_url: b.streamUrl ? String(b.streamUrl).trim() : null,
-    thumbnail_url: b.thumbnailUrl ? String(b.thumbnailUrl).trim() : null, category: b.category || "community"
-  }).select("id,title,description,location,start_at,end_at,status,provider,video_id,stream_url,thumbnail_url,category,created_at,updated_at").single()
+    thumbnail_url: b.thumbnailUrl ? String(b.thumbnailUrl).trim() : null, newsroom_story_id: b.newsroomStoryId ? String(b.newsroomStoryId).trim() : null, streamyard_status: b.provider === "streamyard" ? "prepared" : "manual", category: b.category || "community"
+  }).select("id,title,description,location,start_at,end_at,status,provider,video_id,stream_url,thumbnail_url,category,newsroom_story_id,streamyard_status,created_at,updated_at").single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ event: data }, { status: 201 })
 }
