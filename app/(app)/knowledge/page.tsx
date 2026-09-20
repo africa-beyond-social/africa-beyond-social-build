@@ -157,12 +157,12 @@ export default function KnowledgeHubPage() {
   function validationFlagsFor(levelValue: EducationLevel, gradeValue: string, titleValue: string, fileNameValue: string) {
     const haystack = `${titleValue} ${fileNameValue}`.toLowerCase()
     const flags: string[] = []
-    if (levelValue === "tertiary" && /\\b(grade|form)\\s*[1-7]\\b/i.test(gradeValue)) flags.push("Tertiary material is assigned to a school Grade/Form.")
-    if (levelValue === "preschool" && !/^ecd\\s/i.test(gradeValue)) flags.push("Preschool material is assigned to a non-ECD learning stage.")
-    if (levelValue === "primary" && !/^grade\\s/i.test(gradeValue)) flags.push("Primary material is assigned to a non-Grade learning stage.")
-    if (levelValue === "secondary" && !/^form\\s/i.test(gradeValue)) flags.push("Secondary material is assigned to a non-Form learning stage.")
-    if (levelValue !== "tertiary" && /\\b(university|undergraduate|postgraduate|diploma|degree|tertiary|polytechnic)\\b/i.test(haystack)) flags.push("Title/file name contains tertiary-level indicators.")
-    if (levelValue === "tertiary" && /\\b(grade\\s*[1-7]|primary school|secondary school|form\\s*[1-6])\\b/i.test(haystack)) flags.push("Title/file name contains school-level indicators.")
+    if (levelValue === "tertiary" && /\b(grade|form)\s*[1-7]\b/i.test(gradeValue)) flags.push("Tertiary material is assigned to a school Grade/Form.")
+    if (levelValue === "preschool" && !/^ecd\s/i.test(gradeValue)) flags.push("Preschool material is assigned to a non-ECD learning stage.")
+    if (levelValue === "primary" && !/^grade\s/i.test(gradeValue)) flags.push("Primary material is assigned to a non-Grade learning stage.")
+    if (levelValue === "secondary" && !/^form\s/i.test(gradeValue)) flags.push("Secondary material is assigned to a non-Form learning stage.")
+    if (levelValue !== "tertiary" && /\b(university|undergraduate|postgraduate|diploma|degree|tertiary|polytechnic)\b/i.test(haystack)) flags.push("Title/file name contains tertiary-level indicators.")
+    if (levelValue === "tertiary" && /\b(grade\s*[1-7]|primary school|secondary school|form\s*[1-6])\b/i.test(haystack)) flags.push("Title/file name contains school-level indicators.")
     return flags
   }
 
@@ -263,9 +263,10 @@ export default function KnowledgeHubPage() {
                 <button onClick={()=>setSection("add")} className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium hover:bg-muted"><Plus className="size-4" /> Add subject/material</button>
               </div>
               <div className="mt-5 flex gap-2">
+                <button onClick={()=>changeLevel("preschool")} className={`rounded-xl px-4 py-2 text-sm font-medium ${active(level==="preschool")}`}>Preschool</button>
                 <button onClick={()=>changeLevel("primary")} className={`rounded-xl px-4 py-2 text-sm font-medium ${active(level==="primary")}`}>Primary</button>
                 <button onClick={()=>changeLevel("secondary")} className={`rounded-xl px-4 py-2 text-sm font-medium ${active(level==="secondary")}`}>Secondary</button>
-                <button onClick={()=>setSection("add")} className="rounded-xl border px-4 py-2 text-sm font-medium">Polytechnic / University</button>
+                <button onClick={()=>changeLevel("tertiary")} className={`rounded-xl px-4 py-2 text-sm font-medium ${active(level==="tertiary")}`}>Tertiary</button>
               </div>
               <div className="mt-5 grid gap-4 lg:grid-cols-[180px_1fr]">
                 <div className="space-y-2">
