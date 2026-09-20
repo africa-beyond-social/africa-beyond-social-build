@@ -10,13 +10,13 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
   const [related, setRelated] = useState<any[]>([])
   const [notes, setNotes] = useState("")
   const [draft, setDraft] = useState("")
-  const [saving, setSaving] = useState(false)
+  const [saving, setSaving] = useState(false)\n  const [article, setArticle] = useState<any>(null)\n  const [articleBusy, setArticleBusy] = useState(false)
 
   useEffect(() => {
     fetch("/api/newsroom/story?id=" + encodeURIComponent(storyId))
       .then((r) => r.json())
       .then((data) => { setStory(data.story); setRelated(data.related ?? []); setNotes(data.story?.verification_notes ?? ""); setDraft(data.story?.ai_draft ?? "") })
-  }, [storyId])
+  }, [storyId])\n\n  useEffect(() => { loadArticle() }, [storyId])
 
   async function runVerify() {
     const response = await fetch("/api/newsroom/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: storyId }) })
@@ -37,7 +37,7 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
     }
   }
 
-  async function publish() {\n    const response = await fetch("/api/newsroom/publish", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: storyId }) })\n    if (response.ok) { const data = await response.json(); setStory((current: any) => current ? { ...current, status: "published" } : current) }\n  }\n\n  async function save(status?: string) {
+  async function publish() {\n    const response = await fetch("/api/newsroom/publish", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: storyId }) })\n    if (response.ok) { const data = await response.json(); setStory((current: any) => current ? { ...current, status: "published" } : current) }\n  }\n\n  async function loadArticle() {\n    const response = await fetch("/api/newsroom/article?id=" + encodeURIComponent(storyId))\n    if (response.ok) { const data = await response.json(); setArticle(data.article ?? null) }\n  }\n\n  async function createArticle() {\n    setArticleBusy(true)\n    const response = await fetch("/api/newsroom/article", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: storyId }) })\n    if (response.ok) { const data = await response.json(); setArticle(data.article) }\n    setArticleBusy(false)\n  }\n\n  async function publishWebsite() {\n    if (!article) return\n    setArticleBusy(true)\n    const response = await fetch("/api/newsroom/publish-website", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: article.id, status: "published" }) })\n    if (response.ok) { const data = await response.json(); setArticle((current: any) => current ? { ...current, website_status: "published", website_url: data.url } : current) }\n    setArticleBusy(false)\n  }\n\n  async function saveArticle() {\n    if (!article) return\n    setArticleBusy(true)\n    const response = await fetch("/api/newsroom/article", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: article.id, title: article.title, dek: article.dek, bodyHtml: article.body_html, seoTitle: article.seo_title, seoDescription: article.seo_description, category: article.category, tags: article.tags }) })\n    if (response.ok) { const data = await response.json(); setArticle(data.article) }\n    setArticleBusy(false)\n  }\n\n  async function save(status?: string) {
     setSaving(true)
     const response = await fetch("/api/newsroom/story", {
       method: "PATCH",
@@ -99,14 +99,14 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
               <button disabled={saving} onClick={() => save("draft")} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Save draft</button>
               <button disabled={saving} onClick={() => save("review")} className="rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white">Send to review</button>
               <button disabled={saving} onClick={() => save("held")} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Hold</button>
-              <button disabled={saving} onClick={() => save("approved")} className="rounded-full bg-brand-red px-4 py-2 text-xs font-semibold text-white">Approve</button>\n              {story.status === "approved" && <button disabled={saving} onClick={publish} className="rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white">Publish to WIGOD</button>}
+              <button disabled={saving} onClick={() => save("approved")} className="rounded-full bg-brand-red px-4 py-2 text-xs font-semibold text-white">Approve</button>\n
             </div>
           </div>
         </section>
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-5 text-xs text-muted-foreground">
-        <CheckCircle2 className="mb-2 size-5 text-brand-green" /> Publishing remains a separate explicit action. Approval does not publish automatically.
+        <CheckCircle2 className="mb-2 size-5 text-brand-green" /> Approval does not publish automatically. The editor explicitly creates, reviews and publishes the website article.
       </div>
     </div>
   )
