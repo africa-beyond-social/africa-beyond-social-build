@@ -20,7 +20,7 @@ export type NavItem = {
   match: (pathname: string) => boolean
 }
 
-export function buildNavItems(username: string | null): NavItem[] {
+export function buildNavItems(username: string | null, isNewsroomEditor = false): NavItem[] {
   const profileHref = username ? `/profile/${username}` : "/auth/login"
   return [
     { label: "Home", href: "/", icon: Home, match: (p) => p === "/" },
