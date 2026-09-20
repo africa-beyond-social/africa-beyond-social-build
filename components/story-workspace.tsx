@@ -206,32 +206,16 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
             )}
           </div>
 
-          <div className="rounded-2xl border-2 border-brand-green/20 bg-card p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-brand-red">Editorial Command</p>
-                <h2 className="mt-1 text-lg font-bold">Editorial Decision</h2>
-                <p className="mt-1 text-xs text-muted-foreground">WIGOD researches and prepares. The editor controls publication and live reporting.</p>
-              </div>
-              <span className={`rounded-full px-3 py-1.5 text-[10px] font-bold uppercase ${story.confidence === "cross_checked" ? "bg-brand-green/10 text-brand-green" : "bg-[#d4a017]/10 text-[#9a7400]"}`}>
-                {story.confidence === "cross_checked" ? "High-confidence / automated review" : "Human editorial review"}
-              </span>
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl bg-secondary p-3"><p className="text-[10px] font-bold uppercase text-muted-foreground">Verification</p><p className="mt-1 text-sm font-semibold">{story.confidence}</p></div>
-              <div className="rounded-xl bg-secondary p-3"><p className="text-[10px] font-bold uppercase text-muted-foreground">Article</p><p className="mt-1 text-sm font-semibold">{article ? "Prepared" : "Not prepared"}</p></div>
-              <div className="rounded-xl bg-secondary p-3"><p className="text-[10px] font-bold uppercase text-muted-foreground">Next action</p><p className="mt-1 text-sm font-semibold">{story.status === "approved" ? "Publish website" : story.confidence === "cross_checked" ? "Approve" : "Review"}</p></div>
-            </div>
-            <div className="mt-4 rounded-xl border border-border p-4">
-              <p className="text-xs font-bold">Recommended route</p>
-              <p className="mt-1 text-sm leading-6">{story.confidence === "cross_checked" ? "WIGOD Automated Editorial Review: verify attribution, allegations, conflicts, headline and article structure, then approve for publication when the checks pass." : "Human Editorial Review: the story remains under editor control until its claims and sources are sufficiently established."}</p>
-            </div>
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <h2 className="font-bold">Editorial Decision</h2>
+            <p className="mt-2 text-xs text-muted-foreground">Save notes/draft first, then move the story to the appropriate stage.</p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <button disabled={saving} onClick={() => save("verifying")} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Run verification</button>
-              <button disabled={saving} onClick={() => save("draft")} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Save preparation</button>
-              <button disabled={saving} onClick={() => save("review")} className="rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white">Send to human review</button>
+              <button disabled={saving} onClick={() => save("verifying")} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Verify</button>
+              <button disabled={saving} onClick={() => save("draft")} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Save draft</button>
+              <button disabled={saving} onClick={() => save("review")} className="rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white">Send to review</button>
               <button disabled={saving} onClick={() => save("held")} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Hold</button>
-              <button disabled={saving || story.status !== "review" || story.confidence === "unverified" || !draft.trim()} onClick={() => save("approved")} title={story.status !== "review" ? "Send the story to review first" : story.confidence === "unverified" ? "Cross-check the story before approval" : !draft.trim() ? "Create or enter a draft before approval" : ""} className="rounded-full bg-brand-red px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Approve for publication</button>
+              <button disabled={saving || story.status !== "review" || story.confidence === "unverified" || !draft.trim()} onClick={() => save("approved")} title={story.status !== "review" ? "Send the story to review first" : story.confidence === "unverified" ? "Cross-check the story before approval" : !draft.trim() ? "Create or enter a draft before approval" : ""} className="rounded-full bg-brand-red px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Approve</button>
+
             </div>
           </div>
         </section>
