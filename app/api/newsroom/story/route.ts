@@ -24,10 +24,22 @@ export async function PATCH(request: Request) {
   const body = await request.json()
   const id = String(body.id || "")
   if (!id) return NextResponse.json({ error: "Story id is required" }, { status: 400 })
-  const { data, error } = await createAdminClient().from("newsroom_stories").update({
-    verification_notes: body.verificationNotes ?? null,
-    ai_draft: body.aiDraft ?? null,
-    status: body.status ?? undefined,
+  const db = createAdminClient()
+  const { data: current, error: currentError } = await db.from("newsroom_stories").select("id,status,confidence,ai_draft,verification_notes").eq("id", id).single()
+  if (currentError || !current) return NextResponse.json({ error: currentError?.message || "Story not found" }, { status: 404 })
+  const requested = body.status ? String(body.status) : current.status
+  const allowed = new Set(["new","verifying","draft","review","held","approved","rejected","published"])
+  if (!allowed.has(requested)) return NextResponse.json({ error: "Invalid newsroom status" }, { status: 400 })
+  if (requested === "review" && !String(body.aiDraft ?? current.ai_draft ?? "").trim()) return NextResponse.json({ error: "An AI/editorial draft is required before review" }, { status: 400 })
+  if (requested === "approved") {
+    if (current.status !== "review") return NextResponse.json({ error: "Only stories in review can be approved" }, { status: 409 })
+    if (!String(body.aiDraft ?? current.ai_draft ?? "").trim()) return NextResponse.json({ error: "A draft is required before approval" }, { status: 400 })
+    if ((body.confidence ?? current.confidence) === "unverified") return NextResponse.json({ error: "Story remains unverified; cross-check it before approval" }, { status: 409 })
+  }
+  const { data, error } = await db.from("newsroom_stories").update({
+    verification_notes: body.verificationNotes ?? current.verification_notes ?? null,
+    ai_draft: body.aiDraft ?? current.ai_draft ?? null,
+    status: requested,
     confidence: body.confidence ?? undefined,
     updated_at: new Date().toISOString(),
   }).eq("id", id).select("*").single()
