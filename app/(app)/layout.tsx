@@ -11,7 +11,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await getSessionUser()
   if (!user) redirect("/auth/login")
 
-  // Make sure a profile row exists for this user (first login after confirm).
   await ensureProfile()
 
   const [profile, unreadCount] = await Promise.all([
@@ -20,11 +19,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   ])
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-6xl">
+    <div className="mx-auto flex min-h-dvh w-full max-w-6xl overflow-x-hidden">
       <LeftSidebar profile={profile} unreadCount={unreadCount} />
       <div className="flex min-h-dvh w-full min-w-0 flex-1 flex-col border-border md:border-x">
         <MobileHeader profile={profile} />
-        <main className="flex-1 pb-20 md:pb-10">{children}</main>
+        <main className="min-h-0 flex-1 pb-24 md:pb-10">{children}</main>
       </div>
       <MobileNav profile={profile} unreadCount={unreadCount} />
       <Toaster position="top-center" />

@@ -1,9 +1,9 @@
 import Link from "next/link"
-import { PageHeader } from "@/components/page-header"
+import { BrandMark, BrandWordmark } from "@/components/brand-logo"
 import { PostComposer } from "@/components/post-composer"
 import { FeedList, EmptyState } from "@/components/feed-list"
 import { getCurrentProfile, getHomeFeed, getSessionUser } from "@/lib/queries"
-import { Compass, Globe2, Radio, Sparkles, Newspaper, PlaySquare, Users, MapPin } from "lucide-react"
+import { Compass, Globe2, Radio, Sparkles, Newspaper, PlaySquare, Users, MapPin, Store, Megaphone, Clapperboard } from "lucide-react"
 
 const feedTabs = ["For You", "Following", "Africa", "News", "Media", "Community", "Live"]
 
@@ -19,8 +19,20 @@ export default async function HomePage() {
   const [profile, posts] = await Promise.all([getCurrentProfile(), user ? getHomeFeed(user.id) : Promise.resolve([])])
 
   return (
-    <div className="min-h-full">
-      <PageHeader title="WIGOD" subtitle="People. Places. Perspectives." />
+    <div className="min-h-full overflow-x-hidden">
+      <header className="border-b border-border bg-background px-4 py-5 md:px-6 md:py-7">
+        <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
+          <div className="flex items-center justify-center gap-3 sm:gap-4">
+            <BrandMark className="h-16 w-16 sm:h-20 sm:w-20" />
+            <BrandWordmark className="h-12 w-36 sm:h-14 sm:w-44" />
+          </div>
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-x-2 text-xs font-bold uppercase tracking-wider sm:text-sm">
+            <span className="text-brand-red">PEOPLE.</span>
+            <span className="text-[#d4a017]">PLACES.</span>
+            <span className="text-foreground">PERSPECTIVES.</span>
+          </div>
+        </div>
+      </header>
 
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 border-r-0 lg:border-r lg:border-border">
@@ -30,13 +42,14 @@ export default async function HomePage() {
                 <Globe2 className="size-5" />
               </div>
               <div className="min-w-0">
-                <h2 className="font-semibold text-lg">What’s happening across Africa & Beyond?</h2>
-                <p className="text-xs leading-5 text-muted-foreground">Share your perspective, story, photo or moment from wherever you are in the world.</p>
+                <h2 className="font-semibold text-lg">What’s happening Around The World?</h2>
+                <p className="text-xs leading-5 text-muted-foreground">Discover and share perspectives from wherever you are.</p>
               </div>
             </div>
-            <div className="mt-4 hidden md:block">
-              <PostComposer profile={profile} />
-            </div>
+          </section>
+
+          <section className="border-b border-border px-4 py-4 md:px-6">
+            <PostComposer profile={profile} placeholder="What’s happening?" />
           </section>
 
           <div className="flex gap-1 overflow-x-auto border-b border-border px-2 py-1 scrollbar-none md:px-4">
@@ -55,10 +68,6 @@ export default async function HomePage() {
             ))}
           </div>
 
-          <div className="border-b border-border px-4 py-3 md:hidden">
-            <PostComposer profile={profile} />
-          </div>
-
           <FeedList
             posts={posts}
             currentUserId={user?.id ?? null}
@@ -66,7 +75,7 @@ export default async function HomePage() {
               <EmptyState
                 icon={<Sparkles className="size-6" />}
                 title="Your WIGOD feed is quiet"
-                description="Follow people on Explore Africa & Beyond, or share your first perspective to get the conversation started."
+                description="Follow people on Explore, or share your first perspective to get the conversation started."
               />
             }
           />
@@ -74,11 +83,28 @@ export default async function HomePage() {
 
         <aside className="hidden space-y-4 px-4 py-5 lg:block">
           <section className="rounded-2xl border border-border bg-card p-4">
+            <h2 className="mb-3 text-sm font-bold tracking-wide">WIGOD</h2>
+            <div className="space-y-2">
+              <Link href="/marketplace" className="flex items-center gap-3 rounded-xl px-3 py-3 font-semibold transition-colors hover:bg-secondary">
+                <Store className="size-5 text-brand-green" /> MARKETPLACE
+              </Link>
+              <Link href="/advertise" className="flex items-center gap-3 rounded-xl px-3 py-3 font-semibold transition-colors hover:bg-secondary">
+                <Megaphone className="size-5 text-brand-red" /> ADVERTISE
+              </Link>
+              <Link href="/live/studio" className="flex items-center gap-3 rounded-xl px-3 py-3 font-semibold transition-colors hover:bg-secondary">
+                <Clapperboard className="size-5 text-brand-green" /> CREATOR STUDIO
+              </Link>
+              <Link href="/explore" className="flex items-center gap-3 rounded-xl px-3 py-3 font-semibold transition-colors hover:bg-secondary">
+                <MapPin className="size-5 text-[#d4a017]" /> EXPLORE THE WORLD
+              </Link>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-4">
             <div className="mb-3 flex items-center gap-2">
               <Globe2 className="size-5 text-brand-green" />
-              <h2 className="font-semibold">AFRICA TODAY</h2>
+              <h2 className="font-semibold">Around the World</h2>
             </div>
-            <p className="mb-4 text-xs text-muted-foreground">Discover conversations from across the continent.</p>
             <div className="space-y-2">
               {trending.map((item) => (
                 <Link key={item.country} href="/explore" className="block rounded-xl px-3 py-2.5 transition-colors hover:bg-secondary">
@@ -90,9 +116,6 @@ export default async function HomePage() {
                 </Link>
               ))}
             </div>
-            <Link href="/explore" className="mt-3 flex items-center gap-2 text-sm font-semibold text-brand-red hover:underline">
-              <MapPin className="size-4" /> Explore Africa & Beyond
-            </Link>
           </section>
 
           <section className="rounded-2xl border border-brand-red/20 bg-brand-red/5 p-4">
