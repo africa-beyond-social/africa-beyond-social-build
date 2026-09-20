@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { buildNavItems } from "@/components/nav-items"
-import { BrandMark, BrandWordmark } from "@/components/brand-logo"
 import { ComposeDialog } from "@/components/compose-dialog"
 import { SignOutMenuItem } from "@/components/sign-out-button"
 import { UserAvatar } from "@/components/user-avatar"
@@ -26,10 +25,6 @@ export function LeftSidebar({ profile, unreadCount }: { profile: Profile | null;
   return (
     <aside className="sticky top-0 hidden h-dvh w-[76px] shrink-0 flex-col justify-between px-2 py-4 md:flex lg:w-64 lg:px-3">
       <div className="flex flex-col gap-1">
-        <Link href="/" className="mb-6 flex items-center justify-center px-1 lg:justify-start" aria-label="WIGOD home">
-          <span className="flex items-center gap-2 lg:w-full"><BrandMark className="h-12 w-12 shrink-0" /><BrandWordmark className="hidden h-10 w-28 lg:inline-flex" /></span>
-        </Link>
-
         <nav className="flex flex-col gap-1">
           {items.map((item) => {
             const active = item.match(pathname)
