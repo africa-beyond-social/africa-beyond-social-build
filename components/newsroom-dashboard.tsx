@@ -73,29 +73,6 @@ export function NewsroomDashboard() {
     [stories, query, activeStatus],
   )
 
-  function advance(id: string) {
-    setStories((current) =>
-      current.map((story) => {
-        if (story.id !== id) return story
-        const next: StoryStatus = story.status === "NEW" ? "VERIFYING" : story.status === "VERIFYING" ? "DRAFT" : story.status === "DRAFT" ? "REVIEW" : story.status
-        return { ...story, status: next, confidence: next === "DRAFT" || next === "REVIEW" ? "Cross-checked" : story.confidence }
-      }),
-    )
-  }
-
-  function hold(id: string) {
-    setStories((current) => current.map((story) => story.id === id ? { ...story, status: "HELD" } : story))
-  }
-
-  async function addSource() {
-    const value = sourceInput.trim()
-    const url = sourceUrl.trim()
-    if (!value || !url) return
-    const response = await fetch("/api/newsroom/sources", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: value, url, sourceType }) })
-    const data = await response.json()
-    if (response.ok) { setSources((current) => [...current, data.source.name]); setSourceInput(""); setSourceUrl("") }
-  }
-
   async function advance(id: string) {
     const current = stories.find((s) => s.id === id)
     if (!current) return
