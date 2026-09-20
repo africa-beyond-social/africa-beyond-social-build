@@ -4,17 +4,9 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { buildNavItems } from "@/components/nav-items"
 import { ComposeDialog } from "@/components/compose-dialog"
-import { BrandMark } from "@/components/brand-logo"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import type { Profile } from "@/lib/types"
-import { Feather, Store, Megaphone, Clapperboard, MapPin } from "lucide-react"
+import { Feather } from "lucide-react"
 
 export function MobileNav({ profile, unreadCount }: { profile: Profile | null; unreadCount: number }) {
   const pathname = usePathname()
@@ -52,8 +44,6 @@ export function MobileNav({ profile, unreadCount }: { profile: Profile | null; u
             </Link>
           )
         })}
-
-
       </nav>
     </>
   )
