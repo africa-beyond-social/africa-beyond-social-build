@@ -301,6 +301,21 @@ export default function KnowledgeHubPage() {
     setSubject(nextSubjects[0])
   }
 
+  function selectLearningStage(value: string) {
+    if (!value) {
+      setGrade("")
+      return
+    }
+    const nextLevel: EducationLevel =
+      /^ECD/.test(value) ? "preschool" :
+      /^Grade/.test(value) ? "primary" :
+      /^Form/.test(value) ? "secondary" : "tertiary"
+    const nextSubjects = nextLevel === "primary" ? primarySubjects : nextLevel === "secondary" ? secondarySubjects : nextLevel === "tertiary" ? tertiarySubjects : ["Early Childhood Development"]
+    setLevel(nextLevel)
+    setGrade(value)
+    setSubject(nextSubjects[0])
+  }
+
   return (
     <main className="min-h-full bg-background">
       <header className="border-b px-4 py-6 sm:px-6">
@@ -385,7 +400,7 @@ export default function KnowledgeHubPage() {
             <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">Learn</h2><p className="mt-1 text-xs text-muted-foreground">Select the learning path once, then explore subjects.</p></div><button onClick={() => goTo("curriculum")} className="rounded-xl border px-3 py-2 text-xs font-semibold hover:bg-muted">Open full Curriculum</button></div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <label className="text-sm"><span className="mb-2 block font-medium">Education level</span><select value={level} onChange={e=>changeLevel(e.target.value as EducationLevel)} className="w-full rounded-xl border bg-background px-3 py-2.5"><option value="preschool">Preschool</option><option value="primary">Primary</option><option value="secondary">Secondary</option><option value="tertiary">Tertiary</option></select></label>
-              <label className="text-sm"><span className="mb-2 block font-medium">Grade / Form / Programme</span><select value={grade} onChange={e=>setGrade(e.target.value)} className="w-full rounded-xl border bg-background px-3 py-2.5"><option value="">Select Grade / Form / Programme</option><optgroup label="Preschool"><option value="ECD A">ECD A</option><option value="ECD B">ECD B</option></optgroup><optgroup label="Primary"><option value="Grade 1">Grade 1</option><option value="Grade 2">Grade 2</option><option value="Grade 3">Grade 3</option><option value="Grade 4">Grade 4</option><option value="Grade 5">Grade 5</option><option value="Grade 6">Grade 6</option><option value="Grade 7">Grade 7</option></optgroup><optgroup label="Secondary"><option value="Form 1">Form 1</option><option value="Form 2">Form 2</option><option value="Form 3">Form 3</option><option value="Form 4">Form 4</option><option value="Form 5">Form 5</option><option value="Form 6">Form 6</option></optgroup><optgroup label="Tertiary"><option value="Certificate">Certificate</option><option value="Diploma">Diploma</option><option value="Undergraduate Degree">Undergraduate Degree</option><option value="Postgraduate">Postgraduate</option></optgroup></select><button type="button" onClick={()=>setGrade("")} className="mt-2 text-xs font-medium text-muted-foreground hover:text-foreground">Clear selection</button></label>
+              <label className="text-sm"><span className="mb-2 block font-medium">Grade / Form / Programme</span><select value={grade} onChange={e=>selectLearningStage(e.target.value)} className="w-full rounded-xl border bg-background px-3 py-2.5"><option value="">Select Grade / Form / Programme</option><optgroup label="Preschool"><option value="ECD A">ECD A</option><option value="ECD B">ECD B</option></optgroup><optgroup label="Primary"><option value="Grade 1">Grade 1</option><option value="Grade 2">Grade 2</option><option value="Grade 3">Grade 3</option><option value="Grade 4">Grade 4</option><option value="Grade 5">Grade 5</option><option value="Grade 6">Grade 6</option><option value="Grade 7">Grade 7</option></optgroup><optgroup label="Secondary"><option value="Form 1">Form 1</option><option value="Form 2">Form 2</option><option value="Form 3">Form 3</option><option value="Form 4">Form 4</option><option value="Form 5">Form 5</option><option value="Form 6">Form 6</option></optgroup><optgroup label="Tertiary"><option value="Certificate">Certificate</option><option value="Diploma">Diploma</option><option value="Undergraduate Degree">Undergraduate Degree</option><option value="Postgraduate">Postgraduate</option></optgroup></select><button type="button" onClick={()=>setGrade("")} className="mt-2 text-xs font-medium text-muted-foreground hover:text-foreground">Clear selection</button></label>
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{subjects.map(s=><button key={s} onClick={()=>{setSubject(s); setQuery(s); goTo("ask")}} className={`rounded-xl border p-4 text-left hover:bg-muted ${subject===s ? "ring-2 ring-primary/20" : ""}`}><BookOpen className="mb-3 size-5 text-primary" /><div className="font-semibold">{s}</div><div className="mt-1 text-xs text-muted-foreground">Open this subject in Ask WIGOD</div></button>)}</div>
           </section>
