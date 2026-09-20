@@ -14,6 +14,9 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
   const [article, setArticle] = useState<any>(null)
   const [articleBusy, setArticleBusy] = useState(false)
   const [socialBusy, setSocialBusy] = useState(false)
+  const [scheduleBusy, setScheduleBusy] = useState(false)
+  const [scheduleMessage, setScheduleMessage] = useState("")
+  const [schedule, setSchedule] = useState({ title: "", startAt: "", endAt: "", category: "news", streamUrl: "", description: "" })
 
   useEffect(() => {
     fetch("/api/newsroom/story?id=" + encodeURIComponent(storyId))
@@ -145,6 +148,26 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
                   {article.social_facebook && <p><strong>Facebook:</strong> {article.social_facebook}</p>}
                   {article.social_tiktok && <p><strong>TikTok:</strong> {article.social_tiktok}</p>}
                 </div> : null}
+                <div className="mt-4 rounded-xl border border-border p-4">
+                  <div className="flex items-center justify-between gap-3"><div><p className="text-sm font-bold">Programme Manager</p><p className="mt-1 text-xs text-muted-foreground">Prepare a live programme from this approved website article. Scheduling creates the programme record; normal StreamYard live shows still require the operator to enter the studio and go live.</p></div><span className="rounded-full bg-secondary px-2 py-1 text-[10px] font-bold uppercase">{article.website_status}</span></div>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <input value={schedule.title || ("Africa & Beyond Live: " + (article.title || ""))} onChange={(e) => setSchedule((s) => ({ ...s, title: e.target.value }))} placeholder="Programme title" className="rounded-xl border border-input bg-background p-2.5 text-xs" />
+                    <select value={schedule.category} onChange={(e) => setSchedule((s) => ({ ...s, category: e.target.value }))} className="rounded-xl border border-input bg-background p-2.5 text-xs"><option value="news">News</option><option value="community">Community</option><option value="conference">Conference</option><option value="culture">Culture</option><option value="sports">Sports</option><option value="other">Other</option></select>
+                    <input type="datetime-local" value={schedule.startAt} onChange={(e) => setSchedule((s) => ({ ...s, startAt: e.target.value }))} className="rounded-xl border border-input bg-background p-2.5 text-xs" />
+                    <input type="datetime-local" value={schedule.endAt} onChange={(e) => setSchedule((s) => ({ ...s, endAt: e.target.value }))} className="rounded-xl border border-input bg-background p-2.5 text-xs" />
+                    <input value={schedule.streamUrl} onChange={(e) => setSchedule((s) => ({ ...s, streamUrl: e.target.value }))} placeholder="StreamYard / watch URL (optional)" className="rounded-xl border border-input bg-background p-2.5 text-xs sm:col-span-2" />
+                    <textarea value={schedule.description || article.dek || ""} onChange={(e) => setSchedule((s) => ({ ...s, description: e.target.value }))} placeholder="Programme description" className="min-h-16 rounded-xl border border-input bg-background p-2.5 text-xs sm:col-span-2" />
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <button disabled={scheduleBusy || article.website_status !== "published" || !schedule.startAt} onClick={async () => {
+                      setScheduleBusy(true); setScheduleMessage("")
+                      const r = await fetch("/api/newsroom/schedule", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ articleId: article.id, ...schedule }) })
+                      const d = await r.json(); setScheduleMessage(r.ok ? "Programme prepared and scheduled." : (d.error || "Scheduling failed")); setScheduleBusy(false)
+                    }} className="rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{scheduleBusy ? "Scheduling…" : "Schedule programme"}</button>
+                    {article.website_status !== "published" && <span className="text-[11px] text-muted-foreground">Publish the website article first.</span>}
+                    {scheduleMessage && <span className="text-[11px] text-muted-foreground">{scheduleMessage}</span>}
+                  </div>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   <button disabled={articleBusy} onClick={saveArticle} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Save article</button>
                   {article.website_status !== "published" && story.status === "approved" && <button disabled={articleBusy} onClick={publishWebsite} className="rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white">Publish to Africa & Beyond</button>}
