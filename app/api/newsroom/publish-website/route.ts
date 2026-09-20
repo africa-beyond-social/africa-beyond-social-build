@@ -17,7 +17,7 @@ function ghostToken() {
   return signing + "." + crypto.createHmac("sha256", Buffer.from(secret, "hex")).update(signing).digest("base64url")
 }
 function cleanHtml(html: string) {
-  return html.replace(/<script[\\s\\S]*?<\\/script>/gi, "").replace(/<style[\\s\\S]*?<\\/style>/gi, "").replace(/\\son[a-z]+\\s*=\\s*(["']).*?\\1/gi, "")
+  return html.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/\son[a-z]+\s*=\s*(["']).*?\1/gi, "")
 }
 export async function POST(request: Request) {
   const user = await getSessionUser()
