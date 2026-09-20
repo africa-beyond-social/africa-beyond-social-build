@@ -28,6 +28,7 @@ export default function KnowledgeHubPage() {
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [processMessage, setProcessMessage] = useState("")
   const [generatingId, setGeneratingId] = useState<string | null>(null)
+  const [aiId, setAiId] = useState<string | null>(null)
   const [records, setRecords] = useState<Array<{id:string;title:string;record_type:string;summary:string;verification_status:string;source_document_ids:string[];created_at:string}>>([])
 
   const filtered = useMemo(() => knowledge.filter(x => x.join(" ").toLowerCase().includes(query.toLowerCase())), [query])
@@ -51,6 +52,22 @@ export default function KnowledgeHubPage() {
   }
 
   useEffect(() => { loadDocuments(); loadRecords() }, [])
+
+  async function generateAI(id: string) {
+    setAiId(id)
+    setProcessMessage("")
+    try {
+      const response = await fetch(`/api/knowledge/documents/${id}/generate-ai`, { method: "POST" })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || "AI knowledge generation failed")
+      setProcessMessage(`AI Knowledge Engine enriched ${result.records_updated} records and created ${result.questions_created} study questions.`)
+      await loadRecords()
+    } catch (e) {
+      setProcessMessage(e instanceof Error ? e.message : "AI knowledge generation failed.")
+    } finally {
+      setAiId(null)
+    }
+  }
 
   async function generateKnowledge(id: string) {
     setGeneratingId(id)
@@ -220,6 +237,7 @@ export default function KnowledgeHubPage() {
                     {chunkCount > 0 && <div className="mt-2 text-xs text-muted-foreground">{chunkCount} knowledge chunks · {String(meta.extracted_characters || 0)} extracted characters</div>}
                     {(doc.processing_status === "pending" || doc.processing_status === "failed") && <button onClick={() => processDocument(doc.id)} disabled={processingId === doc.id} className="mt-3 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60">{processingId === doc.id ? "Processing..." : "Process document"}</button>}
                     {doc.processing_status === "processed" && <button onClick={() => generateKnowledge(doc.id)} disabled={generatingId === doc.id} className="mt-3 ml-2 rounded-lg border px-3 py-2 text-xs font-semibold disabled:opacity-60">{generatingId === doc.id ? "Generating..." : "Generate knowledge"}</button>}
+                    {doc.processing_status === "processed" && <button onClick={() => generateAI(doc.id)} disabled={aiId === doc.id} className="mt-3 ml-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60">{aiId === doc.id ? "AI working..." : "AI explain & quiz"}</button>}
                   </div>
                 })}
               </div>
