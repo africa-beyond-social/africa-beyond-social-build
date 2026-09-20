@@ -1,10 +1,12 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { ArrowRight, BookOpen, Brain, ChevronDown, Download, FileText, GraduationCap, History, Library, Mic, Plus, Search, Sparkles, Upload, CheckCircle2 } from "lucide-react"
+import { ArrowRight, BookOpen, Brain, ChevronDown, Download, FileText, GraduationCap, History, Library, Mic, Plus, Search, Sparkles, Upload, CheckCircle2, RefreshCw, Trash2, AlertTriangle } from "lucide-react"
 
 const primarySubjects = ["Mathematics","English","Shona","Physical Education & Arts","Science & Technology","Social Science"]
 const secondarySubjects = ["Commerce","Mathematics","English","Science","Shona","Accounting","Geography","Religious Education","Heritage Studies"]
+const tertiarySubjects = ["Education","Business","Computing","Engineering","Agriculture","Health Sciences","Law","Social Sciences"]
+type EducationLevel = "preschool"|"primary"|"secondary"|"tertiary"
 
 const knowledge = [
   ["Zimbabwe Currency History","Knowledge Article","WIGOD Research Archive","Source-supported"],
@@ -17,7 +19,7 @@ const active = (on: boolean) => on ? "bg-primary text-primary-foreground" : "bor
 export default function KnowledgeHubPage() {
   const [query, setQuery] = useState("")
   const [section, setSection] = useState<"curriculum"|"archive"|"add">("curriculum")
-  const [level, setLevel] = useState<"primary"|"secondary">("primary")
+  const [level, setLevel] = useState<EducationLevel>("primary")
   const [grade, setGrade] = useState("Grade 1")
   const [subject, setSubject] = useState(primarySubjects[0])
   const [fileName, setFileName] = useState("")
@@ -36,6 +38,8 @@ export default function KnowledgeHubPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [documentError, setDocumentError] = useState("")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
   const filtered = useMemo(() => knowledge.filter(x => x.join(" ").toLowerCase().includes(query.toLowerCase())), [query])
 
@@ -141,8 +145,48 @@ export default function KnowledgeHubPage() {
       setProcessingId(null)
     }
   }
-  const grades = level === "primary" ? Array.from({length:7}, (_,i)=>`Grade ${i+1}`) : Array.from({length:6}, (_,i)=>`Form ${i+1}`)
-  const subjects = level === "primary" ? primarySubjects : secondarySubjects
+  const grades = level === "preschool"
+    ? ["ECD A","ECD B"]
+    : level === "primary"
+      ? Array.from({length:7}, (_,i)=>`Grade ${i+1}`)
+      : level === "secondary"
+        ? Array.from({length:6}, (_,i)=>`Form ${i+1}`)
+        : ["Certificate","Diploma","Undergraduate Degree","Postgraduate"]
+  const subjects = level === "primary" ? primarySubjects : level === "secondary" ? secondarySubjects : level === "tertiary" ? tertiarySubjects : ["Early Childhood Development"]
+
+  function validationFlagsFor(levelValue: EducationLevel, gradeValue: string, titleValue: string, fileNameValue: string) {
+    const haystack = `${titleValue} ${fileNameValue}`.toLowerCase()
+    const flags: string[] = []
+    if (levelValue === "tertiary" && /\\b(grade|form)\\s*[1-7]\\b/i.test(gradeValue)) flags.push("Tertiary material is assigned to a school Grade/Form.")
+    if (levelValue === "preschool" && !/^ecd\\s/i.test(gradeValue)) flags.push("Preschool material is assigned to a non-ECD learning stage.")
+    if (levelValue === "primary" && !/^grade\\s/i.test(gradeValue)) flags.push("Primary material is assigned to a non-Grade learning stage.")
+    if (levelValue === "secondary" && !/^form\\s/i.test(gradeValue)) flags.push("Secondary material is assigned to a non-Form learning stage.")
+    if (levelValue !== "tertiary" && /\\b(university|undergraduate|postgraduate|diploma|degree|tertiary|polytechnic)\\b/i.test(haystack)) flags.push("Title/file name contains tertiary-level indicators.")
+    if (levelValue === "tertiary" && /\\b(grade\\s*[1-7]|primary school|secondary school|form\\s*[1-6])\\b/i.test(haystack)) flags.push("Title/file name contains school-level indicators.")
+    return flags
+  }
+
+  async function refreshMaterials() {
+    setRefreshing(true)
+    try { await Promise.all([loadDocuments(), loadRecords()]) } finally { setRefreshing(false) }
+  }
+
+  async function deleteDocument(id: string) {
+    if (!window.confirm("Delete this material and its stored source file? This cannot be undone.")) return
+    setDeletingId(id)
+    setProcessMessage("")
+    try {
+      const response = await fetch(`/api/knowledge/documents/${id}`, { method: "DELETE" })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || "Unable to delete material.")
+      await loadDocuments()
+      await loadRecords()
+    } catch (e) {
+      setProcessMessage(e instanceof Error ? e.message : "Unable to delete material.")
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   async function uploadMaterial() {
     const file = selectedFile || fileInputRef.current?.files?.[0]
@@ -167,10 +211,12 @@ export default function KnowledgeHubPage() {
     } catch (e) { setError(e instanceof Error ? e.message : "Upload failed") } finally { setUploading(false) }
   }
 
-  function changeLevel(next: "primary"|"secondary") {
+  function changeLevel(next: EducationLevel) {
     setLevel(next)
-    setGrade(next === "primary" ? "Grade 1" : "Form 1")
-    setSubject((next === "primary" ? primarySubjects : secondarySubjects)[0])
+    const nextGrade = next === "preschool" ? "ECD A" : next === "primary" ? "Grade 1" : next === "secondary" ? "Form 1" : "Undergraduate Degree"
+    const nextSubjects = next === "primary" ? primarySubjects : next === "secondary" ? secondarySubjects : next === "tertiary" ? tertiarySubjects : ["Early Childhood Development"]
+    setGrade(nextGrade)
+    setSubject(nextSubjects[0])
   }
 
   return (
@@ -257,7 +303,7 @@ export default function KnowledgeHubPage() {
             <div className="rounded-2xl border bg-card p-5">
               <div className="flex items-center gap-3"><Upload className="size-5 text-primary" /><div><h2 className="font-semibold">Add Curriculum or Academic Material</h2><p className="text-xs text-muted-foreground">Add authorised material and place it in the correct learning path.</p></div></div>
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <label className="text-sm"><span className="mb-2 block font-medium">Education level</span><select value={level} onChange={e=>changeLevel(e.target.value as "primary"|"secondary")} className="w-full rounded-xl border bg-background px-3 py-2.5"><option value="primary">Primary</option><option value="secondary">Secondary</option></select></label>
+                <label className="text-sm"><span className="mb-2 block font-medium">Education level</span><select value={level} onChange={e=>changeLevel(e.target.value as EducationLevel)} className="w-full rounded-xl border bg-background px-3 py-2.5"><option value="preschool">Preschool</option><option value="primary">Primary</option><option value="secondary">Secondary</option><option value="tertiary">Tertiary</option></select></label>
                 <label className="text-sm"><span className="mb-2 block font-medium">Grade / Form</span><select value={grade} onChange={e=>setGrade(e.target.value)} className="w-full rounded-xl border bg-background px-3 py-2.5">{grades.map(g=><option key={g}>{g}</option>)}</select></label>
                 <label className="text-sm sm:col-span-2"><span className="mb-2 block font-medium">Subject</span><select value={subject} onChange={e=>setSubject(e.target.value)} className="w-full rounded-xl border bg-background px-3 py-2.5">{subjects.map(s=><option key={s}>{s}</option>)}<option>+ Add new subject</option></select></label>
                 <label className="text-sm sm:col-span-2"><span className="mb-2 block font-medium">Material title</span><input value={fileName} onChange={e=>setFileName(e.target.value)} placeholder="e.g. Form 2 Mathematics syllabus" className="w-full rounded-xl border bg-background px-3 py-2.5 outline-none focus:ring-2 focus:ring-primary/20" /></label>
@@ -274,7 +320,11 @@ export default function KnowledgeHubPage() {
               {documentError && <div className="mt-4 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{documentError}</div>}
               {processMessage && <div className="mt-4 rounded-xl bg-primary/10 px-4 py-3 text-sm text-primary">{processMessage}</div>}
               <div className="mt-4 space-y-3">
-                {documents.length === 0 && <div className="rounded-xl bg-muted/40 p-4 text-xs text-muted-foreground">No uploaded materials yet.</div>}
+                <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="text-xs text-muted-foreground">Review uploads, processing status and validation warnings.</div>
+                <button onClick={refreshMaterials} disabled={refreshing} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold hover:bg-muted disabled:opacity-60"><RefreshCw className={`size-3.5 ${refreshing ? "animate-spin" : ""}`} /> {refreshing ? "Refreshing..." : "Refresh"}</button>
+              </div>
+              {documents.length === 0 && <div className="rounded-xl bg-muted/40 p-4 text-xs text-muted-foreground">No uploaded materials yet.</div>}
                 {documents.map(doc => {
                   const meta = doc.metadata || {}
                   const chunkCount = Number(meta.chunk_count || 0)
@@ -287,9 +337,11 @@ export default function KnowledgeHubPage() {
                       <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium">{doc.processing_status}</span>
                     </div>
                     {chunkCount > 0 && <div className="mt-2 text-xs text-muted-foreground">{chunkCount} knowledge chunks · {String(meta.extracted_characters || 0)} extracted characters</div>}
+                    {Array.isArray((doc.metadata || {}).validation_flags) && ((doc.metadata || {}).validation_flags as unknown[]).length > 0 && <div className="mt-3 rounded-xl border border-orange-300 bg-orange-50 px-3 py-3 text-xs text-orange-900"><div className="flex items-center gap-2 font-semibold"><AlertTriangle className="size-4" /> Review required — possible material mismatch</div><ul className="mt-1 list-disc pl-5">{((doc.metadata || {}).validation_flags as string[]).map((flag,i)=><li key={i}>{flag}</li>)}</ul><div className="mt-2 font-medium">The upload is not blocked. Investigate before relying on it for learning content.</div></div>}
                     {(doc.processing_status === "pending" || doc.processing_status === "failed") && <button onClick={() => processDocument(doc.id)} disabled={processingId === doc.id} className="mt-3 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60">{processingId === doc.id ? "Processing..." : "Process document"}</button>}
                     {doc.processing_status === "processed" && <button onClick={() => generateKnowledge(doc.id)} disabled={generatingId === doc.id} className="mt-3 ml-2 rounded-lg border px-3 py-2 text-xs font-semibold disabled:opacity-60">{generatingId === doc.id ? "Generating..." : "Generate knowledge"}</button>}
                     {doc.processing_status === "processed" && <button onClick={() => generateAI(doc.id)} disabled={aiId === doc.id} className="mt-3 ml-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60">{aiId === doc.id ? "AI working..." : "AI explain & quiz"}</button>}
+                    <button onClick={() => deleteDocument(doc.id)} disabled={deletingId === doc.id} className="mt-3 ml-2 inline-flex items-center gap-2 rounded-lg border border-destructive/30 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-60"><Trash2 className="size-3.5" /> {deletingId === doc.id ? "Deleting..." : "Delete"}</button>
                   </div>
                 })}
               </div>
