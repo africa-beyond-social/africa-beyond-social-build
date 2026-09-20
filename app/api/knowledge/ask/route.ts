@@ -170,7 +170,7 @@ export async function POST(request: Request) {
     sources: sources.map((s: any) => {
       const doc = docMap.get(s.document_id)
       const cleanLocator = normalizeText(String(s.source_locator || ""))
-      const safeLocator = /\\b(?:BDC|EMC|Tf|Tj|TJ|ActualText|Span)\\b/i.test(cleanLocator) ? "" : cleanLocator
+      const safeLocator = /\b(?:BDC|EMC|Tf|Tj|TJ|ActualText|Span)\b/i.test(cleanLocator) ? "" : cleanLocator
       return {
         chunk_index: s.chunk_index,
         document_title: String(doc?.title || "Knowledge source"),
