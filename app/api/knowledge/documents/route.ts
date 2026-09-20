@@ -61,12 +61,14 @@ export async function POST(request: Request) {
 
   const haystack = `${title} ${file.name}`.toLowerCase()
   const validationFlags: string[] = []
-  if (level === "tertiary" && /\\b(grade|form)\\s*[1-7]\\b/i.test(grade)) validationFlags.push("Tertiary material is assigned to a school Grade/Form.")
-  if (level === "preschool" && !/^ecd\\s/i.test(grade)) validationFlags.push("Preschool material is assigned to a non-ECD learning stage.")
-  if (level === "primary" && !/^grade\\s/i.test(grade)) validationFlags.push("Primary material is assigned to a non-Grade learning stage.")
-  if (level === "secondary" && !/^form\\s/i.test(grade)) validationFlags.push("Secondary material is assigned to a non-Form learning stage.")
-  if (level !== "tertiary" && /\\b(university|undergraduate|postgraduate|diploma|degree|tertiary|polytechnic)\\b/i.test(haystack)) validationFlags.push("Title/file name contains tertiary-level indicators.")
-  if (level === "tertiary" && /\\b(grade\\s*[1-7]|primary school|secondary school|form\\s*[1-6])\\b/i.test(haystack)) validationFlags.push("Title/file name contains school-level indicators.")
+  if (level === "tertiary" && /\b(grade|form)\s*[1-7]\b/i.test(grade)) validationFlags.push("Tertiary material is assigned to a school Grade/Form.")
+  const subjectMismatchTerms: Record<string, RegExp> = { Mathematics: /\b(constitution of zimbabwe|accounting|commerce|geography|religious education|heritage studies)\b/i, Accounting: /\b(constitution of zimbabwe|mathematics|geography|religious education)\b/i, Geography: /\b(constitution of zimbabwe|accounting|commerce)\b/i, Commerce: /\b(constitution of zimbabwe|geography|religious education)\b/i }
+  if (subjectMismatchTerms[subject] && subjectMismatchTerms[subject].test(haystack)) validationFlags.push(`Title/file name may not match the selected subject (${subject}).`)
+  if (level === "preschool" && !/^ecd\s/i.test(grade)) validationFlags.push("Preschool material is assigned to a non-ECD learning stage.")
+  if (level === "primary" && !/^grade\s/i.test(grade)) validationFlags.push("Primary material is assigned to a non-Grade learning stage.")
+  if (level === "secondary" && !/^form\s/i.test(grade)) validationFlags.push("Secondary material is assigned to a non-Form learning stage.")
+  if (level !== "tertiary" && /\b(university|undergraduate|postgraduate|diploma|degree|tertiary|polytechnic)\b/i.test(haystack)) validationFlags.push("Title/file name contains tertiary-level indicators.")
+  if (level === "tertiary" && /\b(grade\s*[1-7]|primary school|secondary school|form\s*[1-6])\b/i.test(haystack)) validationFlags.push("Title/file name contains school-level indicators.")
 
   const { data, error } = await db.from("knowledge_documents").insert({
     node_id: nodeId,
