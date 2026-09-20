@@ -16,11 +16,8 @@ function ghostToken() {
   const signing = header + "." + payload
   return signing + "." + crypto.createHmac("sha256", Buffer.from(secret, "hex")).update(signing).digest("base64url")
 }
-function lexicalFromHtml(html: string) {
-  const parts = html.split(/<\/?(?:p|h2|blockquote)>/i).map(v => v.replace(/<[^>]+>/g, "").trim()).filter(Boolean)
-  return JSON.stringify({ root: { children: parts.map(text => ({
-    type: "paragraph", version: 1, children: [{ mode: "normal", text, type: "extended-text", style: "", detail: 0, format: 0, version: 1 }]
-  })), direction: null, format: "", indent: 0, type: "root", version: 1 } })
+function cleanHtml(html: string) {
+  return html.replace(/<script[\\s\\S]*?<\\/script>/gi, "").replace(/<style[\\s\\S]*?<\\/style>/gi, "").replace(/\\son[a-z]+\\s*=\\s*(["']).*?\\1/gi, "")
 }
 export async function POST(request: Request) {
   const user = await getSessionUser()
@@ -37,7 +34,7 @@ export async function POST(request: Request) {
   if (article.website_post_id) return NextResponse.json({ ok: true, alreadyPublished: true, url: article.website_url })
 
   const base = process.env.GHOST_ADMIN_API_URL.replace(/\/$/, "")
-  const payload = { posts: [{ title: article.title, slug: article.slug || undefined, lexical: lexicalFromHtml(article.body_html),
+  const payload = { posts: [{ title: article.title, slug: article.slug || undefined, html: cleanHtml(article.body_html || ""),
     custom_excerpt: article.dek || undefined, meta_title: article.seo_title || undefined, meta_description: article.seo_description || undefined,
     status, feature_image: article.featured_image_url || undefined }] }
   const response = await fetch(base + "/ghost/api/admin/posts/?source=html", {
