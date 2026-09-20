@@ -61,8 +61,10 @@ export async function POST(
     if (!text) throw new Error("No readable text was extracted from this document.")
 
     if (assignedLevel !== "tertiary" && /\b(university|undergraduate|postgraduate|diploma|degree|tertiary|polytechnic)\b/i.test(text)) validationFlags.push("Document text contains tertiary-level indicators.")
+    const subjectTextMismatch: Record<string, RegExp> = { Mathematics: /\b(constitution of zimbabwe|accounting|commerce|geography|religious education|heritage studies)\b/i, Accounting: /\b(constitution of zimbabwe|mathematics|geography|religious education)\b/i, Geography: /\b(constitution of zimbabwe|accounting|commerce)\b/i, Commerce: /\b(constitution of zimbabwe|geography|religious education)\b/i }
+    if (subjectTextMismatch[document.subject] && subjectTextMismatch[document.subject].test(text)) validationFlags.push(`Extracted content may not match the selected subject (${document.subject}).`)
 
-    if (assignedLevel === "tertiary" && /\\b(grade\\s*[1-7]|form\\s*[1-6])\\b/i.test(text)) {
+    if (assignedLevel === "tertiary" && /\b(grade\s*[1-7]|form\s*[1-6])\b/i.test(text)) {
       validationFlags.push("Extracted content references school Grades/Forms; investigate before using it as tertiary material.")
     }
 
