@@ -31,7 +31,7 @@ ${article.body_html}`
   let copy: any
   try { copy = JSON.parse(raw) } catch { return NextResponse.json({ error: "AI returned invalid social JSON" }, { status: 502 }) }
   const { data: saved, error: saveError } = await db.from("newsroom_articles").update({
-    social_x: String(copy.x || ""), social_facebook: String(copy.facebook || ""), social_tiktok: String(copy.tiktok || ""), updated_at: new Date().toISOString()
+    social_x: String(copy.x || "").slice(0, 280), social_facebook: String(copy.facebook || ""), social_tiktok: String(copy.tiktok || ""), social_status: "generated", updated_at: new Date().toISOString()
   }).eq("id", id).select("*").single()
   if (saveError) return NextResponse.json({ error: saveError.message }, { status: 500 })
   return NextResponse.json({ article: saved })
