@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { getSessionUser } from "@/lib/queries"
 
 export const maxDuration = 30
 
@@ -28,9 +29,12 @@ function itemImage(block: string) {
   const media = block.match(/<(?:media:content|enclosure)[^>]+url=["']([^"']+)["']/i)
   return media ? media[1] : ""
 }
-function auth(request: Request) {
+async function auth(request: Request) {
   const secret = process.env.CRON_SECRET || process.env.NEWSROOM_CRON_SECRET
-  return Boolean(secret && request.headers.get("authorization") === "Bearer " + secret)
+  if (secret && request.headers.get("authorization") === "Bearer " + secret) return true
+  const user = await getSessionUser()
+  const admins = (process.env.LIVE_ADMIN_EMAILS || "").split(",").map(v => v.trim().toLowerCase()).filter(Boolean)
+  return Boolean(user?.email && admins.includes(user.email.toLowerCase()))
 }
 function blocks(xml: string) {
   const rss = xml.match(/<item[\s\S]*?<\/item>/gi) || []
@@ -39,7 +43,7 @@ function blocks(xml: string) {
 }
 
 export async function GET(request: Request) {
-  if (!auth(request)) return NextResponse.json({ error: "Not authorised" }, { status: 401 })
+  if (!(await auth(request))) return NextResponse.json({ error: "Not authorised" }, { status: 401 })
   const db = createAdminClient()
   const { data: sources, error } = await db.from("news_sources").select("*").eq("active", true).eq("source_type", "rss")
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
