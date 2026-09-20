@@ -22,8 +22,8 @@ export default async function HomePage() {
     <div className="min-h-full overflow-x-hidden">
       <header className="border-b border-border bg-background px-4 py-5 md:px-6 md:py-7">
         <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
-          <div className="text-6xl font-black leading-none tracking-tight text-brand-green sm:text-7xl md:text-8xl">WIGOD</div>
-          <div className="mt-2 flex flex-wrap items-center justify-center gap-x-2 text-xs font-bold uppercase tracking-wider sm:text-sm">
+          <div className="text-5xl font-black leading-none tracking-tight text-brand-green sm:text-6xl">WIGOD</div>
+          <div className="mt-2 flex items-center justify-center gap-x-2 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.12em] sm:text-xs">
             <span className="text-brand-red">PEOPLE.</span>
             <span className="text-[#d4a017]">PLACES.</span>
             <span className="text-foreground">PERSPECTIVES.</span>
