@@ -106,6 +106,7 @@ export default function KnowledgeHubPage() {
       if (!response.ok) throw new Error(result.error || "Upload failed")
       setAdded(true)
       setFileName(result.document?.title || file.name)
+      await loadDocuments()
     } catch (e) { setError(e instanceof Error ? e.message : "Upload failed") } finally { setUploading(false) }
   }
 
