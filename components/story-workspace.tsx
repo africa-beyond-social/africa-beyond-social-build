@@ -37,7 +37,7 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
     }
   }
 
-  async function save(status?: string) {
+  async function publish() {\n    const response = await fetch("/api/newsroom/publish", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: storyId }) })\n    if (response.ok) { const data = await response.json(); setStory((current: any) => current ? { ...current, status: "published" } : current) }\n  }\n\n  async function save(status?: string) {
     setSaving(true)
     const response = await fetch("/api/newsroom/story", {
       method: "PATCH",
@@ -99,14 +99,14 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
               <button disabled={saving} onClick={() => save("draft")} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Save draft</button>
               <button disabled={saving} onClick={() => save("review")} className="rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white">Send to review</button>
               <button disabled={saving} onClick={() => save("held")} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Hold</button>
-              <button disabled={saving} onClick={() => save("approved")} className="rounded-full bg-brand-red px-4 py-2 text-xs font-semibold text-white">Approve</button>
+              <button disabled={saving} onClick={() => save("approved")} className="rounded-full bg-brand-red px-4 py-2 text-xs font-semibold text-white">Approve</button>\n              {story.status === "approved" && <button disabled={saving} onClick={publish} className="rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white">Publish to WIGOD</button>}
             </div>
           </div>
         </section>
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-5 text-xs text-muted-foreground">
-        <CheckCircle2 className="mb-2 size-5 text-brand-green" /> Publishing remains separate from approval at this stage. No story is automatically published by this workspace.
+        <CheckCircle2 className="mb-2 size-5 text-brand-green" /> Publishing remains a separate explicit action. Approval does not publish automatically.
       </div>
     </div>
   )
