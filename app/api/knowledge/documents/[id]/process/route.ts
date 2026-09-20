@@ -36,6 +36,13 @@ export async function POST(
     const buffer = Buffer.from(await download.data.arrayBuffer())
     const metadata = (document.metadata || {}) as Record<string, unknown>
     const mime = String(metadata.mime_type || "")
+    const assignedLevel = String(metadata.level || "")
+    const assignedGrade = String(metadata.grade || "")
+    const validationFlags = Array.isArray(metadata.validation_flags) ? [...(metadata.validation_flags as string[])] : []
+    const sample = `${document.title} ${String(metadata.original_name || "")} ${assignedLevel} ${assignedGrade}`
+    if (assignedLevel === "tertiary" && /\\b(grade|form)\\s*[1-7]\\b/i.test(sample)) validationFlags.push("Tertiary material is assigned to a school Grade/Form.")
+    if (assignedLevel !== "tertiary" && /\\b(university|undergraduate|postgraduate|diploma|degree|tertiary|polytechnic)\\b/i.test(text || sample)) validationFlags.push("Document text or title contains tertiary-level indicators.")
+    if (assignedLevel === "tertiary" && /\\b(grade\\s*[1-7]|primary school|secondary school|form\\s*[1-6])\\b/i.test(text || sample)) validationFlags.push("Document text contains school-level indicators.")
     const name = String(metadata.original_name || document.title || "").toLowerCase()
 
     let text = ""
@@ -54,6 +61,10 @@ export async function POST(
 
     text = normalizeText(text)
     if (!text) throw new Error("No readable text was extracted from this document.")
+
+    if (assignedLevel === "tertiary" && /\\b(grade\\s*[1-7]|form\\s*[1-6])\\b/i.test(text)) {
+      validationFlags.push("Extracted content references school Grades/Forms; investigate before using it as tertiary material.")
+    }
 
     const chunks = buildChunks(text)
     if (!chunks.length) throw new Error("The document was extracted but no knowledge chunks could be created.")
@@ -82,6 +93,8 @@ export async function POST(
       topic_candidates: topics,
       extracted_characters: text.length,
       processed_at: new Date().toISOString(),
+      validation_flags: [...new Set(validationFlags)],
+      validation_status: validationFlags.length ? "review" : "clear",
     }
 
     const { data: updated, error: updateError } = await db
