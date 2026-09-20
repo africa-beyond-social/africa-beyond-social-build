@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { getSessionUser } from "@/lib/queries"
+import { normalizeText } from "@/lib/knowledge/processor"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -103,11 +104,13 @@ export async function POST(request: Request) {
 
   const material = sources.map((s: any) => {
     const doc = docMap.get(s.document_id)
+    const cleanContent = normalizeText(String(s.content || ""))
+    const cleanHeading = normalizeText(String(s.heading || ""))
     return "[SOURCE " + s.chunk_index + "] " +
       (doc?.title ? "DOCUMENT: " + doc.title + "\n" : "") +
       (doc?.subject ? "SUBJECT: " + doc.subject + "\n" : "") +
-      (s.heading ? s.heading + "\n" : "") +
-      s.content
+      (cleanHeading ? cleanHeading + "\n" : "") +
+      cleanContent
   }).join("\n\n").slice(0, 50000)
 
   const prompt = [
@@ -168,7 +171,7 @@ export async function POST(request: Request) {
       chunk_index: s.chunk_index,
       heading: s.heading,
       source_locator: s.source_locator,
-      preview: String(s.content).replace(/\s+/g, " ").slice(0, 240)
+      preview: normalizeText(String(s.content || "")).replace(/\s+/g, " ").slice(0, 240)
     }))
   })
 }
