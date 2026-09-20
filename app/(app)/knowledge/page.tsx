@@ -33,7 +33,7 @@ export default function KnowledgeHubPage() {
   const [aiId, setAiId] = useState<string | null>(null)
   const [records, setRecords] = useState<Array<{id:string;title:string;record_type:string;summary:string;verification_status:string;source_document_ids:string[];created_at:string}>>([])
   const [asking, setAsking] = useState(false)
-  const [tutorAnswer, setTutorAnswer] = useState<{answer:string;confidence:string;follow_up_questions:string[];sources:Array<{chunk_index:number;heading?:string;source_locator?:string;preview:string}>}|null>(null)
+  const [tutorAnswer, setTutorAnswer] = useState<{answer:string;confidence:string;follow_up_questions:string[];sources:Array<{chunk_index:number;document_title?:string;heading?:string;source_locator?:string;preview:string}>}|null>(null)
   const [tutorError, setTutorError] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [documentError, setDocumentError] = useState("")
@@ -310,7 +310,7 @@ export default function KnowledgeHubPage() {
               <span className="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary">{tutorAnswer.confidence}</span>
             </div>
             <div className="mt-4 whitespace-pre-wrap text-sm leading-7">{tutorAnswer.answer}</div>
-            {tutorAnswer.sources.length > 0 && <div className="mt-5 border-t pt-4"><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Knowledge sources used</div><div className="mt-2 space-y-2">{tutorAnswer.sources.slice(0,6).map((source,i)=><div key={i} className="rounded-xl bg-muted/40 p-3 text-xs"><span className="font-semibold">Source {source.chunk_index}</span>{source.heading ? " · " + source.heading : ""}{source.source_locator ? " · " + source.source_locator : ""}<div className="mt-1 text-muted-foreground">{source.preview}</div></div>)}</div></div>}
+            {tutorAnswer.sources.length > 0 && <div className="mt-5 border-t pt-4"><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Knowledge sources used</div><div className="mt-2 space-y-2">{tutorAnswer.sources.slice(0,6).map((source,i)=><div key={i} className="rounded-xl bg-muted/40 p-3 text-xs"><div className="font-semibold">{source.document_title || "Knowledge source"}</div><div className="mt-1 text-muted-foreground">{source.heading || source.source_locator || ("Source " + source.chunk_index)}</div><div className="mt-1 text-muted-foreground">{source.preview}</div></div>)}</div></div>}
             {tutorAnswer.follow_up_questions.length > 0 && <div className="mt-4"><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">You can ask next</div><div className="mt-2 flex flex-wrap gap-2">{tutorAnswer.follow_up_questions.map((q,i)=><button key={i} onClick={()=>{setQuery(q); askKnowledge(q)}} className="rounded-xl border px-3 py-2 text-xs hover:bg-muted">{q}</button>)}</div></div>}
           </div>}
           <nav aria-label="Knowledge Hub navigation" className="mt-4 rounded-2xl border bg-card p-2">
