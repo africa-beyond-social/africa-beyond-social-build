@@ -13,6 +13,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   await ensureProfile()
 
+  const isNewsroomEditor = Boolean(
+    user.email &&
+      (process.env.NEWSROOM_EDITOR_EMAILS || process.env.LIVE_ADMIN_EMAILS || "")
+        .split(",")
+        .map((v) => v.trim().toLowerCase())
+        .includes(user.email.toLowerCase()),
+  )
+
   const [profile, unreadCount] = await Promise.all([
     getCurrentProfile(),
     getUnreadNotificationCount(user.id),
@@ -20,7 +28,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-6xl overflow-x-hidden">
-      <LeftSidebar profile={profile} unreadCount={unreadCount} />
+      <LeftSidebar profile={profile} unreadCount={unreadCount} isNewsroomEditor={isNewsroomEditor} />
       <div className="flex min-h-dvh w-full min-w-0 flex-1 flex-col border-border md:border-x">
         <MobileHeader profile={profile} />
         <main className="min-h-0 flex-1 pb-24 md:pb-10">{children}</main>

@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { BrandMark, BrandWordmark } from "@/components/brand-logo"
+
 import { PostComposer } from "@/components/post-composer"
 import { FeedList, EmptyState } from "@/components/feed-list"
 import { getCurrentProfile, getHomeFeed, getSessionUser } from "@/lib/queries"
@@ -22,10 +22,7 @@ export default async function HomePage() {
     <div className="min-h-full overflow-x-hidden">
       <header className="border-b border-border bg-background px-4 py-5 md:px-6 md:py-7">
         <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
-          <div className="flex items-center justify-center gap-3 sm:gap-4">
-            <BrandMark className="h-16 w-16 sm:h-20 sm:w-20" />
-            <BrandWordmark className="h-12 w-36 sm:h-14 sm:w-44" />
-          </div>
+          <div className="text-2xl font-extrabold tracking-tight text-brand-green sm:text-3xl">WIGOD</div>
           <div className="mt-2 flex flex-wrap items-center justify-center gap-x-2 text-xs font-bold uppercase tracking-wider sm:text-sm">
             <span className="text-brand-red">PEOPLE.</span>
             <span className="text-[#d4a017]">PLACES.</span>
