@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { ArrowRight, BookOpen, Brain, ChevronDown, Download, FileText, GraduationCap, History, Library, Mic, Plus, Search, Sparkles, Upload, CheckCircle2 } from "lucide-react"
 
 const primarySubjects = ["Mathematics","English","Shona","Physical Education & Arts","Science & Technology","Social Science"]
@@ -33,16 +33,25 @@ export default function KnowledgeHubPage() {
   const [asking, setAsking] = useState(false)
   const [tutorAnswer, setTutorAnswer] = useState<{answer:string;confidence:string;follow_up_questions:string[];sources:Array<{chunk_index:number;heading?:string;source_locator?:string;preview:string}>}|null>(null)
   const [tutorError, setTutorError] = useState("")
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [documentError, setDocumentError] = useState("")
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   const filtered = useMemo(() => knowledge.filter(x => x.join(" ").toLowerCase().includes(query.toLowerCase())), [query])
 
   async function loadDocuments() {
     try {
       const response = await fetch("/api/knowledge/documents", { cache: "no-store" })
-      if (!response.ok) return
-      const result = await response.json()
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setDocumentError(result.error || `Unable to load materials (HTTP ${response.status}).`)
+        return
+      }
+      setDocumentError("")
       setDocuments(result.documents || [])
-    } catch {}
+    } catch (e) {
+      setDocumentError(e instanceof Error ? e.message : "Unable to load materials.")
+    }
   }
 
   async function loadRecords() {
@@ -136,8 +145,7 @@ export default function KnowledgeHubPage() {
   const subjects = level === "primary" ? primarySubjects : secondarySubjects
 
   async function uploadMaterial() {
-    const input = document.querySelector<HTMLInputElement>("input[type=file]")
-    const file = input?.files?.[0]
+    const file = selectedFile || fileInputRef.current?.files?.[0]
     if (!file) { setError("Choose a document first."); return }
     setUploading(true); setError(""); setAdded(false)
     try {
@@ -151,7 +159,10 @@ export default function KnowledgeHubPage() {
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || "Upload failed")
       setAdded(true)
+      setError("")
       setFileName(result.document?.title || file.name)
+      setSelectedFile(null)
+      if (fileInputRef.current) fileInputRef.current.value = ""
       await loadDocuments()
     } catch (e) { setError(e instanceof Error ? e.message : "Upload failed") } finally { setUploading(false) }
   }
@@ -251,7 +262,8 @@ export default function KnowledgeHubPage() {
                 <label className="text-sm sm:col-span-2"><span className="mb-2 block font-medium">Subject</span><select value={subject} onChange={e=>setSubject(e.target.value)} className="w-full rounded-xl border bg-background px-3 py-2.5">{subjects.map(s=><option key={s}>{s}</option>)}<option>+ Add new subject</option></select></label>
                 <label className="text-sm sm:col-span-2"><span className="mb-2 block font-medium">Material title</span><input value={fileName} onChange={e=>setFileName(e.target.value)} placeholder="e.g. Form 2 Mathematics syllabus" className="w-full rounded-xl border bg-background px-3 py-2.5 outline-none focus:ring-2 focus:ring-primary/20" /></label>
               </div>
-              <div className="mt-4 rounded-2xl border border-dashed p-6 text-center"><Upload className="mx-auto size-7 text-muted-foreground" /><div className="mt-2 text-sm font-medium">Choose a PDF, document or text file</div><div className="mt-1 text-xs text-muted-foreground">Next processing stage will extract text, identify topics and create source-linked knowledge.</div><input type="file" className="mx-auto mt-4 block max-w-full text-xs" onChange={e=>setFileName(e.target.files?.[0]?.name||fileName)} /></div>
+              <div className="mt-4 rounded-2xl border border-dashed p-6 text-center"><Upload className="mx-auto size-7 text-muted-foreground" /><div className="mt-2 text-sm font-medium">Choose a PDF, document or text file</div><div className="mt-1 text-xs text-muted-foreground">Next processing stage will extract text, identify topics and create source-linked knowledge.</div><input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt,.md,.markdown,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown" className="mx-auto mt-4 block max-w-full text-xs" onChange={e=>{const f=e.target.files?.[0] || null; setSelectedFile(f); setError(""); if(f) setFileName(f.name)}} />
+              {selectedFile && <div className="mt-3 rounded-xl bg-muted/50 px-3 py-2 text-left text-xs"><span className="font-medium">{selectedFile.name}</span><span className="ml-2 text-muted-foreground">({(selectedFile.size/1024/1024).toFixed(2)} MB)</span></div>}</div>
               <button onClick={uploadMaterial} disabled={uploading} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"><Upload className="size-4" /> {uploading ? "Uploading..." : "Queue for Knowledge Processing"}</button>
               {error&&<div className="mt-4 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
               {added&&<div className="mt-4 flex items-center gap-2 rounded-xl bg-primary/10 px-4 py-3 text-sm text-primary"><CheckCircle2 className="size-4" /> Material queued: {fileName||"untitled material"} · {grade} · {subject}</div>}
@@ -259,6 +271,7 @@ export default function KnowledgeHubPage() {
             <div className="rounded-2xl border bg-card p-5">
               <h2 className="font-semibold">Your Knowledge Materials</h2>
               <p className="mt-1 text-xs text-muted-foreground">Uploaded documents can now be processed into searchable source-linked chunks.</p>
+              {documentError && <div className="mt-4 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{documentError}</div>}
               {processMessage && <div className="mt-4 rounded-xl bg-primary/10 px-4 py-3 text-sm text-primary">{processMessage}</div>}
               <div className="mt-4 space-y-3">
                 {documents.length === 0 && <div className="rounded-xl bg-muted/40 p-4 text-xs text-muted-foreground">No uploaded materials yet.</div>}
