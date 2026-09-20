@@ -21,13 +21,35 @@ export default function KnowledgeHubPage() {
   const [grade, setGrade] = useState("Grade 1")
   const [subject, setSubject] = useState(primarySubjects[0])
   const [fileName, setFileName] = useState("")
-  const [added, setAdded] = useState(false)\n  const [uploading, setUploading] = useState(false)\n  const [error, setError] = useState("")
+  const [added, setAdded] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState("")
 
   const filtered = useMemo(() => knowledge.filter(x => x.join(" ").toLowerCase().includes(query.toLowerCase())), [query])
   const grades = level === "primary" ? Array.from({length:7}, (_,i)=>`Grade ${i+1}`) : Array.from({length:6}, (_,i)=>`Form ${i+1}`)
   const subjects = level === "primary" ? primarySubjects : secondarySubjects
 
-  async function uploadMaterial() {\n    const input = document.querySelector<HTMLInputElement>("input[type=file]")\n    const file = input?.files?.[0]\n    if (!file) { setError("Choose a document first."); return }\n    setUploading(true); setError(""); setAdded(false)\n    try {\n      const form = new FormData()\n      form.append("file", file)\n      form.append("level", level)\n      form.append("grade", grade)\n      form.append("subject", subject)\n      form.append("title", fileName || file.name)\n      const response = await fetch("/api/knowledge/documents", { method: "POST", body: form })\n      const result = await response.json()\n      if (!response.ok) throw new Error(result.error || "Upload failed")\n      setAdded(true)\n      setFileName(result.document?.title || file.name)\n    } catch (e) { setError(e instanceof Error ? e.message : "Upload failed") } finally { setUploading(false) }\n  }\n\n  function changeLevel(next: "primary"|"secondary") {
+  async function uploadMaterial() {
+    const input = document.querySelector<HTMLInputElement>("input[type=file]")
+    const file = input?.files?.[0]
+    if (!file) { setError("Choose a document first."); return }
+    setUploading(true); setError(""); setAdded(false)
+    try {
+      const form = new FormData()
+      form.append("file", file)
+      form.append("level", level)
+      form.append("grade", grade)
+      form.append("subject", subject)
+      form.append("title", fileName || file.name)
+      const response = await fetch("/api/knowledge/documents", { method: "POST", body: form })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || "Upload failed")
+      setAdded(true)
+      setFileName(result.document?.title || file.name)
+    } catch (e) { setError(e instanceof Error ? e.message : "Upload failed") } finally { setUploading(false) }
+  }
+
+  function changeLevel(next: "primary"|"secondary") {
     setLevel(next)
     setGrade(next === "primary" ? "Grade 1" : "Form 1")
     setSubject((next === "primary" ? primarySubjects : secondarySubjects)[0])
@@ -109,7 +131,8 @@ export default function KnowledgeHubPage() {
                 <label className="text-sm sm:col-span-2"><span className="mb-2 block font-medium">Material title</span><input value={fileName} onChange={e=>setFileName(e.target.value)} placeholder="e.g. Form 2 Mathematics syllabus" className="w-full rounded-xl border bg-background px-3 py-2.5 outline-none focus:ring-2 focus:ring-primary/20" /></label>
               </div>
               <div className="mt-4 rounded-2xl border border-dashed p-6 text-center"><Upload className="mx-auto size-7 text-muted-foreground" /><div className="mt-2 text-sm font-medium">Choose a PDF, document or text file</div><div className="mt-1 text-xs text-muted-foreground">Next processing stage will extract text, identify topics and create source-linked knowledge.</div><input type="file" className="mx-auto mt-4 block max-w-full text-xs" onChange={e=>setFileName(e.target.files?.[0]?.name||fileName)} /></div>
-              <button onClick={uploadMaterial} disabled={uploading} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"><Upload className="size-4" /> {uploading ? "Uploading..." : "Queue for Knowledge Processing"}</button>\n              {error&&<div className="mt-4 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
+              <button onClick={uploadMaterial} disabled={uploading} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"><Upload className="size-4" /> {uploading ? "Uploading..." : "Queue for Knowledge Processing"}</button>
+              {error&&<div className="mt-4 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>}
               {added&&<div className="mt-4 flex items-center gap-2 rounded-xl bg-primary/10 px-4 py-3 text-sm text-primary"><CheckCircle2 className="size-4" /> Material queued: {fileName||"untitled material"} · {grade} · {subject}</div>}
             </div>
             <div className="rounded-2xl border bg-card p-5"><h2 className="font-semibold">Processing pipeline</h2><div className="mt-5 space-y-4">{["Document intake","Text extraction","Topic & concept detection","Knowledge creation","Source verification","Archive & search"].map((step,i)=><div key={step} className="flex gap-3"><div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{i+1}</div><div><div className="text-sm font-medium">{step}</div><div className="mt-0.5 text-xs text-muted-foreground">{i<2?"Foundation stage":"Knowledge Engine stage"}</div></div></div>)}</div><div className="mt-6 rounded-xl bg-muted/40 p-4 text-xs leading-5 text-muted-foreground">Only material you are authorised to store or distribute should be made public. Private institution or student materials remain access-controlled.</div></div>
