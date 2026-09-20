@@ -18,7 +18,7 @@ const active = (on: boolean) => on ? "bg-primary text-primary-foreground" : "bor
 
 export default function KnowledgeHubPage() {
   const [query, setQuery] = useState("")
-  const [section, setSection] = useState<"curriculum"|"archive"|"add">("curriculum")
+  const [section, setSection] = useState<"home"|"curriculum"|"learn"|"ask"|"research"|"voice"|"archive"|"add">("home")
   const [level, setLevel] = useState<EducationLevel>("primary")
   const [grade, setGrade] = useState("Grade 1")
   const [subject, setSubject] = useState(primarySubjects[0])
@@ -40,6 +40,8 @@ export default function KnowledgeHubPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [listening, setListening] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   const filtered = useMemo(() => knowledge.filter(x => x.join(" ").toLowerCase().includes(query.toLowerCase())), [query])
 
@@ -68,6 +70,68 @@ export default function KnowledgeHubPage() {
   }
 
   useEffect(() => { loadDocuments(); loadRecords() }, [])
+
+  function goTo(next: typeof section) {
+    setSection(next)
+    if (next === "ask" || next === "research" || next === "voice") {
+      window.setTimeout(() => searchInputRef.current?.focus(), 50)
+    }
+  }
+
+  function handleAskClick() {
+    if (!query.trim()) {
+      goTo("ask")
+      return
+    }
+    askKnowledge()
+  }
+
+  function startVoice() {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      setTutorError("Voice input is not supported by this browser. Try Chrome or Edge.")
+      goTo("voice")
+      return
+    }
+    const recognition = new SpeechRecognition()
+    recognition.lang = "en-ZW"
+    recognition.interimResults = false
+    recognition.maxAlternatives = 1
+    recognition.onstart = () => setListening(true)
+    recognition.onend = () => setListening(false)
+    recognition.onerror = () => {
+      setListening(false)
+      setTutorError("Voice input could not be started. Please check microphone permission.")
+    }
+    recognition.onresult = (event: any) => {
+      const spoken = String(event.results?.[0]?.[0]?.transcript || "").trim()
+      if (!spoken) return
+      setQuery(spoken)
+      setSection("ask")
+      window.setTimeout(() => askKnowledge(spoken), 100)
+    }
+    recognition.start()
+  }
+
+  function downloadKnowledgePack() {
+    const text = [
+      "WIGOD KNOWLEDGE PACK",
+      "",
+      "Curriculum: " + level,
+      "Stage: " + grade,
+      "Subject: " + subject,
+      "",
+      "Knowledge records:",
+      ...records.slice(0, 20).map((record) => "- " + record.title + ": " + record.summary),
+    ].join("\n")
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "WIGOD-Knowledge-Pack.txt"
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   async function askKnowledge(questionOverride?: string) {
     const question = (questionOverride ?? query).trim()
@@ -236,8 +300,8 @@ export default function KnowledgeHubPage() {
           </div>
           <div className="mt-6 flex items-center gap-2 rounded-2xl border bg-muted/30 px-4 py-3">
             <Search className="size-5 text-muted-foreground" />
-            <input value={query} onChange={e=>{setQuery(e.target.value); if(!e.target.value.trim()) setTutorAnswer(null)}} onKeyDown={e=>{if(e.key==="Enter") askKnowledge()}} placeholder="Ask WIGOD Knowledge Hub..." className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
-            <button onClick={askKnowledge} disabled={asking || !query.trim()} className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60">{asking ? "Thinking..." : "Ask WIGOD"}</button>
+            <input ref={searchInputRef} value={query} onChange={e=>{setQuery(e.target.value); if(!e.target.value.trim()) setTutorAnswer(null)}} onKeyDown={e=>{if(e.key==="Enter") askKnowledge()}} placeholder="Ask WIGOD Knowledge Hub..." className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
+            <button onClick={handleAskClick} disabled={asking} className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60">{asking ? "Thinking..." : "Ask WIGOD"}</button>
           </div>
           {tutorError && <div className="mt-3 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{tutorError}</div>}
           {tutorAnswer && <div className="mt-4 rounded-2xl border bg-card p-5">
@@ -249,15 +313,89 @@ export default function KnowledgeHubPage() {
             {tutorAnswer.sources.length > 0 && <div className="mt-5 border-t pt-4"><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Knowledge sources used</div><div className="mt-2 space-y-2">{tutorAnswer.sources.slice(0,6).map((source,i)=><div key={i} className="rounded-xl bg-muted/40 p-3 text-xs"><span className="font-semibold">Source {source.chunk_index}</span>{source.heading ? " · " + source.heading : ""}{source.source_locator ? " · " + source.source_locator : ""}<div className="mt-1 text-muted-foreground">{source.preview}</div></div>)}</div></div>}
             {tutorAnswer.follow_up_questions.length > 0 && <div className="mt-4"><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">You can ask next</div><div className="mt-2 flex flex-wrap gap-2">{tutorAnswer.follow_up_questions.map((q,i)=><button key={i} onClick={()=>{setQuery(q); askKnowledge(q)}} className="rounded-xl border px-3 py-2 text-xs hover:bg-muted">{q}</button>)}</div></div>}
           </div>}
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button onClick={()=>setSection("curriculum")} className={`rounded-xl px-3 py-2 text-sm font-medium ${active(section==="curriculum")}`}>Curriculum Library</button>
-            <button onClick={()=>setSection("archive")} className={`rounded-xl px-3 py-2 text-sm font-medium ${active(section==="archive")}`}>Knowledge Archive</button>
-            <button onClick={()=>setSection("add")} className={`rounded-xl px-3 py-2 text-sm font-medium ${active(section==="add")}`}>Add Material</button>
-          </div>
+          <nav aria-label="Knowledge Hub navigation" className="mt-4 rounded-2xl border bg-card p-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+              {[
+                ["home","Home"],["learn","Learn"],["ask","Ask"],["research","Research"],
+                ["voice","Voice"],["curriculum","Curriculum"],["archive","Library"],["add","Add Material"],
+              ].map(([id,label]) => (
+                <button key={id} onClick={() => goTo(id as typeof section)} className={`rounded-xl px-2 py-2.5 text-xs font-semibold transition ${active(section===id)}`}>{label}</button>
+              ))}
+            </div>
+          </nav>
         </div>
       </header>
 
       <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+        {section === "home" && (
+          <>
+            <section className="rounded-2xl border bg-card p-6">
+              <div className="max-w-3xl">
+                <div className="text-xs font-semibold uppercase tracking-wide text-primary">Knowledge Hub Home</div>
+                <h2 className="mt-2 text-2xl font-semibold">One place to Learn, Ask, Research and use Voice.</h2>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">Choose one activity below. Each activity has its own workspace, so you do not need to make the same selection in several places.</p>
+              </div>
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                [
+                  ["learn","Learn","Open the curriculum learning workspace.",GraduationCap],
+                  ["ask","Ask WIGOD","Ask questions against processed Knowledge materials.",Brain],
+                  ["research","Research","Search your source-linked Knowledge Archive.",FileText],
+                  ["voice","Voice","Ask WIGOD using your microphone.",Mic],
+                ].map(([id,title,detail,Icon]) => {
+                  const I = Icon as typeof Brain
+                  return <button key={id as string} onClick={() => goTo(id as typeof section)} className="rounded-2xl border bg-background p-5 text-left transition hover:border-primary/50 hover:bg-muted/40">
+                    <I className="mb-4 size-6 text-primary" /><div className="font-semibold">{title as string}</div>
+                    <div className="mt-1 text-xs leading-5 text-muted-foreground">{detail as string}</div>
+                    <div className="mt-4 text-xs font-semibold text-primary">Open →</div>
+                  </button>
+                })}
+              </div>
+            </section>
+            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <button onClick={() => goTo("curriculum")} className="rounded-2xl border bg-card p-5 text-left hover:bg-muted/40"><Library className="mb-3 size-5 text-primary" /><div className="font-semibold">Curriculum</div><div className="mt-1 text-xs text-muted-foreground">Preschool · Primary · Secondary · Tertiary</div></button>
+              <button onClick={() => goTo("archive")} className="rounded-2xl border bg-card p-5 text-left hover:bg-muted/40"><History className="mb-3 size-5 text-primary" /><div className="font-semibold">Knowledge Library</div><div className="mt-1 text-xs text-muted-foreground">{records.length} reusable knowledge records</div></button>
+              <button onClick={() => goTo("add")} className="rounded-2xl border bg-card p-5 text-left hover:bg-muted/40"><Upload className="mb-3 size-5 text-primary" /><div className="font-semibold">Add Material</div><div className="mt-1 text-xs text-muted-foreground">Upload authorised curriculum and academic material.</div></button>
+            </section>
+          </>
+        )}
+
+        {section === "learn" && (
+          <section className="rounded-2xl border bg-card p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">Learn</h2><p className="mt-1 text-xs text-muted-foreground">Select the learning path once, then explore subjects.</p></div><button onClick={() => goTo("curriculum")} className="rounded-xl border px-3 py-2 text-xs font-semibold hover:bg-muted">Open full Curriculum</button></div>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <label className="text-sm"><span className="mb-2 block font-medium">Education level</span><select value={level} onChange={e=>changeLevel(e.target.value as EducationLevel)} className="w-full rounded-xl border bg-background px-3 py-2.5"><option value="preschool">Preschool</option><option value="primary">Primary</option><option value="secondary">Secondary</option><option value="tertiary">Tertiary</option></select></label>
+              <label className="text-sm"><span className="mb-2 block font-medium">Grade / Form / Programme</span><select value={grade} onChange={e=>setGrade(e.target.value)} className="w-full rounded-xl border bg-background px-3 py-2.5">{grades.map(g=><option key={g}>{g}</option>)}</select></label>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{subjects.map(s=><button key={s} onClick={()=>{setSubject(s); setQuery(s); goTo("ask")}} className={`rounded-xl border p-4 text-left hover:bg-muted ${subject===s ? "ring-2 ring-primary/20" : ""}`}><BookOpen className="mb-3 size-5 text-primary" /><div className="font-semibold">{s}</div><div className="mt-1 text-xs text-muted-foreground">Open this subject in Ask WIGOD</div></button>)}</div>
+          </section>
+        )}
+
+        {section === "ask" && (
+          <section className="rounded-2xl border bg-card p-5">
+            <div className="flex items-center gap-3"><Brain className="size-5 text-primary" /><div><h2 className="font-semibold">Ask WIGOD</h2><p className="text-xs text-muted-foreground">Questions are answered from processed Knowledge Base sources.</p></div></div>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row"><input value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") askKnowledge()}} placeholder="Ask a question..." className="min-w-0 flex-1 rounded-xl border bg-background px-4 py-3 outline-none focus:ring-2 focus:ring-primary/20" /><button onClick={askKnowledge} disabled={asking || !query.trim()} className="rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60">{asking ? "Thinking..." : "ASK"}</button></div>
+            {tutorError && <div className="mt-4 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{tutorError}</div>}
+            {tutorAnswer && <div className="mt-4 rounded-2xl bg-muted/30 p-5"><div className="font-semibold">WIGOD Answer</div><div className="mt-3 whitespace-pre-wrap text-sm leading-7">{tutorAnswer.answer}</div></div>}
+          </section>
+        )}
+
+        {section === "research" && (
+          <section className="rounded-2xl border bg-card p-5">
+            <div className="flex items-center gap-3"><FileText className="size-5 text-primary" /><div><h2 className="font-semibold">Research</h2><p className="mt-1 text-xs text-muted-foreground">Search reusable source-linked knowledge and open it in the Archive.</p></div></div>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row"><input value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") goTo("archive")}} placeholder="Search research topics..." className="min-w-0 flex-1 rounded-xl border bg-background px-4 py-3 outline-none focus:ring-2 focus:ring-primary/20" /><button onClick={()=>goTo("archive")} className="rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">SEARCH RESEARCH</button></div>
+            <div className="mt-5 grid gap-3">{records.filter(r => !query || (r.title+" "+r.summary).toLowerCase().includes(query.toLowerCase())).slice(0,10).map(r=><button key={r.id} onClick={()=>{setQuery(r.title); goTo("ask")}} className="rounded-xl border p-4 text-left hover:bg-muted/40"><div className="font-semibold">{r.title}</div><div className="mt-1 text-xs text-muted-foreground">{r.summary}</div></button>)}{!records.length && <div className="rounded-xl bg-muted/40 p-4 text-xs text-muted-foreground">Process and generate Knowledge materials first to populate research results.</div>}</div>
+          </section>
+        )}
+
+        {section === "voice" && (
+          <section className="rounded-2xl border bg-card p-6">
+            <div className="flex items-center gap-3"><Mic className="size-5 text-primary" /><div><h2 className="font-semibold">Voice</h2><p className="text-xs text-muted-foreground">Speak a question and WIGOD will send the recognised question to the Knowledge Tutor.</p></div></div>
+            <button onClick={startVoice} disabled={listening} className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"><Mic className="size-4" /> {listening ? "Listening..." : "Start Voice Question"}</button>
+            {query && <div className="mt-5 rounded-xl bg-muted/40 p-4 text-sm"><span className="font-semibold">Recognised:</span> {query}</div>}
+            {tutorError && <div className="mt-4 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{tutorError}</div>}
+          </section>
+        )}
+
         {section === "curriculum" && (
           <>
             <section className="rounded-2xl border bg-card p-5">
@@ -287,7 +425,7 @@ export default function KnowledgeHubPage() {
             <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[["Learn","Curriculum-aligned explanations",GraduationCap],["Ask","Upload a question or assignment",Brain],["Research","Build source-linked research guides",FileText],["Voice","Learn conversationally",Mic]].map(([title,detail,Icon])=>{const I=Icon as typeof Brain;return <div key={title as string} className="rounded-2xl border bg-card p-4"><I className="mb-3 size-5 text-primary" /><div className="font-semibold">{title as string}</div><div className="mt-1 text-xs text-muted-foreground">{detail as string}</div></div>})}
             </section>
-            <section className="rounded-2xl bg-primary p-5 text-primary-foreground"><Sparkles className="size-6" /><h2 className="mt-4 text-xl font-semibold">Offline Knowledge Packs</h2><p className="mt-2 max-w-2xl text-sm opacity-90">Build downloadable, source-linked learning material for students with limited connectivity. Packs can later sync when internet returns.</p><button className="mt-5 inline-flex items-center gap-2 rounded-xl bg-background px-4 py-2.5 text-sm font-semibold text-foreground"><Download className="size-4" /> Build Knowledge Pack</button></section>
+            <section className="rounded-2xl bg-primary p-5 text-primary-foreground"><Sparkles className="size-6" /><h2 className="mt-4 text-xl font-semibold">Offline Knowledge Packs</h2><p className="mt-2 max-w-2xl text-sm opacity-90">Build downloadable, source-linked learning material for students with limited connectivity. Packs can later sync when internet returns.</p><button onClick={downloadKnowledgePack} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-background px-4 py-2.5 text-sm font-semibold text-foreground"><Download className="size-4" /> Build Knowledge Pack</button></section>
           </>
         )}
 
