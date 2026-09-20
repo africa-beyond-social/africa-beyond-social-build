@@ -128,13 +128,13 @@ export function extractDocxText(buffer: Buffer) {
 
 function stripPdfArtifacts(text: string) {
   return text
-    .replace(/(?:>>|<<)?\\/?(?:BDC|EMC)\\b/gi, " ")
-    .replace(/\\/(?:C[0-9A-Za-z_]+|Span|ActualText)\\b/gi, " ")
-    .replace(/\\b(?:BT|ET|Tf|Tj|TJ|Do|cm|gs|CS|cs|SC|sc|G|g|RG|rg|K|k)\\b/gi, " ")
-    .replace(/<<?\\/?BDC[\\s\\S]*?<</gi, " ")
-    .replace(/\\([^)]*\\b(?:Tf|Tj|TJ|BDC|EMC)\\b[^)]*\\)/gi, " ")
-    .replace(/\\b(?:ActualText|Span)\\b/gi, " ")
-    .replace(/\\s{2,}/g, " ")
+    .replace(/(?:>>|<<)?\/?(?:BDC|EMC)\b/gi, " ")
+    .replace(/\/(?:C[0-9A-Za-z_]+|Span|ActualText)\b/gi, " ")
+    .replace(/\b(?:BT|ET|Tf|Tj|TJ|Do|cm|gs|CS|cs|SC|sc|G|g|RG|rg|K|k)\b/gi, " ")
+    .replace(/<<\/?BDC[\s\S]*?<</gi, " ")
+    .replace(/\([^)]*\b(?:Tf|Tj|TJ|BDC|EMC)\b[^)]*\)/gi, " ")
+    .replace(/\b(?:ActualText|Span)\b/gi, " ")
+    .replace(/\s{2,}/g, " ")
     .trim()
 }
 
