@@ -29,7 +29,7 @@ function itemImage(block: string) {
   return media ? media[1] : ""
 }
 function auth(request: Request) {
-  const secret = process.env.NEWSROOM_CRON_SECRET
+  const secret = process.env.CRON_SECRET || process.env.NEWSROOM_CRON_SECRET
   return Boolean(secret && request.headers.get("authorization") === "Bearer " + secret)
 }
 function blocks(xml: string) {
