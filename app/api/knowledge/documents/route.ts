@@ -28,7 +28,9 @@ export async function POST(request: Request) {
   if (!(file instanceof File)) return NextResponse.json({ error: "A document is required." }, { status: 400 })
   const title = requestedTitle || file.name
   if (file.size > MAX_BYTES) return NextResponse.json({ error: "File is too large. Maximum size is 20 MB." }, { status: 400 })
-  if (file.type && !ALLOWED.has(file.type)) return NextResponse.json({ error: "Unsupported file type. Use PDF, Word, Markdown or text." }, { status: 400 })
+  const lowerName = file.name.toLowerCase()
+  const extensionAllowed = /\\.(pdf|doc|docx|txt|md|markdown)$/.test(lowerName)
+  if (file.type && !ALLOWED.has(file.type) && !extensionAllowed) return NextResponse.json({ error: "Unsupported file type. Use PDF, Word, Markdown or text." }, { status: 400 })
 
   const db = createAdminClient()
   const ext = file.name.includes(".") ? file.name.split(".").pop() : "bin"
@@ -53,7 +55,7 @@ export async function POST(request: Request) {
   }
 
   let extractedText: string | null = null
-  if (file.type === "text/plain" || file.type === "text/markdown") extractedText = await file.text()
+  if (file.type === "text/plain" || file.type === "text/markdown" || /\\.(txt|md|markdown)$/.test(lowerName)) extractedText = await file.text()
 
   const { data, error } = await db.from("knowledge_documents").insert({
     node_id: nodeId,
