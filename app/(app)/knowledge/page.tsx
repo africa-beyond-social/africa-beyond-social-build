@@ -30,6 +30,9 @@ export default function KnowledgeHubPage() {
   const [generatingId, setGeneratingId] = useState<string | null>(null)
   const [aiId, setAiId] = useState<string | null>(null)
   const [records, setRecords] = useState<Array<{id:string;title:string;record_type:string;summary:string;verification_status:string;source_document_ids:string[];created_at:string}>>([])
+  const [asking, setAsking] = useState(false)
+  const [tutorAnswer, setTutorAnswer] = useState<{answer:string;confidence:string;follow_up_questions:string[];sources:Array<{chunk_index:number;heading?:string;source_locator?:string;preview:string}>}|null>(null)
+  const [tutorError, setTutorError] = useState("")
 
   const filtered = useMemo(() => knowledge.filter(x => x.join(" ").toLowerCase().includes(query.toLowerCase())), [query])
 
@@ -52,6 +55,32 @@ export default function KnowledgeHubPage() {
   }
 
   useEffect(() => { loadDocuments(); loadRecords() }, [])
+
+  async function askKnowledge() {
+    const question = query.trim()
+    if (!question) return
+    setAsking(true)
+    setTutorError("")
+    setTutorAnswer(null)
+    try {
+      const response = await fetch("/api/knowledge/ask", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ question }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || "Knowledge Tutor failed")
+      if (!result.grounded) {
+        setTutorAnswer({ answer: result.answer || "No supporting knowledge was found.", confidence: "insufficient", follow_up_questions: [], sources: [] })
+      } else {
+        setTutorAnswer(result)
+      }
+    } catch (e) {
+      setTutorError(e instanceof Error ? e.message : "Knowledge Tutor failed")
+    } finally {
+      setAsking(false)
+    }
+  }
 
   async function generateAI(id: string) {
     setAiId(id)
@@ -147,9 +176,19 @@ export default function KnowledgeHubPage() {
           </div>
           <div className="mt-6 flex items-center gap-2 rounded-2xl border bg-muted/30 px-4 py-3">
             <Search className="size-5 text-muted-foreground" />
-            <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Ask WIGOD Knowledge Hub..." className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
-            <button onClick={()=>setSection("archive")} className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">Search</button>
+            <input value={query} onChange={e=>{setQuery(e.target.value); if(!e.target.value.trim()) setTutorAnswer(null)}} onKeyDown={e=>{if(e.key==="Enter") askKnowledge()}} placeholder="Ask WIGOD Knowledge Hub..." className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
+            <button onClick={askKnowledge} disabled={asking || !query.trim()} className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60">{asking ? "Thinking..." : "Ask WIGOD"}</button>
           </div>
+          {tutorError && <div className="mt-3 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{tutorError}</div>}
+          {tutorAnswer && <div className="mt-4 rounded-2xl border bg-card p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 font-semibold"><Brain className="size-5 text-primary" /> WIGOD Knowledge Tutor</div>
+              <span className="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary">{tutorAnswer.confidence}</span>
+            </div>
+            <div className="mt-4 whitespace-pre-wrap text-sm leading-7">{tutorAnswer.answer}</div>
+            {tutorAnswer.sources.length > 0 && <div className="mt-5 border-t pt-4"><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Knowledge sources used</div><div className="mt-2 space-y-2">{tutorAnswer.sources.slice(0,6).map((source,i)=><div key={i} className="rounded-xl bg-muted/40 p-3 text-xs"><span className="font-semibold">Source {source.chunk_index}</span>{source.heading ? " · " + source.heading : ""}{source.source_locator ? " · " + source.source_locator : ""}<div className="mt-1 text-muted-foreground">{source.preview}</div></div>)}</div></div>}
+            {tutorAnswer.follow_up_questions.length > 0 && <div className="mt-4"><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">You can ask next</div><div className="mt-2 flex flex-wrap gap-2">{tutorAnswer.follow_up_questions.map((q,i)=><button key={i} onClick={()=>{setQuery(q); setTimeout(askKnowledge,0)}} className="rounded-xl border px-3 py-2 text-xs hover:bg-muted">{q}</button>)}</div></div>}
+          </div>}
           <div className="mt-4 flex flex-wrap gap-2">
             <button onClick={()=>setSection("curriculum")} className={`rounded-xl px-3 py-2 text-sm font-medium ${active(section==="curriculum")}`}>Curriculum Library</button>
             <button onClick={()=>setSection("archive")} className={`rounded-xl px-3 py-2 text-sm font-medium ${active(section==="archive")}`}>Knowledge Archive</button>
