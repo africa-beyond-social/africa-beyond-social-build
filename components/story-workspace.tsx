@@ -13,6 +13,7 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
   const [saving, setSaving] = useState(false)
   const [article, setArticle] = useState<any>(null)
   const [articleBusy, setArticleBusy] = useState(false)
+  const [socialBusy, setSocialBusy] = useState(false)
 
   useEffect(() => {
     fetch("/api/newsroom/story?id=" + encodeURIComponent(storyId))
@@ -138,10 +139,22 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
                 <input value={article.title || ""} onChange={(e) => setArticle((a: any) => ({ ...a, title: e.target.value }))} className="w-full rounded-xl border border-input bg-background p-3 text-sm font-semibold" />
                 <textarea value={article.dek || ""} onChange={(e) => setArticle((a: any) => ({ ...a, dek: e.target.value }))} placeholder="Article standfirst / dek" className="min-h-20 w-full rounded-xl border border-input bg-background p-3 text-sm" />
                 <textarea value={article.body_html || ""} onChange={(e) => setArticle((a: any) => ({ ...a, body_html: e.target.value }))} className="min-h-72 w-full rounded-xl border border-input bg-background p-3 font-mono text-xs leading-5" />
+                {article.social_x || article.social_facebook || article.social_tiktok ? <div className="space-y-2 rounded-xl bg-secondary p-3 text-xs">
+                  <p className="font-bold">Social distribution copy</p>
+                  {article.social_x && <p><strong>X:</strong> {article.social_x}</p>}
+                  {article.social_facebook && <p><strong>Facebook:</strong> {article.social_facebook}</p>}
+                  {article.social_tiktok && <p><strong>TikTok:</strong> {article.social_tiktok}</p>}
+                </div> : null}
                 <div className="flex flex-wrap gap-2">
                   <button disabled={articleBusy} onClick={saveArticle} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Save article</button>
                   {article.website_status !== "published" && story.status === "approved" && <button disabled={articleBusy} onClick={publishWebsite} className="rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white">Publish to Africa & Beyond</button>}
                   {article.website_url && <a href={article.website_url} target="_blank" rel="noreferrer" className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Open published article</a>}
+                  <button disabled={socialBusy} onClick={async () => {
+                    setSocialBusy(true)
+                    const r = await fetch("/api/newsroom/social", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: article.id }) })
+                    if (r.ok) { const d = await r.json(); setArticle(d.article) }
+                    setSocialBusy(false)
+                  }} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">{socialBusy ? "Preparing social…" : "Prepare social distribution"}</button>
                 </div>
               </div>
             )}
