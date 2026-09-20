@@ -167,11 +167,17 @@ export async function POST(request: Request) {
     confidence: String(result.confidence || "source-supported"),
     follow_up_questions: Array.isArray(result.follow_up_questions) ? result.follow_up_questions.slice(0, 4).map((q: any) => String(q)) : [],
     grounded: true,
-    sources: sources.map((s: any) => ({
-      chunk_index: s.chunk_index,
-      heading: s.heading,
-      source_locator: s.source_locator,
-      preview: normalizeText(String(s.content || "")).replace(/\s+/g, " ").slice(0, 240)
-    }))
+    sources: sources.map((s: any) => {
+      const doc = docMap.get(s.document_id)
+      const cleanLocator = normalizeText(String(s.source_locator || ""))
+      const safeLocator = /\\b(?:BDC|EMC|Tf|Tj|TJ|ActualText|Span)\\b/i.test(cleanLocator) ? "" : cleanLocator
+      return {
+        chunk_index: s.chunk_index,
+        document_title: String(doc?.title || "Knowledge source"),
+        heading: normalizeText(String(s.heading || "")),
+        source_locator: safeLocator,
+        preview: normalizeText(String(s.content || "")).replace(/\s+/g, " ").slice(0, 240)
+      }
+    })
   })
 }
