@@ -13,6 +13,7 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
   const [saving, setSaving] = useState(false)
   const [article, setArticle] = useState<any>(null)
   const [articleBusy, setArticleBusy] = useState(false)
+  const [articleError, setArticleError] = useState("")
   const [socialBusy, setSocialBusy] = useState(false)
   const [scheduleBusy, setScheduleBusy] = useState(false)
   const [scheduleMessage, setScheduleMessage] = useState("")
@@ -51,15 +52,36 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
   }
 
   async function loadArticle() {
-    const response = await fetch("/api/newsroom/article?id=" + encodeURIComponent(storyId))
-    if (response.ok) { const data = await response.json(); setArticle(data.article ?? null) }
+    try {
+      setArticleError("")
+      const response = await fetch("/api/newsroom/article?id=" + encodeURIComponent(storyId))
+      const data = await response.json().catch(() => ({}))
+      if (response.ok) {
+        setArticle(data.article ?? null)
+      } else {
+        setArticleError(String(data.error || "Article production is not available yet."))
+      }
+    } catch {
+      setArticleError("Could not connect to the article production service.")
+    }
   }
 
   async function createArticle() {
     setArticleBusy(true)
-    const response = await fetch("/api/newsroom/article", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: storyId }) })
-    if (response.ok) { const data = await response.json(); setArticle(data.article) }
-    setArticleBusy(false)
+    setArticleError("")
+    try {
+      const response = await fetch("/api/newsroom/article", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: storyId }) })
+      const data = await response.json().catch(() => ({}))
+      if (response.ok) {
+        setArticle(data.article)
+      } else {
+        setArticleError(String(data.error || "Article production failed."))
+      }
+    } catch {
+      setArticleError("Could not connect to the article production service.")
+    } finally {
+      setArticleBusy(false)
+    }
   }
 
   async function publishWebsite() {
@@ -135,6 +157,7 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
           <div className="rounded-2xl border border-border bg-card p-5">
             <h2 className="font-bold">Article Production</h2>
             <p className="mt-2 text-xs text-muted-foreground">Create the long-form article that will be prepared for the Africa & Beyond news website. This is the core publication output.</p>
+            {articleError && <div className="mt-3 rounded-xl border border-brand-red/30 bg-brand-red/5 p-3 text-xs text-brand-red"><strong>Article production error:</strong> {articleError}</div>}
             {!article ? (
               <button disabled={articleBusy} onClick={createArticle} className="mt-4 rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white">{articleBusy ? "Creating article…" : "Create publication-ready article"}</button>
             ) : (
