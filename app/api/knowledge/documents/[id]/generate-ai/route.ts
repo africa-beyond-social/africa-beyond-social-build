@@ -81,7 +81,7 @@ export async function POST(
     String(result.verification_note || "AI explanation derived from supplied source material; human review is recommended for high-stakes use.").trim(),
   ].filter(Boolean).join("\n")
 
-  const { data: records } = await db.from("knowledge_records").select("id,title").eq("created_by", user.id).eq("source_document_ids", `{${id}}`)
+  const { data: records } = await db.from("knowledge_records").select("id,title").eq("created_by", user.id).contains("source_document_ids", [id])
   const fallback = records || []
   if (fallback.length) {
     for (const record of fallback) {
