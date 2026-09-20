@@ -56,8 +56,8 @@ export default function KnowledgeHubPage() {
 
   useEffect(() => { loadDocuments(); loadRecords() }, [])
 
-  async function askKnowledge() {
-    const question = query.trim()
+  async function askKnowledge(questionOverride?: string) {
+    const question = (questionOverride ?? query).trim()
     if (!question) return
     setAsking(true)
     setTutorError("")
@@ -187,7 +187,7 @@ export default function KnowledgeHubPage() {
             </div>
             <div className="mt-4 whitespace-pre-wrap text-sm leading-7">{tutorAnswer.answer}</div>
             {tutorAnswer.sources.length > 0 && <div className="mt-5 border-t pt-4"><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Knowledge sources used</div><div className="mt-2 space-y-2">{tutorAnswer.sources.slice(0,6).map((source,i)=><div key={i} className="rounded-xl bg-muted/40 p-3 text-xs"><span className="font-semibold">Source {source.chunk_index}</span>{source.heading ? " · " + source.heading : ""}{source.source_locator ? " · " + source.source_locator : ""}<div className="mt-1 text-muted-foreground">{source.preview}</div></div>)}</div></div>}
-            {tutorAnswer.follow_up_questions.length > 0 && <div className="mt-4"><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">You can ask next</div><div className="mt-2 flex flex-wrap gap-2">{tutorAnswer.follow_up_questions.map((q,i)=><button key={i} onClick={()=>{setQuery(q); setTimeout(askKnowledge,0)}} className="rounded-xl border px-3 py-2 text-xs hover:bg-muted">{q}</button>)}</div></div>}
+            {tutorAnswer.follow_up_questions.length > 0 && <div className="mt-4"><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">You can ask next</div><div className="mt-2 flex flex-wrap gap-2">{tutorAnswer.follow_up_questions.map((q,i)=><button key={i} onClick={()=>{setQuery(q); askKnowledge(q)}} className="rounded-xl border px-3 py-2 text-xs hover:bg-muted">{q}</button>)}</div></div>}
           </div>}
           <div className="mt-4 flex flex-wrap gap-2">
             <button onClick={()=>setSection("curriculum")} className={`rounded-xl px-3 py-2 text-sm font-medium ${active(section==="curriculum")}`}>Curriculum Library</button>
