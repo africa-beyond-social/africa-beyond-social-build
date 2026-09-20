@@ -81,8 +81,11 @@ export default function KnowledgeHubPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ question }),
       })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.error || "Knowledge Tutor failed")
+      const contentType = response.headers.get("content-type") || ""
+      const result = contentType.includes("application/json")
+        ? await response.json().catch(() => ({}))
+        : { error: await response.text().catch(() => "") }
+      if (!response.ok) throw new Error(result.error || `Knowledge Tutor failed (HTTP ${response.status})`)
       if (!result.grounded) {
         setTutorAnswer({ answer: result.answer || "No supporting knowledge was found.", confidence: "insufficient", follow_up_questions: [], sources: [] })
       } else {
