@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
   const prompt = `Create a publication-ready Africa & Beyond news article from the editor-reviewed draft below. Return ONLY valid JSON:
 {"title":"","dek":"","body_html":"","seo_title":"","seo_description":"","category":"","tags":[]}
-body_html must use clean HTML with p,h2,ul,li,strong,em,blockquote only. Do not invent facts, quotes, dates, people, motives or context. Preserve attribution and uncertainty.
+body_html must use clean HTML with p,h2,ul,li,strong,em,blockquote only. Do not invent facts, quotes, dates, people, motives or context. Preserve attribution and uncertainty. Keep allegations as allegations and clearly attribute source statements. Use the Africa & Beyond published-article structure: headline, excerpt/dek, clear opening, factual development, context, what happens next where relevant. Do not put a research bibliography into the article body; return sources separately in source_box. End body_html with the exact signature: <p><strong>Africa &amp; Beyond — News | Analysis | Perspective</strong></p>.
 SOURCE: ${story.source_name} | ${story.canonical_url || story.source_url}
 ORIGINAL TITLE: ${story.title}
 EDITOR DRAFT:
