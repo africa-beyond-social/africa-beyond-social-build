@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   const level = String(form.get("level") || "")
   const grade = String(form.get("grade") || "")
   const subject = String(form.get("subject") || "")
-  const title = String(form.get("title") || file instanceof File ? file.name : "Knowledge material").trim()
+  const requestedTitle = String(form.get("title") || "").trim()\n  const title = requestedTitle || file.name
 
   if (!(file instanceof File)) return NextResponse.json({ error: "A document is required." }, { status: 400 })
   if (file.size > MAX_BYTES) return NextResponse.json({ error: "File is too large. Maximum size is 20 MB." }, { status: 400 })
