@@ -23,9 +23,10 @@ export async function POST(request: Request) {
   const level = String(form.get("level") || "")
   const grade = String(form.get("grade") || "")
   const subject = String(form.get("subject") || "")
-  const requestedTitle = String(form.get("title") || "").trim()\n  const title = requestedTitle || file.name
+  const requestedTitle = String(form.get("title") || "").trim()
 
   if (!(file instanceof File)) return NextResponse.json({ error: "A document is required." }, { status: 400 })
+  const title = requestedTitle || file.name
   if (file.size > MAX_BYTES) return NextResponse.json({ error: "File is too large. Maximum size is 20 MB." }, { status: 400 })
   if (file.type && !ALLOWED.has(file.type)) return NextResponse.json({ error: "Unsupported file type. Use PDF, Word, Markdown or text." }, { status: 400 })
 
