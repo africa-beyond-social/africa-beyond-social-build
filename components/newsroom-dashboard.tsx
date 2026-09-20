@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   Activity,
   AlertTriangle,
@@ -30,11 +30,7 @@ type Story = {
   url: string
 }
 
-const initialStories: Story[] = [
-  { id: "1", title: "Zimbabwe political developments draw fresh public reaction", source: "Selected source", time: "12 min ago", status: "NEW", confidence: "Unverified", url: "#" },
-  { id: "2", title: "Regional leaders issue statements on a developing story", source: "Google News", time: "31 min ago", status: "VERIFYING", confidence: "Developing", url: "#" },
-  { id: "3", title: "Community report receives confirmation from two sources", source: "News desk", time: "1 hr ago", status: "DRAFT", confidence: "Cross-checked", url: "#" },
-]
+const initialStories: Story[] = []
 
 const statusStyles: Record<StoryStatus, string> = {
   NEW: "bg-secondary text-foreground",
@@ -46,10 +42,26 @@ const statusStyles: Record<StoryStatus, string> = {
 
 export function NewsroomDashboard() {
   const [stories, setStories] = useState(initialStories)
-  const [sources, setSources] = useState(["Google News", "Selected websites"])
+  const [sources, setSources] = useState<string[]>([])
   const [sourceInput, setSourceInput] = useState("")
   const [query, setQuery] = useState("")
   const [activeStatus, setActiveStatus] = useState<StoryStatus | "ALL">("ALL")
+  const [sourceType, setSourceType] = useState("rss")
+  const [sourceUrl, setSourceUrl] = useState("")
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [sourceRes, storyRes] = await Promise.all([fetch("/api/newsroom/sources"), fetch("/api/newsroom/stories")])
+        const sourceData = await sourceRes.json()
+        const storyData = await storyRes.json()
+        setSources((sourceData.sources ?? []).map((s: { name: string }) => s.name))
+        setStories((storyData.stories ?? []).map((s: any) => ({ id: s.id, title: s.title, source: s.source_name ?? "Unknown source", time: s.published_at ? new Date(s.published_at).toLocaleString() : "Detected", status: String(s.status).toUpperCase(), confidence: s.confidence === "cross_checked" ? "Cross-checked" : s.confidence === "developing" ? "Developing" : "Unverified", url: s.canonical_url ?? s.source_url })))
+      } finally { setLoading(false) }
+    }
+    load()
+  }, [])
 
   const filtered = useMemo(
     () =>
@@ -75,11 +87,27 @@ export function NewsroomDashboard() {
     setStories((current) => current.map((story) => story.id === id ? { ...story, status: "HELD" } : story))
   }
 
-  function addSource() {
+  async function addSource() {
     const value = sourceInput.trim()
-    if (!value || sources.includes(value)) return
-    setSources((current) => [...current, value])
-    setSourceInput("")
+    const url = sourceUrl.trim()
+    if (!value || !url) return
+    const response = await fetch("/api/newsroom/sources", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: value, url, sourceType }) })
+    const data = await response.json()
+    if (response.ok) { setSources((current) => [...current, data.source.name]); setSourceInput(""); setSourceUrl("") }
+  }
+
+  async function advance(id: string) {
+    const current = stories.find((s) => s.id === id)
+    if (!current) return
+    const next: StoryStatus = current.status === "NEW" ? "VERIFYING" : current.status === "VERIFYING" ? "DRAFT" : current.status === "DRAFT" ? "REVIEW" : current.status
+    if (next === current.status) return
+    const response = await fetch("/api/newsroom/stories", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, status: next.toLowerCase(), confidence: next === "DRAFT" || next === "REVIEW" ? "cross_checked" : undefined }) })
+    if (response.ok) setStories((items) => items.map((s) => s.id === id ? { ...s, status: next, confidence: next === "DRAFT" || next === "REVIEW" ? "Cross-checked" : s.confidence } : s))
+  }
+
+  async function hold(id: string) {
+    const response = await fetch("/api/newsroom/stories", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, status: "held" }) })
+    if (response.ok) setStories((current) => current.map((story) => story.id === id ? { ...story, status: "HELD" } : story))
   }
 
   return (
@@ -122,9 +150,11 @@ export function NewsroomDashboard() {
             value={sourceInput}
             onChange={(e) => setSourceInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addSource()}
-            placeholder="Add website, X account or Facebook page"
+            placeholder="Source name (e.g. News website)"
             className="min-w-0 flex-1 rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-green/30"
           />
+          <input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="RSS/Atom feed URL" className="min-w-0 flex-1 rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none" />
+          <select value={sourceType} onChange={(e) => setSourceType(e.target.value)} className="rounded-xl border border-input bg-background px-3 py-2.5 text-sm"><option value="rss">RSS/Atom</option><option value="website">Website</option><option value="x">X</option><option value="facebook">Facebook</option><option value="google_news">Google News</option></select>
           <button onClick={addSource} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white">
             <Plus className="size-4" /> Add
           </button>
@@ -158,6 +188,7 @@ export function NewsroomDashboard() {
           </div>
         </div>
 
+        {loading && <div className="p-8 text-center text-sm text-muted-foreground">Loading live newsroom data…</div>}
         <div className="divide-y divide-border">
           {filtered.map((story) => (
             <article key={story.id} className="p-4">
