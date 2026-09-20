@@ -27,6 +27,8 @@ export default function KnowledgeHubPage() {
   const [documents, setDocuments] = useState<Array<{id:string;title:string;processing_status:string;education_level:string;subject:string;syllabus_version:string;metadata?:Record<string,unknown>;created_at:string}>>([])
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [processMessage, setProcessMessage] = useState("")
+  const [generatingId, setGeneratingId] = useState<string | null>(null)
+  const [records, setRecords] = useState<Array<{id:string;title:string;record_type:string;summary:string;verification_status:string;source_document_ids:string[];created_at:string}>>([])
 
   const filtered = useMemo(() => knowledge.filter(x => x.join(" ").toLowerCase().includes(query.toLowerCase())), [query])
 
@@ -39,7 +41,33 @@ export default function KnowledgeHubPage() {
     } catch {}
   }
 
-  useEffect(() => { loadDocuments() }, [])
+  async function loadRecords() {
+    try {
+      const response = await fetch("/api/knowledge/records", { cache: "no-store" })
+      if (!response.ok) return
+      const result = await response.json()
+      setRecords(result.records || [])
+    } catch {}
+  }
+
+  useEffect(() => { loadDocuments(); loadRecords() }, [])
+
+  async function generateKnowledge(id: string) {
+    setGeneratingId(id)
+    setProcessMessage("")
+    try {
+      const response = await fetch(`/api/knowledge/documents/${id}/generate`, { method: "POST" })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || "Knowledge generation failed")
+      setProcessMessage(`Knowledge Engine created ${result.records_created} source-supported knowledge records.`)
+      await loadRecords()
+      await loadDocuments()
+    } catch (e) {
+      setProcessMessage(e instanceof Error ? e.message : "Knowledge generation failed.")
+    } finally {
+      setGeneratingId(null)
+    }
+  }
 
   async function processDocument(id: string) {
     setProcessingId(id)
@@ -50,6 +78,7 @@ export default function KnowledgeHubPage() {
       if (!response.ok) throw new Error(result.error || "Processing failed")
       setProcessMessage(`Processed successfully: ${result.chunks_created} knowledge chunks created.`)
       await loadDocuments()
+      await loadRecords()
     } catch (e) {
       setProcessMessage(e instanceof Error ? e.message : "Processing failed.")
       await loadDocuments()
@@ -147,7 +176,11 @@ export default function KnowledgeHubPage() {
         {section === "archive" && (
           <section className="rounded-2xl border bg-card">
             <div className="border-b px-5 py-5"><div className="flex items-center gap-3"><History className="size-5 text-primary" /><div><h2 className="font-semibold">Knowledge Archive</h2><p className="text-xs text-muted-foreground">Previously resolved questions, research and source-supported material become reusable knowledge.</p></div></div></div>
-            <div className="divide-y">{filtered.map(([title,type,source,status])=><button key={title} className="flex w-full items-center gap-4 px-5 py-4 text-left hover:bg-muted/40"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted"><BookOpen className="size-5" /></div><div className="min-w-0 flex-1"><div className="font-medium">{title}</div><div className="mt-1 text-xs text-muted-foreground">{type} · {source}</div></div><span className="hidden rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary sm:block">{status}</span><ArrowRight className="size-4 text-muted-foreground" /></button>)}{!filtered.length&&<div className="px-5 py-10 text-center text-sm text-muted-foreground">No knowledge records match your search.</div>}</div>
+            <div className="divide-y">
+              {records.filter(r => !query || (r.title + " " + r.summary).toLowerCase().includes(query.toLowerCase())).map(record=><div key={record.id} className="flex items-center gap-4 px-5 py-4 hover:bg-muted/40"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted"><BookOpen className="size-5" /></div><div className="min-w-0 flex-1"><div className="font-medium">{record.title}</div><div className="mt-1 text-xs text-muted-foreground">{record.record_type} · {record.summary}</div></div><span className="hidden rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary sm:block">{record.verification_status}</span><ArrowRight className="size-4 text-muted-foreground" /></div>)}
+              {!records.length && filtered.map(([title,type,source,status])=><button key={title} className="flex w-full items-center gap-4 px-5 py-4 text-left hover:bg-muted/40"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted"><BookOpen className="size-5" /></div><div className="min-w-0 flex-1"><div className="font-medium">{title}</div><div className="mt-1 text-xs text-muted-foreground">{type} · {source}</div></div><span className="hidden rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary sm:block">{status}</span><ArrowRight className="size-4 text-muted-foreground" /></button>)}
+              {!records.length && !filtered.length && <div className="px-5 py-10 text-center text-sm text-muted-foreground">No knowledge records match your search.</div>}
+            </div>
           </section>
         )}
 
@@ -185,6 +218,7 @@ export default function KnowledgeHubPage() {
                     </div>
                     {chunkCount > 0 && <div className="mt-2 text-xs text-muted-foreground">{chunkCount} knowledge chunks · {String(meta.extracted_characters || 0)} extracted characters</div>}
                     {(doc.processing_status === "pending" || doc.processing_status === "failed") && <button onClick={() => processDocument(doc.id)} disabled={processingId === doc.id} className="mt-3 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60">{processingId === doc.id ? "Processing..." : "Process document"}</button>}
+                    {doc.processing_status === "processed" && <button onClick={() => generateKnowledge(doc.id)} disabled={generatingId === doc.id} className="mt-3 ml-2 rounded-lg border px-3 py-2 text-xs font-semibold disabled:opacity-60">{generatingId === doc.id ? "Generating..." : "Generate knowledge"}</button>}
                   </div>
                 })}
               </div>
