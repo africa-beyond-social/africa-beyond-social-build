@@ -19,8 +19,9 @@ export async function POST(request: Request) {
   if (!question) return NextResponse.json({ error: "Enter a question." }, { status: 400 })
   if (question.length > 1000) return NextResponse.json({ error: "Question is too long." }, { status: 400 })
   const db = createAdminClient()
-  const { data: allowedDocuments } = await db.from("knowledge_documents").select("id").or("uploaded_by.eq." + user.id + ",access_level.eq.public")
-  const allowedIds = (allowedDocuments || []).map((d: any) => d.id)
+  const { data: ownDocuments } = await db.from("knowledge_documents").select("id").eq("uploaded_by", user.id)
+  const { data: publicDocuments } = await db.from("knowledge_documents").select("id").eq("access_level", "public")
+  const allowedIds = [...(ownDocuments || []), ...(publicDocuments || [])].map((d: any) => d.id).filter(Boolean)
   if (!allowedIds.length) return NextResponse.json({ answer: "I could not find supporting material in your current WIGOD Knowledge Base. Add or process relevant material first.", sources: [], grounded: false })
   const terms = question.toLowerCase().split(/[^a-z0-9]+/).filter((x: string) => x.length > 3).slice(0, 8)
   const searches = terms.length ? terms : [question]
