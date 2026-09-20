@@ -49,6 +49,8 @@ export function NewsroomDashboard() {
   const [activeStatus, setActiveStatus] = useState<StoryStatus | "ALL">("ALL")
   const [sourceType, setSourceType] = useState("rss")
   const [sourceUrl, setSourceUrl] = useState("")
+  const [sourcePriority, setSourcePriority] = useState("standard")
+  const [sourceFocus, setSourceFocus] = useState("Zimbabwe")
   const [loading, setLoading] = useState(true)
   const [selectedStory, setSelectedStory] = useState<string | null>(null)
   const [sourceError, setSourceError] = useState("")
@@ -120,7 +122,7 @@ export function NewsroomDashboard() {
       const response = await fetch("/api/newsroom/sources", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, url, sourceType }),
+        body: JSON.stringify({ name, url, sourceType, priority: sourcePriority, focusAreas: sourceFocus ? [sourceFocus] : [] }),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || "Unable to add source")
@@ -199,8 +201,8 @@ export function NewsroomDashboard() {
             className="min-w-0 flex-1 rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-green/30"
           />
           <input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="RSS/Atom feed URL" className="min-w-0 flex-1 rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none" />
-          <select value={sourceType} onChange={(e) => setSourceType(e.target.value)} className="rounded-xl border border-input bg-background px-3 py-2.5 text-sm"><option value="rss">RSS/Atom</option><option value="website">Website</option><option value="x">X</option><option value="facebook">Facebook</option><option value="google_news">Google News</option></select>
-          <button type="button" onClick={addSource} disabled={!sourceInput.trim() || !sourceUrl.trim()} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+          <select value={sourcePriority} onChange={(e) => setSourcePriority(e.target.value)} className="rounded-xl border border-input bg-background px-3 py-2.5 text-sm"><option value="critical">Critical</option><option value="high">High</option><option value="standard">Standard</option><option value="archive">Archive</option></select>\n          <select value={sourceType} onChange={(e) => setSourceType(e.target.value)} className="rounded-xl border border-input bg-background px-3 py-2.5 text-sm"><option value="rss">RSS/Atom</option><option value="website">Website</option><option value="x">X</option><option value="facebook">Facebook</option><option value="google_news">Google News</option></select>
+          <input value={sourceFocus} onChange={(e) => setSourceFocus(e.target.value)} placeholder="Focus area e.g. Zimbabwe, SADC, Sports" className="min-w-0 flex-1 rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none" />\n          <button type="button" onClick={addSource} disabled={!sourceInput.trim() || !sourceUrl.trim()} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
             <Plus className="size-4" /> Add
           </button>
         </div>
