@@ -20,11 +20,11 @@ export async function POST(request: Request) {
   const body = await request.json()
   const name = String(body.name || "").trim()
   const url = String(body.url || "").trim()
-  const sourceType = String(body.sourceType || "rss").trim()
+  const sourceType = String(body.sourceType || "rss").trim()\n  const priority = ["critical","high","standard","archive"].includes(String(body.priority)) ? String(body.priority) : "standard"\n  const focusAreas = Array.isArray(body.focusAreas) ? body.focusAreas : []
   if (!name || !url) return NextResponse.json({ error: "Name and URL are required" }, { status: 400 })
   if (!["rss","website","x","facebook","google_news"].includes(sourceType)) return NextResponse.json({ error: "Invalid source type" }, { status: 400 })
   try { new URL(url) } catch { return NextResponse.json({ error: "A valid URL is required" }, { status: 400 }) }
-  const { data, error } = await createAdminClient().from("news_sources").insert({ name, url, source_type: sourceType, created_by: user!.id }).select("*").single()
+  const { data, error } = await createAdminClient().from("news_sources").insert({ name, url, source_type: sourceType, priority, focus_areas: focusAreas, monitoring_enabled: body.monitoringEnabled !== false, created_by: user!.id }).select("*").single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ source: data }, { status: 201 })
 }
