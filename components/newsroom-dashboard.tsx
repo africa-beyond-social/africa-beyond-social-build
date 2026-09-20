@@ -105,7 +105,7 @@ export function NewsroomDashboard() {
       setSourceError("Enter both a source name and source URL.")
       return
     }
-    if (!/^https?:\\/\\//i.test(url)) url = "https://" + url
+    if (!/^https?:\/\//i.test(url)) url = "https://" + url
 
     try {
       const response = await fetch("/api/newsroom/sources", {
@@ -190,6 +190,7 @@ export function NewsroomDashboard() {
           <button type="button" onClick={addSource} disabled={!sourceInput.trim() || !sourceUrl.trim()} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-green px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
             <Plus className="size-4" /> Add
           </button>
+        </div>
         {sourceError && (
           <p className="mt-2 rounded-xl border border-brand-red/20 bg-brand-red/5 px-3 py-2 text-xs text-brand-red">{sourceError}</p>
         )}
