@@ -62,6 +62,8 @@ export async function POST(
     text = normalizeText(text)
     if (!text) throw new Error("No readable text was extracted from this document.")
 
+    if (assignedLevel !== "tertiary" && /\b(university|undergraduate|postgraduate|diploma|degree|tertiary|polytechnic)\b/i.test(text)) validationFlags.push("Document text contains tertiary-level indicators.")
+
     if (assignedLevel === "tertiary" && /\\b(grade\\s*[1-7]|form\\s*[1-6])\\b/i.test(text)) {
       validationFlags.push("Extracted content references school Grades/Forms; investigate before using it as tertiary material.")
     }
