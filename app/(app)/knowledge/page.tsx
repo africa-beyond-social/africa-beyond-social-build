@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { ArrowRight, BookOpen, Brain, ChevronDown, Download, FileText, GraduationCap, History, Library, Mic, Plus, Search, Sparkles, Upload, CheckCircle2, RefreshCw, Trash2, AlertTriangle } from "lucide-react"
+import { ArrowLeft, ArrowRight, BookOpen, Brain, ChevronDown, Download, FileText, GraduationCap, History, Library, Mic, Plus, Search, Sparkles, Upload, CheckCircle2, RefreshCw, Trash2, AlertTriangle } from "lucide-react"
 
 const primarySubjects = ["Mathematics","English","Shona","Physical Education & Arts","Science & Technology","Social Science"]
 const secondarySubjects = ["Commerce","Mathematics","English","Science","Shona","Accounting","Geography","Religious Education","Heritage Studies"]
@@ -15,10 +15,12 @@ const knowledge = [
 ]
 
 const active = (on: boolean) => on ? "bg-primary text-primary-foreground" : "border bg-card hover:bg-muted"
+type KnowledgeSection = "home"|"curriculum"|"learn"|"ask"|"research"|"voice"|"archive"|"add"
 
 export default function KnowledgeHubPage() {
   const [query, setQuery] = useState("")
-  const [section, setSection] = useState<"home"|"curriculum"|"learn"|"ask"|"research"|"voice"|"archive"|"add">("home")
+  const [section, setSection] = useState<KnowledgeSection>("home")
+  const [sectionHistory, setSectionHistory] = useState<KnowledgeSection[]>([])
   const [level, setLevel] = useState<EducationLevel>("primary")
   const [grade, setGrade] = useState("Grade 1")
   const [subject, setSubject] = useState(primarySubjects[0])
@@ -71,11 +73,24 @@ export default function KnowledgeHubPage() {
 
   useEffect(() => { loadDocuments(); loadRecords() }, [])
 
-  function goTo(next: typeof section) {
+  function goTo(next: KnowledgeSection) {
+    if (next !== section) setSectionHistory(history => [...history, section])
     setSection(next)
     if (next === "ask" || next === "research" || next === "voice") {
       window.setTimeout(() => searchInputRef.current?.focus(), 50)
     }
+  }
+
+  function goBack() {
+    setSectionHistory(history => {
+      if (!history.length) {
+        setSection("home")
+        return history
+      }
+      const next = history[history.length - 1]
+      setSection(next)
+      return history.slice(0, -1)
+    })
   }
 
   function handleAskClick() {
@@ -314,14 +329,17 @@ export default function KnowledgeHubPage() {
             {tutorAnswer.follow_up_questions.length > 0 && <div className="mt-4"><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">You can ask next</div><div className="mt-2 flex flex-wrap gap-2">{tutorAnswer.follow_up_questions.map((q,i)=><button key={i} onClick={()=>{setQuery(q); askKnowledge(q)}} className="rounded-xl border px-3 py-2 text-xs hover:bg-muted">{q}</button>)}</div></div>}
           </div>}
           <nav aria-label="Knowledge Hub navigation" className="mt-4 rounded-2xl border bg-card p-2">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-9">
+              <button onClick={goBack} disabled={!sectionHistory.length && section === "home"} aria-label="Go back" className="inline-flex items-center justify-center gap-2 rounded-xl border bg-card px-2 py-2.5 text-xs font-semibold transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40">
+                <ArrowLeft className="size-4" /> Back
+              </button>
               {[
                 ["home","Home"],["learn","Learn"],["ask","Ask"],["research","Research"],
                 ["voice","Voice"],["curriculum","Curriculum"],["archive","Library"],
               ].map(([id,label]) => (
                 <button key={id} onClick={() => goTo(id as typeof section)} className={`rounded-xl px-2 py-2.5 text-xs font-semibold transition ${active(section===id)}`}>{label}</button>
               ))}
-              <button onClick={() => goTo("add")} className="rounded-xl bg-primary px-2 py-2.5 text-xs font-semibold text-primary-foreground transition hover:opacity-90">
+              <button onClick={() => goTo("add")} className={`rounded-xl px-2 py-2.5 text-xs font-semibold transition ${active(section==="add")}`}>
                 Add Material
               </button>
             </div>
@@ -367,7 +385,7 @@ export default function KnowledgeHubPage() {
             <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">Learn</h2><p className="mt-1 text-xs text-muted-foreground">Select the learning path once, then explore subjects.</p></div><button onClick={() => goTo("curriculum")} className="rounded-xl border px-3 py-2 text-xs font-semibold hover:bg-muted">Open full Curriculum</button></div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <label className="text-sm"><span className="mb-2 block font-medium">Education level</span><select value={level} onChange={e=>changeLevel(e.target.value as EducationLevel)} className="w-full rounded-xl border bg-background px-3 py-2.5"><option value="preschool">Preschool</option><option value="primary">Primary</option><option value="secondary">Secondary</option><option value="tertiary">Tertiary</option></select></label>
-              <label className="text-sm"><span className="mb-2 block font-medium">Grade / Form / Programme</span><select value={grade} onChange={e=>setGrade(e.target.value)} className="w-full rounded-xl border bg-background px-3 py-2.5">{grades.map(g=><option key={g}>{g}</option>)}</select></label>
+              <label className="text-sm"><span className="mb-2 block font-medium">Grade / Form / Programme</span><select value={grade} onChange={e=>setGrade(e.target.value)} className="w-full rounded-xl border bg-background px-3 py-2.5"><option value="">Select Grade / Form / Programme</option><optgroup label="Preschool"><option value="ECD A">ECD A</option><option value="ECD B">ECD B</option></optgroup><optgroup label="Primary"><option value="Grade 1">Grade 1</option><option value="Grade 2">Grade 2</option><option value="Grade 3">Grade 3</option><option value="Grade 4">Grade 4</option><option value="Grade 5">Grade 5</option><option value="Grade 6">Grade 6</option><option value="Grade 7">Grade 7</option></optgroup><optgroup label="Secondary"><option value="Form 1">Form 1</option><option value="Form 2">Form 2</option><option value="Form 3">Form 3</option><option value="Form 4">Form 4</option><option value="Form 5">Form 5</option><option value="Form 6">Form 6</option></optgroup><optgroup label="Tertiary"><option value="Certificate">Certificate</option><option value="Diploma">Diploma</option><option value="Undergraduate Degree">Undergraduate Degree</option><option value="Postgraduate">Postgraduate</option></optgroup></select><button type="button" onClick={()=>setGrade("")} className="mt-2 text-xs font-medium text-muted-foreground hover:text-foreground">Clear selection</button></label>
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{subjects.map(s=><button key={s} onClick={()=>{setSubject(s); setQuery(s); goTo("ask")}} className={`rounded-xl border p-4 text-left hover:bg-muted ${subject===s ? "ring-2 ring-primary/20" : ""}`}><BookOpen className="mb-3 size-5 text-primary" /><div className="font-semibold">{s}</div><div className="mt-1 text-xs text-muted-foreground">Open this subject in Ask WIGOD</div></button>)}</div>
           </section>
@@ -414,7 +432,7 @@ export default function KnowledgeHubPage() {
               </div>
               <div className="mt-5 grid gap-4 lg:grid-cols-[180px_1fr]">
                 <div className="space-y-2">
-                  {grades.map(g=><button key={g} onClick={()=>setGrade(g)} className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm ${grade===g ? "bg-primary/10 font-semibold text-primary" : "hover:bg-muted"}`}>{g}<ChevronDown className="size-4 opacity-50" /></button>)}
+                  {grades.map(g=><button key={g} onClick={()=>setGrade(current => current===g ? "" : g)} className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm ${grade===g ? "bg-primary/10 font-semibold text-primary" : "hover:bg-muted"}`}>{g}<ChevronDown className="size-4 opacity-50" /></button>)}
                 </div>
                 <div className="rounded-2xl bg-muted/30 p-4">
                   <div className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">{grade} subjects</div>
