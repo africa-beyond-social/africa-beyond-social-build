@@ -29,6 +29,7 @@ export function buildNavItems(username: string | null): NavItem[] {
     { label: "Media", href: "/media", icon: PlaySquare, match: (p) => p.startsWith("/media") },
     { label: "Community", href: "/community", icon: Users, match: (p) => p.startsWith("/community") },
     { label: "Live", href: "/live", icon: Radio, match: (p) => p.startsWith("/live") },
+    { label: "Newsroom", href: "/newsroom", icon: Newspaper, match: (p) => p.startsWith("/newsroom") },
     { label: "Notifications", href: "/notifications", icon: Bell, match: (p) => p.startsWith("/notifications") },
     { label: "Messages", href: "/messages", icon: Mail, match: (p) => p.startsWith("/messages") },
     { label: "Bookmarks", href: "/bookmarks", icon: Bookmark, match: (p) => p.startsWith("/bookmarks") },
