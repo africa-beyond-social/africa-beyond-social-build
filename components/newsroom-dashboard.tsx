@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { StoryWorkspace } from "@/components/story-workspace"
 import {
   Activity,
   AlertTriangle,
@@ -49,6 +50,7 @@ export function NewsroomDashboard() {
   const [sourceType, setSourceType] = useState("rss")
   const [sourceUrl, setSourceUrl] = useState("")
   const [loading, setLoading] = useState(true)
+  const [selectedStory, setSelectedStory] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -73,6 +75,23 @@ export function NewsroomDashboard() {
     [stories, query, activeStatus],
   )
 
+  async function addSource() {
+    const name = sourceInput.trim()
+    const url = sourceUrl.trim()
+    if (!name || !url) return
+    const response = await fetch("/api/newsroom/sources", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name, url, sourceType }),
+    })
+    const data = await response.json()
+    if (response.ok) {
+      setSources((current) => [...current, data.source.name])
+      setSourceInput("")
+      setSourceUrl("")
+    }
+  }
+
   async function advance(id: string) {
     const current = stories.find((s) => s.id === id)
     if (!current) return
@@ -85,6 +104,10 @@ export function NewsroomDashboard() {
   async function hold(id: string) {
     const response = await fetch("/api/newsroom/stories", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, status: "held" }) })
     if (response.ok) setStories((current) => current.map((story) => story.id === id ? { ...story, status: "HELD" } : story))
+  }
+
+  if (selectedStory) {
+    return <StoryWorkspace storyId={selectedStory} onClose={() => setSelectedStory(null)} />
   }
 
   return (
@@ -168,7 +191,7 @@ export function NewsroomDashboard() {
         {loading && <div className="p-8 text-center text-sm text-muted-foreground">Loading live newsroom data…</div>}
         <div className="divide-y divide-border">
           {filtered.map((story) => (
-            <article key={story.id} className="p-4">
+            <article key={story.id} className="cursor-pointer p-4 transition-colors hover:bg-secondary/40" onClick={() => setSelectedStory(story.id)}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
