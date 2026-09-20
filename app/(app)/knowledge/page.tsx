@@ -317,10 +317,13 @@ export default function KnowledgeHubPage() {
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
               {[
                 ["home","Home"],["learn","Learn"],["ask","Ask"],["research","Research"],
-                ["voice","Voice"],["curriculum","Curriculum"],["archive","Library"],["add","Add Material"],
+                ["voice","Voice"],["curriculum","Curriculum"],["archive","Library"],
               ].map(([id,label]) => (
                 <button key={id} onClick={() => goTo(id as typeof section)} className={`rounded-xl px-2 py-2.5 text-xs font-semibold transition ${active(section===id)}`}>{label}</button>
               ))}
+              <button onClick={() => goTo("add")} className="rounded-xl bg-primary px-2 py-2.5 text-xs font-semibold text-primary-foreground transition hover:opacity-90">
+                Add Material
+              </button>
             </div>
           </nav>
         </div>
