@@ -13,7 +13,15 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   await ensureProfile()
 
-  const isNewsroomEditor = Boolean(\n    user.email &&\n      (process.env.NEWSROOM_EDITOR_EMAILS || process.env.LIVE_ADMIN_EMAILS || "")\n        .split(",")\n        .map((v) => v.trim().toLowerCase())\n        .includes(user.email.toLowerCase()),\n  )\n\n  const [profile, unreadCount] = await Promise.all([
+  const isNewsroomEditor = Boolean(
+    user.email &&
+      (process.env.NEWSROOM_EDITOR_EMAILS || process.env.LIVE_ADMIN_EMAILS || "")
+        .split(",")
+        .map((v) => v.trim().toLowerCase())
+        .includes(user.email.toLowerCase()),
+  )
+
+  const [profile, unreadCount] = await Promise.all([
     getCurrentProfile(),
     getUnreadNotificationCount(user.id),
   ])
