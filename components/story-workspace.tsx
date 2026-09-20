@@ -18,6 +18,25 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
       .then((data) => { setStory(data.story); setRelated(data.related ?? []); setNotes(data.story?.verification_notes ?? ""); setDraft(data.story?.ai_draft ?? "") })
   }, [storyId])
 
+  async function runVerify() {
+    const response = await fetch("/api/newsroom/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: storyId }) })
+    if (response.ok) {
+      const data = await response.json()
+      setNotes(data.notes ?? "")
+      setRelated(data.evidence ?? [])
+      setStory((current: any) => current ? { ...current, confidence: data.evidence?.length ? "developing" : "unverified" } : current)
+    }
+  }
+
+  async function generateAI() {
+    const response = await fetch("/api/newsroom/ai-draft", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: storyId }) })
+    if (response.ok) {
+      const data = await response.json()
+      setStory(data.story)
+      setDraft(data.story?.ai_draft ?? "")
+    }
+  }
+
   async function save(status?: string) {
     setSaving(true)
     const response = await fetch("/api/newsroom/story", {
@@ -56,7 +75,7 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-5">
-            <div className="flex items-center gap-2"><ShieldAlert className="size-5 text-[#9a7400]" /><h2 className="font-bold">Verification & Conflicts</h2></div>
+            <div className="flex items-center gap-2"><ShieldAlert className="size-5 text-[#9a7400]" /><div className="flex items-center justify-between gap-3"><h2 className="font-bold">Verification & Conflicts</h2><button onClick={runVerify} className="rounded-full bg-brand-green px-3 py-1.5 text-[11px] font-semibold text-white">Cross-check sources</button></div></div>
             <p className="mt-2 text-xs text-muted-foreground">Related detected material is shown below. The editor must assess whether reports refer to the same event and whether claims conflict.</p>
             <div className="mt-4 space-y-2">
               {related.length ? related.map((item) => <a key={item.id} href={item.canonical_url || item.source_url} target="_blank" rel="noreferrer" className="block rounded-xl border border-border p-3 hover:bg-secondary/40"><p className="text-sm font-semibold">{item.title}</p><p className="mt-1 text-[11px] text-muted-foreground">{item.source_name} · {item.confidence}</p></a>) : <p className="text-sm text-muted-foreground">No related detected reports found yet.</p>}
@@ -68,7 +87,7 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
         <section className="space-y-4">
           <div className="rounded-2xl border border-border bg-card p-5">
             <div className="flex items-center gap-2"><Sparkles className="size-5 text-brand-green" /><h2 className="font-bold">Newsroom AI Draft</h2></div>
-            <p className="mt-2 text-xs text-muted-foreground">Draft area is editor-controlled. AI generation can be connected to the selected provider without publishing automatically.</p>
+            <p className="mt-2 text-xs text-muted-foreground">Generate a source-bound draft. It remains subject to editorial review and is never published automatically.</p><button onClick={generateAI} className="mt-3 inline-flex items-center gap-2 rounded-full bg-brand-green px-3 py-1.5 text-[11px] font-semibold text-white"><Sparkles className="size-3.5" /> Generate AI draft</button>
             <textarea value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Newsroom AI draft will appear here…" className="mt-4 min-h-72 w-full rounded-xl border border-input bg-background p-3 text-sm leading-6 outline-none" />
           </div>
 
