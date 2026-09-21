@@ -45,6 +45,8 @@ function blocks(xml: string) {
 export async function GET(request: Request) {
   if (!(await auth(request))) return NextResponse.json({ error: "Not authorised" }, { status: 401 })
   const db = createAdminClient()
+  const now = new Date()
+  const cutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000)
   const { data: sources, error } = await db.from("news_sources").select("*").eq("active", true).eq("monitoring_enabled", true).eq("source_type", "rss")
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
@@ -59,7 +61,9 @@ export async function GET(request: Request) {
         const link = itemLink(block)
         if (!title || !link) continue
         const publishedRaw = itemValue(block, ["pubDate","published","updated","date"])
-        const publishedAt = publishedRaw ? new Date(publishedRaw).toISOString() : null
+        const parsedPublished = publishedRaw ? new Date(publishedRaw) : null
+        if (!parsedPublished || Number.isNaN(parsedPublished.getTime()) || parsedPublished < cutoff || parsedPublished > new Date(now.getTime() + 6 * 60 * 60 * 1000)) continue
+        const publishedAt = parsedPublished.toISOString()
         const summary = itemValue(block, ["description","summary","content"])
         const imageUrl = itemImage(block)
         const { data: existing } = await db.from("newsroom_stories").select("id").eq("canonical_url", link).maybeSingle()
@@ -76,5 +80,5 @@ export async function GET(request: Request) {
       await db.from("news_sources").update({ last_checked_at: new Date().toISOString(), last_error: error instanceof Error ? error.message : "Fetch failed" }).eq("id", source.id)
     }
   }
-  return NextResponse.json({ ok: true, detected, checked: sources?.length ?? 0 })
+  return NextResponse.json({ ok: true, detected, checked: sources?.length ?? 0, windowHours: 48, cutoff: cutoff.toISOString() })
 }
