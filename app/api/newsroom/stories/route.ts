@@ -9,12 +9,14 @@ function isAdmin(email?: string | null) {
 export async function GET(request: Request) {
   const user = await getSessionUser()
   if (!isAdmin(user?.email)) return NextResponse.json({ error: "Not authorised" }, { status: 403 })
-  const status = new URL(request.url).searchParams.get("status")
-  let query = createAdminClient().from("newsroom_stories").select("*").order("detected_at", { ascending: false }).limit(100)
+  const params = new URL(request.url).searchParams
+  const status = params.get("status")
+  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+  let query = createAdminClient().from("newsroom_stories").select("*").gte("published_at", cutoff).order("published_at", { ascending: false }).limit(100)
   if (status && status !== "all") query = query.eq("status", status)
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ stories: data ?? [] })
+  return NextResponse.json({ stories: data ?? [], windowHours: 48, cutoff })
 }
 
 export async function PATCH(request: Request) {
