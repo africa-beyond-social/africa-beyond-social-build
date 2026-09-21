@@ -47,7 +47,7 @@ export async function GET(request: Request) {
   const db = createAdminClient()
   const now = new Date()
   const cutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000)
-  const { data: sources, error } = await db.from("news_sources").select("*").eq("active", true).eq("monitoring_enabled", true).eq("source_type", "rss")
+  const { data: sources, error } = await db.from("news_sources").select("*").eq("active", true).eq("monitoring_enabled", true).in("source_type", ["rss", "google_news"])
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   let detected = 0
@@ -66,10 +66,13 @@ export async function GET(request: Request) {
         const publishedAt = parsedPublished.toISOString()
         const summary = itemValue(block, ["description","summary","content"])
         const imageUrl = itemImage(block)
+        const publisherBlock = block.match(/<source[^>]*>([\\s\\S]*?)<\\/source>/i)
+        const publisherName = publisherBlock ? strip(publisherBlock[1]) : ""
+        const displaySourceName = source.source_type === "google_news" && publisherName ? `${source.name} · ${publisherName}` : source.name
         const { data: existing } = await db.from("newsroom_stories").select("id").eq("canonical_url", link).maybeSingle()
         if (existing) continue
         const { error: insertError } = await db.from("newsroom_stories").insert({
-          title, source_id: source.id, source_name: source.name, source_url: source.url,
+          title: title.replace(/\\s+-\\s+[^-]+$/, "").trim(), source_id: source.id, source_name: displaySourceName, source_url: source.url,
           canonical_url: link, author: itemValue(block, ["author","dc:creator"]),
           published_at: publishedAt, summary, image_url: imageUrl, focus_areas: Array.isArray(source.focus_areas) ? source.focus_areas : []
         })
