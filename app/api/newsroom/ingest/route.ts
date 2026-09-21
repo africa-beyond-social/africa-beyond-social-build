@@ -45,11 +45,13 @@ function blocks(xml: string) {
 export async function GET(request: Request) {
   if (!(await auth(request))) return NextResponse.json({ error: "Not authorised" }, { status: 401 })
   const db = createAdminClient()
-  const { data: sources, error } = await db.from("news_sources").select("*").eq("active", true).eq("source_type", "rss")
+  const { data: sources, error } = await db.from("news_sources").select("*").eq("active", true).in("source_type", ["rss", "google_news"]).eq("monitoring_enabled", true)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   let detected = 0
+  let checked = 0
   for (const source of sources ?? []) {
+    checked++
     try {
       const response = await fetch(source.url, { headers: { "user-agent": "WIGOD-Newsroom/1.0" }, cache: "no-store" })
       if (!response.ok) throw new Error("HTTP " + response.status)
@@ -76,5 +78,5 @@ export async function GET(request: Request) {
       await db.from("news_sources").update({ last_checked_at: new Date().toISOString(), last_error: error instanceof Error ? error.message : "Fetch failed" }).eq("id", source.id)
     }
   }
-  return NextResponse.json({ ok: true, detected, checked: sources?.length ?? 0 })
+  return NextResponse.json({ ok: true, detected, checked })
 }
