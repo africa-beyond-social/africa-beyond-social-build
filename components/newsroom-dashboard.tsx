@@ -220,8 +220,8 @@ export function NewsroomDashboard() {
         <div className="border-b border-border p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="font-bold">News Detection Queue</h2>
-              <p className="text-xs text-muted-foreground">Detected items move through verification before editorial review.</p>
+              <div className="flex items-center gap-2"><h2 className="font-bold">News Detection Queue</h2><span className="rounded-full bg-brand-green/10 px-2 py-1 text-[10px] font-bold text-brand-green">LAST 48 HOURS</span></div>
+              <p className="text-xs text-muted-foreground">Only content published within the rolling 48-hour newsroom window is detected and shown.</p>
             </div>
             <button onClick={() => loadNewsroom(true)} disabled={refreshing} className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold disabled:opacity-50">
               <RefreshCw className={`size-3.5 ${refreshing ? "animate-spin" : ""}`} /> {refreshing ? "Refreshing" : "Refresh"}
