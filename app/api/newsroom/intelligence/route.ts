@@ -31,7 +31,8 @@ export async function POST(request:Request) {
   const user=await getSessionUser()
   if(!isAdmin(user?.email)) return NextResponse.json({error:"Not authorised"},{status:403})
   const db=createAdminClient()
-  const {data:stories,error}=await db.from("newsroom_stories").select("id,title,summary,source_id,source_name,source_url,canonical_url,status,focus_areas,detected_at,published_at").in("status",["new","verifying","draft","review","held"]).order("detected_at",{ascending:false}).limit(150)
+  const cutoff=new Date(Date.now()-48*60*60*1000).toISOString()
+  const {data:stories,error}=await db.from("newsroom_stories").select("id,title,summary,source_id,source_name,source_url,canonical_url,status,focus_areas,detected_at,published_at").in("status",["new","verifying","draft","review","held"]).gte("published_at",cutoff).order("detected_at",{ascending:false}).limit(150)
   if(error) return NextResponse.json({error:error.message},{status:500})
   const sourceIds=[...new Set((stories||[]).map((s:any)=>s.source_id).filter(Boolean))]
   const {data:sources}=sourceIds.length?await db.from("news_sources").select("id,name,priority,focus_areas").in("id",sourceIds):{data:[] as any[]}
@@ -40,7 +41,7 @@ export async function POST(request:Request) {
   for(const story of stories||[]) {
     const source=sourceMap.get(story.source_id)
     const classification=classify(story.title||"",story.summary||"")
-    const {data:related}=await db.from("newsroom_stories").select("id,title,source_id,source_name,canonical_url").neq("id",story.id).gte("detected_at",new Date(Date.now()-72*60*60*1000).toISOString()).limit(300)
+    const {data:related}=await db.from("newsroom_stories").select("id,title,source_id,source_name,canonical_url").neq("id",story.id).gte("published_at",cutoff).limit(300)
     const matches=(related||[]).map((r:any)=>({...r,similarity:similarity(story.title||"",r.title||"")})).filter((r:any)=>r.similarity>=0.68).sort((a:any,b:any)=>b.similarity-a.similarity).slice(0,20)
     const independent=new Set(matches.filter((m:any)=>m.source_id&&m.source_id!==story.source_id).map((m:any)=>m.source_id)).size
     const priority=source?.priority||"standard"
@@ -69,5 +70,5 @@ export async function POST(request:Request) {
     }).eq("id",story.id)
     processed++
   }
-  return NextResponse.json({ok:true,processed})
+  return NextResponse.json({ok:true,processed,windowHours:48,cutoff})
 }
