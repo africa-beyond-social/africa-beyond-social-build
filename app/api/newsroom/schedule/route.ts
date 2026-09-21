@@ -23,7 +23,8 @@ export async function POST(request: Request) {
     const end = new Date(String(b.endAt))
     if (Number.isNaN(end.getTime()) || end.getTime() <= start.getTime()) return NextResponse.json({ error: "Programme end time must be after the start time" }, { status: 400 })
   }
-  const websiteLinks = [{ title: article.title, url: article.website_url }].filter((item) => item.url)\n  const storyIds = Array.from(new Set([article.story_id, ...(Array.isArray(b.storyIds) ? b.storyIds : [])].filter(Boolean)))\n  const { data: event, error } = await db.from("live_events").insert({
+  const websiteLinks = [{ title: article.title, url: article.website_url }].filter((item) => item.url)
+  const storyIds = Array.from(new Set([article.story_id, ...(Array.isArray(b.storyIds) ? b.storyIds : [])].filter(Boolean)))\n  const { data: event, error } = await db.from("live_events").insert({
     title: b.title || "Africa & Beyond Live: " + article.title,
     description: b.description || article.dek || null,
     start_at: startAt,
