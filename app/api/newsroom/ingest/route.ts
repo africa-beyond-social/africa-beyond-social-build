@@ -32,7 +32,6 @@ function itemImage(block: string) {
 async function auth(request: Request) {
   const secret = process.env.CRON_SECRET || process.env.NEWSROOM_CRON_SECRET
   if (secret && request.headers.get("authorization") === "Bearer " + secret) return true
-  if ((request.headers.get("user-agent") || "").toLowerCase().includes("vercel-cron")) return true
   const user = await getSessionUser()
   const admins = (process.env.LIVE_ADMIN_EMAILS || "").split(",").map(v => v.trim().toLowerCase()).filter(Boolean)
   return Boolean(user?.email && admins.includes(user.email.toLowerCase()))
@@ -46,9 +45,7 @@ function blocks(xml: string) {
 export async function GET(request: Request) {
   if (!(await auth(request))) return NextResponse.json({ error: "Not authorised" }, { status: 401 })
   const db = createAdminClient()
-  const now = new Date()
-  const cutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000)
-  const { data: sources, error } = await db.from("news_sources").select("*").eq("active", true).eq("monitoring_enabled", true).in("source_type", ["rss", "google_news"])
+  const { data: sources, error } = await db.from("news_sources").select("*").eq("active", true).eq("source_type", "rss")
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   let detected = 0
@@ -62,20 +59,15 @@ export async function GET(request: Request) {
         const link = itemLink(block)
         if (!title || !link) continue
         const publishedRaw = itemValue(block, ["pubDate","published","updated","date"])
-        const parsedPublished = publishedRaw ? new Date(publishedRaw) : null
-        if (!parsedPublished || Number.isNaN(parsedPublished.getTime()) || parsedPublished < cutoff || parsedPublished > new Date(now.getTime() + 6 * 60 * 60 * 1000)) continue
-        const publishedAt = parsedPublished.toISOString()
+        const publishedAt = publishedRaw ? new Date(publishedRaw).toISOString() : null
         const summary = itemValue(block, ["description","summary","content"])
         const imageUrl = itemImage(block)
-        const publisherBlock = block.match(/<source[^>]*>([\s\S]*?)<\/source>/i)
-        const publisherName = publisherBlock ? strip(publisherBlock[1]) : ""
-        const displaySourceName = source.source_type === "google_news" && publisherName ? `${source.name} · ${publisherName}` : source.name
         const { data: existing } = await db.from("newsroom_stories").select("id").eq("canonical_url", link).maybeSingle()
         if (existing) continue
         const { error: insertError } = await db.from("newsroom_stories").insert({
-          title: title.replace(/\s+-\s+[^-]+$/, "").trim(), source_id: source.id, source_name: displaySourceName, source_url: source.url,
+          title, source_id: source.id, source_name: source.name, source_url: source.url,
           canonical_url: link, author: itemValue(block, ["author","dc:creator"]),
-          published_at: publishedAt, summary, image_url: imageUrl, focus_areas: Array.isArray(source.focus_areas) ? source.focus_areas : []
+          published_at: publishedAt, summary, image_url: imageUrl
         })
         if (!insertError) detected++
       }
@@ -84,5 +76,5 @@ export async function GET(request: Request) {
       await db.from("news_sources").update({ last_checked_at: new Date().toISOString(), last_error: error instanceof Error ? error.message : "Fetch failed" }).eq("id", source.id)
     }
   }
-  return NextResponse.json({ ok: true, detected, checked: sources?.length ?? 0, windowHours: 48, cutoff: cutoff.toISOString() })
+  return NextResponse.json({ ok: true, detected, checked: sources?.length ?? 0 })
 }
