@@ -66,7 +66,7 @@ export async function GET(request: Request) {
         const publishedAt = parsedPublished.toISOString()
         const summary = itemValue(block, ["description","summary","content"])
         const imageUrl = itemImage(block)
-        const publisherBlock = block.match(/<source[^>]*>([\\s\\S]*?)<\\/source>/i)
+        const publisherBlock = block.match(/<source[^>]*>([\s\S]*?)<\/source>/i)
         const publisherName = publisherBlock ? strip(publisherBlock[1]) : ""
         const displaySourceName = source.source_type === "google_news" && publisherName ? `${source.name} · ${publisherName}` : source.name
         const { data: existing } = await db.from("newsroom_stories").select("id").eq("canonical_url", link).maybeSingle()
