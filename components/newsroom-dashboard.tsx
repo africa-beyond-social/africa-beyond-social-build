@@ -59,6 +59,8 @@ export function NewsroomDashboard() {
   const [deskEvents, setDeskEvents] = useState<any[]>([])
   const [deskLoading, setDeskLoading] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
+  const [automationRuns, setAutomationRuns] = useState<any[]>([])
+  const [automationBusy, setAutomationBusy] = useState(false)
 
   async function loadNewsroom(showLoading = true) {
     if (showLoading) setRefreshing(true)
@@ -97,8 +99,33 @@ export function NewsroomDashboard() {
     }
   }
 
+  async function loadAutomationRuns() {
+    try {
+      const response = await fetch("/api/newsroom/automation/runs", { cache: "no-store" })
+      if (!response.ok) return
+      const data = await response.json()
+      setAutomationRuns(data.runs ?? [])
+    } catch {}
+  }
+
+  async function runAutomationNow() {
+    setAutomationBusy(true)
+    try {
+      await fetch("/api/newsroom/automation/run", { method: "POST", cache: "no-store" })
+      await Promise.all([loadAutomationRuns(), loadNewsroom(false)])
+    } finally {
+      setAutomationBusy(false)
+    }
+  }
+
   useEffect(() => {
     loadNewsroom(false)
+    loadAutomationRuns()
+    const timer = window.setInterval(() => {
+      loadNewsroom(false)
+      loadAutomationRuns()
+    }, 8000)
+    return () => window.clearInterval(timer)
   }, [])
 
   const filtered = useMemo(
@@ -153,6 +180,34 @@ export function NewsroomDashboard() {
         <div><p className="text-sm font-bold">Editors Desk</p><p className="mt-1 text-xs text-muted-foreground">The newsroom engine scouts sources continuously, cross-checks incoming reports and routes only exceptions for editorial attention.</p></div>
         <button onClick={() => { setDeskOpen(true); loadDesk() }} className="inline-flex items-center gap-2 rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white"><Radio className="size-3.5" /> Open Editors Desk</button>
       </div>
+      <section className="rounded-2xl border border-brand-green/20 bg-brand-green/5 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2"><Sparkles className="size-4 text-brand-green" /><h2 className="font-bold">Automated Newsroom Engine</h2><span className="rounded-full bg-brand-green/10 px-2 py-1 text-[10px] font-bold text-brand-green">LIVE</span></div>
+            <p className="mt-1 text-xs text-muted-foreground">Scout → verify → draft → article. The screen updates automatically as the engine works.</p>
+          </div>
+          <button onClick={runAutomationNow} disabled={automationBusy} className="inline-flex items-center gap-2 rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">
+            <RefreshCw className={`size-3.5 ${automationBusy ? "animate-spin" : ""}`} /> {automationBusy ? "Engine running…" : "Run engine now"}
+          </button>
+        </div>
+        <div className="mt-4 space-y-2">
+          {automationRuns.slice(0, 5).map((run) => (
+            <div key={run.id} className="rounded-xl border border-border bg-background/70 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wide">{run.step || "starting"} · {run.status}</span>
+                <span className="text-[10px] text-muted-foreground">{run.started_at ? new Date(run.started_at).toLocaleTimeString() : ""}</span>
+              </div>
+              <p className="mt-1 text-xs">{run.message || "Working…"}</p>
+              <div className="mt-2 flex flex-wrap gap-3 text-[10px] text-muted-foreground">
+                <span>Verified: {run.stories_verified ?? 0}</span><span>Drafts: {run.stories_drafted ?? 0}</span><span>Articles ready: {run.articles_ready ?? 0}</span>
+              </div>
+              {run.error && <p className="mt-2 text-[10px] text-brand-red">{run.error}</p>}
+            </div>
+          ))}
+          {!automationRuns.length && <p className="text-xs text-muted-foreground">Waiting for the first automation run…</p>}
+        </div>
+      </section>
+
       <section className="grid gap-3 sm:grid-cols-3">
         {[
           ["Incoming", stories.filter((s) => s.status === "NEW").length, Activity],
@@ -274,7 +329,7 @@ export function NewsroomDashboard() {
       <section className="grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center gap-2"><Sparkles className="size-5 text-brand-green" /><h2 className="font-bold">Newsroom AI</h2></div>
-          <p className="mt-2 text-sm text-muted-foreground">Drafting and cross-checking will run here once the source and AI services are connected.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Verification and AI drafting now run through the newsroom engine. Publication remains behind an editorial safety gate while that gate is being built.</p>
           <div className="mt-4 space-y-2 text-xs text-muted-foreground">
             <p className="flex items-center gap-2"><CheckCircle2 className="size-4 text-brand-green" /> Attribution preserved</p>
             <p className="flex items-center gap-2"><CheckCircle2 className="size-4 text-brand-green" /> Conflicting sources surfaced</p>
@@ -283,7 +338,7 @@ export function NewsroomDashboard() {
         </div>
         <div className="rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center gap-2"><Radio className="size-5 text-brand-red" /><h2 className="font-bold">Editorial Review</h2></div>
-          <p className="mt-2 text-sm text-muted-foreground">Nothing reaches publishing automatically. The editor controls the final decision.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Auto-ready stories are prepared into REVIEW. Only exceptions and final safety decisions should require your attention.</p>
           <div className="mt-4 grid grid-cols-2 gap-2">
             <div className="rounded-xl bg-secondary p-3"><Clock3 className="size-4" /><p className="mt-1 text-xs font-semibold">Review queue</p></div>
             <div className="rounded-xl bg-secondary p-3"><XCircle className="size-4" /><p className="mt-1 text-xs font-semibold">Held stories</p></div>
