@@ -72,7 +72,7 @@ export async function GET(request: Request) {
         const { data: existing } = await db.from("newsroom_stories").select("id").eq("canonical_url", link).maybeSingle()
         if (existing) continue
         const { error: insertError } = await db.from("newsroom_stories").insert({
-          title: title.replace(/\\s+-\\s+[^-]+$/, "").trim(), source_id: source.id, source_name: displaySourceName, source_url: source.url,
+          title: title.replace(/\s+-\s+[^-]+$/, "").trim(), source_id: source.id, source_name: displaySourceName, source_url: source.url,
           canonical_url: link, author: itemValue(block, ["author","dc:creator"]),
           published_at: publishedAt, summary, image_url: imageUrl, focus_areas: Array.isArray(source.focus_areas) ? source.focus_areas : []
         })
