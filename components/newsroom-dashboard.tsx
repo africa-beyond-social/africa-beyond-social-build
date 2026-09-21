@@ -43,7 +43,7 @@ const statusStyles: Record<StoryStatus, string> = {
 
 export function NewsroomDashboard() {
   const [stories, setStories] = useState(initialStories)
-  const [sources, setSources] = useState<any[]>([])
+  const [sources, setSources] = useState<string[]>([])
   const [sourceInput, setSourceInput] = useState("")
   const [query, setQuery] = useState("")
   const [activeStatus, setActiveStatus] = useState<StoryStatus | "ALL">("ALL")
@@ -79,7 +79,7 @@ export function NewsroomDashboard() {
       const storyData = await storyRes.json()
       if (!sourceRes.ok) throw new Error(sourceData.error || "Unable to load newsroom sources")
       if (!storyRes.ok) throw new Error(storyData.error || "Unable to load newsroom stories")
-      setSources(sourceData.sources ?? [])
+      setSources((sourceData.sources ?? []).map((s: { name: string }) => s.name))
       setStories((storyData.stories ?? []).map((s: any) => ({
         id: s.id,
         title: s.title,
@@ -99,8 +99,6 @@ export function NewsroomDashboard() {
 
   useEffect(() => {
     loadNewsroom(false)
-    const interval = window.setInterval(() => loadNewsroom(true), 5 * 60 * 1000)
-    return () => window.clearInterval(interval)
   }, [])
 
   const filtered = useMemo(
@@ -131,7 +129,7 @@ export function NewsroomDashboard() {
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || "Unable to add source")
-      setSources((current) => [...current, data.source])
+      setSources((current) => [...current, data.source.name])
       setSourceInput("")
       setSourceUrl("")
       setSourceError("")
@@ -205,7 +203,7 @@ export function NewsroomDashboard() {
             placeholder="Source name (e.g. News website)"
             className="min-w-0 flex-1 rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-green/30"
           />
-          <input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder={sourceType === "google_news" ? "Google News RSS URL" : "RSS/Atom feed URL"} className="min-w-0 flex-1 rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none" />
+          <input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="RSS/Atom feed URL" className="min-w-0 flex-1 rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none" />
           <select value={sourcePriority} onChange={(e) => setSourcePriority(e.target.value)} className="rounded-xl border border-input bg-background px-3 py-2.5 text-sm"><option value="critical">Critical</option><option value="high">High</option><option value="standard">Standard</option><option value="archive">Archive</option></select>
           <select value={sourceType} onChange={(e) => setSourceType(e.target.value)} className="rounded-xl border border-input bg-background px-3 py-2.5 text-sm"><option value="rss">RSS/Atom</option><option value="website">Website</option><option value="x">X</option><option value="facebook">Facebook</option><option value="google_news">Google News</option></select>
           <input value={sourceFocus} onChange={(e) => setSourceFocus(e.target.value)} placeholder="Focus area e.g. Zimbabwe, SADC, Sports" className="min-w-0 flex-1 rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none" />
