@@ -148,7 +148,7 @@ ${material}`)
     return NextResponse.json({ok:true,runId:run.id,verified:verifiedCount,drafted,articlesReady,published,routedToReview:articlesReady-published,message})
   } catch(error) {
     const message=error instanceof Error?error.message:"Automation failed"
-    await logRun(db,run.id,{status:"failed",step:"error",message:"Automation stopped.",error,completed_at:new Date().toISOString()})
+    await logRun(db,run.id,{status:"failed",step:"error",message:"Automation stopped.",error:message,completed_at:new Date().toISOString()})
     return NextResponse.json({ok:false,runId:run.id,error:message},{status:500})
   }
 }
