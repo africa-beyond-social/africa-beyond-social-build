@@ -18,6 +18,8 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
   const [scheduleBusy, setScheduleBusy] = useState(false)
   const [scheduleMessage, setScheduleMessage] = useState("")
   const [schedule, setSchedule] = useState({ title: "", startAt: "", endAt: "", category: "news", streamUrl: "", description: "" })
+  const [intelligenceBusy, setIntelligenceBusy] = useState(false)
+  const [intelligenceMessage, setIntelligenceMessage] = useState("")
 
   useEffect(() => {
     fetch("/api/newsroom/story?id=" + encodeURIComponent(storyId))
@@ -43,6 +45,24 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
       const data = await response.json()
       setStory(data.story)
       setDraft(data.story?.ai_draft ?? "")
+    }
+  }
+
+  async function runIntelligence() {
+    setIntelligenceBusy(true)
+    setIntelligenceMessage("")
+    try {
+      const response = await fetch("/api/newsroom/intelligence", { method: "POST" })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || "Newsroom intelligence failed")
+      const refreshed = await fetch("/api/newsroom/story?id=" + encodeURIComponent(storyId), { cache: "no-store" })
+      const refreshedData = await refreshed.json()
+      if (refreshed.ok) setStory(refreshedData.story)
+      setIntelligenceMessage("Intelligence updated for " + String(data.processed || 0) + " newsroom stories.")
+    } catch (error) {
+      setIntelligenceMessage(error instanceof Error ? error.message : "Unable to update newsroom intelligence.")
+    } finally {
+      setIntelligenceBusy(false)
     }
   }
 
@@ -128,6 +148,26 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
         </div>
         <h1 className="mt-3 text-2xl font-bold leading-tight">{story.title}</h1>
         <a href={story.canonical_url || story.source_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-green"><ExternalLink className="size-3.5" /> Open original source</a>
+      </div>
+
+      <div className="rounded-2xl border-2 border-brand-green/20 bg-brand-green/5 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-brand-green">Newsroom Intelligence</p>
+            <h2 className="mt-1 text-lg font-bold">Editorial intelligence for this story</h2>
+            <p className="mt-1 text-xs text-muted-foreground">The system assesses corroboration, verification risk, duplicates, trend signals and the appropriate editorial route. The editor remains in control.</p>
+          </div>
+          <button onClick={runIntelligence} disabled={intelligenceBusy} className="rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{intelligenceBusy ? "Analysing…" : "Run intelligence"}</button>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="rounded-xl bg-background p-3"><p className="text-[10px] font-bold uppercase text-muted-foreground">Verification score</p><p className="mt-1 text-lg font-bold">{story.verification_score ?? 0}/100</p></div>
+          <div className="rounded-xl bg-background p-3"><p className="text-[10px] font-bold uppercase text-muted-foreground">Independent sources</p><p className="mt-1 text-lg font-bold">{story.independent_source_count ?? 0}</p></div>
+          <div className="rounded-xl bg-background p-3"><p className="text-[10px] font-bold uppercase text-muted-foreground">Trending score</p><p className="mt-1 text-lg font-bold">{story.trending_score ?? 0}</p></div>
+          <div className="rounded-xl bg-background p-3"><p className="text-[10px] font-bold uppercase text-muted-foreground">Route</p><p className="mt-1 text-sm font-bold">{story.editorial_route === "automated_review" ? "Automated review" : "Human review"}</p></div>
+          <div className="rounded-xl bg-background p-3"><p className="text-[10px] font-bold uppercase text-muted-foreground">Status</p><p className="mt-1 text-sm font-bold">{story.automated_review_ready ? "Review-ready" : "Needs checks"}</p></div>
+        </div>
+        {Array.isArray(story.editorial_watchpoints) && story.editorial_watchpoints.length > 0 && <div className="mt-4 rounded-xl border border-[#d4a017]/30 bg-[#d4a017]/5 p-3"><p className="text-xs font-bold">Editorial watchpoints</p><ul className="mt-2 space-y-1 text-xs text-muted-foreground">{story.editorial_watchpoints.map((item: string) => <li key={item}>• {item}</li>)}</ul></div>}
+        {intelligenceMessage && <p className="mt-3 text-xs text-muted-foreground">{intelligenceMessage}</p>}
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
