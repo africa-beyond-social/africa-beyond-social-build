@@ -67,6 +67,9 @@ export function NewsroomDashboard() {
         const ingestRes = await fetch("/api/newsroom/ingest", { cache: "no-store" })
         const ingestData = await ingestRes.json()
         if (!ingestRes.ok) throw new Error(ingestData.error || "Unable to scan newsroom sources")
+        const intelligenceRes = await fetch("/api/newsroom/intelligence", { method: "POST", cache: "no-store" })
+        const intelligenceData = await intelligenceRes.json()
+        if (!intelligenceRes.ok) throw new Error(intelligenceData.error || "Unable to update newsroom intelligence")
       }
       const [sourceRes, storyRes] = await Promise.all([
         fetch("/api/newsroom/sources", { cache: "no-store" }),
