@@ -36,6 +36,15 @@ export async function POST(request: Request) {
     thumbnail_url: article.featured_image_url || null,
     category: b.category || "news",
     newsroom_story_id: article.story_id,
+    newsroom_story_ids: storyIds,
+    website_links: websiteLinks,
+    editor_notes: b.editorNotes || null,
+    live_summary: article.live_summary || null,
+    watchpoints: Array.isArray(article.live_watchpoints) ? article.live_watchpoints : [],
+    broadcast_brief: b.broadcastBrief || article.live_summary || null,
+    social_hook_x: article.social_x || null,
+    social_hook_facebook: article.social_facebook || null,
+    social_hook_tiktok: article.social_tiktok || null,
     streamyard_status: "prepared",
   }).select("*").single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
