@@ -126,7 +126,7 @@ ${material}`)
       drafted++; articlesReady++
       await logRun(db,run.id,{story_id:story.id,step:"automated_review",message:`Article passed production checks: ${title}`,stories_drafted:drafted,articles_ready:articlesReady})
       const cleanText=String(saved.body_html||"")
-      const safeForAutoPublish=Number(story.verification_score||0)>=60&&Number(story.independent_source_count||0)>=2&&story.verification_class==="unverified"&&cleanText.includes("Africa &amp; Beyond — News | Analysis | Perspective")&&sourceRows.length>=2
+      const safeForAutoPublish=Number(story.verification_score||0)>=60&&Number(story.independent_source_count||0)>=2&&(story.verification_class==="unverified"||story.verification_class==="official_statement")&&cleanText.includes("Africa &amp; Beyond — News | Analysis | Perspective")&&sourceRows.length>=2
       if(!safeForAutoPublish){
         await db.from("newsroom_stories").update({status:"review",updated_at:new Date().toISOString()}).eq("id",story.id)
         continue
@@ -134,13 +134,14 @@ ${material}`)
       await db.from("newsroom_stories").update({status:"approved",updated_at:new Date().toISOString()}).eq("id",story.id)
       await logRun(db,run.id,{story_id:story.id,step:"website_publish",message:`Publishing verified story to Africa & Beyond: ${title}`})
       const published=await publishGhost({...saved,body_html:cleanText})
-      const x=(title+" "+published.url).slice(0,280)
-      const fb=`${title}\n\n${String(article.dek||story.summary||"").trim()}\n\n${published.url}`.trim()
-      const tt=`${title} — ${published.url} #AfricaAndBeyond #News`
+      const publishedUrl=published.url
+      const x=(title+" "+publishedUrl).slice(0,280)
+      const fb=`${title}\n\n${String(article.dek||story.summary||"").trim()}\n\n${publishedUrl}`.trim()
+      const tt=`${title} — ${publishedUrl} #AfricaAndBeyond #News`
       await db.from("newsroom_articles").update({website_status:"published",website_post_id:published.postId,website_url:published.url,website_published_at:new Date().toISOString(),social_x:x,social_facebook:fb,social_tiktok:tt,social_status:"generated",updated_at:new Date().toISOString()}).eq("id",saved.id)
       await db.from("newsroom_stories").update({status:"published",updated_at:new Date().toISOString()}).eq("id",story.id)
       published++
-      await logRun(db,run.id,{story_id:story.id,step:"distribution_ready",message:`Published and prepared social distribution: ${published.url}`,stories_drafted:drafted,articles_ready:articlesReady})
+      await logRun(db,run.id,{story_id:story.id,step:"distribution_ready",message:`Published and prepared social distribution: ${publishedUrl}`,stories_drafted:drafted,articles_ready:articlesReady})
     }
     const message=`Engine completed: ${drafted} articles prepared, ${published} automatically published, ${articlesReady-published} routed to review.`
     await logRun(db,run.id,{status:"completed",step:"complete",message,stories_verified:verifiedCount,stories_drafted:drafted,articles_ready:articlesReady,completed_at:new Date().toISOString()})
