@@ -42,8 +42,9 @@ function cleanJson(value: string) {
 }
 
 export async function GET(request: Request) {
+  if (isCron(request)) return POST(request)
   const user = await getSessionUser()
-  if (!isAdmin(user?.email) && !isCron(request)) return NextResponse.json({ error: "Not authorised" }, { status: 403 })
+  if (!isAdmin(user?.email)) return NextResponse.json({ error: "Not authorised" }, { status: 403 })
   const db = createAdminClient()
   const { data, error } = await db.from("newsroom_automation_runs")
     .select("id,run_type,status,step,message,story_id,stories_detected,stories_verified,stories_drafted,articles_ready,error,started_at,completed_at")
