@@ -12,7 +12,12 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams
   const status = params.get("status")
   const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
-  let query = createAdminClient().from("newsroom_stories").select("*").gte("published_at", cutoff).order("published_at", { ascending: false }).limit(100)
+  let query = createAdminClient()
+    .from("newsroom_stories")
+    .select("*")
+    .or(`published_at.gte.${cutoff},detected_at.gte.${cutoff}`)
+    .order("detected_at", { ascending: false })
+    .limit(100)
   if (status && status !== "all") query = query.eq("status", status)
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
