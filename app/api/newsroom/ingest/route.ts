@@ -2,33 +2,59 @@ import { NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { getSessionUser } from "@/lib/queries"
 
-export const maxDuration = 30
+export const maxDuration = 120
+
+const SOURCE_TIMEOUT_MS = 8000
+const MAX_ITEMS_PER_SOURCE = 25
+const LOOKBACK_MS = 48 * 60 * 60 * 1000
 
 function strip(value: string) {
   return value.replace(/<!\[CDATA\[/g, "").replace(/\]\]>/g, "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()
 }
+
 function firstTag(block: string, tag: string) {
   const m = block.match(new RegExp("<" + tag + "(?:\\s[^>]*)?>([\\s\\S]*?)<\\/" + tag + ">", "i"))
   return m ? strip(m[1]) : ""
 }
-function rawTag(block: string, tag: string) {
-  const m = block.match(new RegExp("<" + tag + "(?:\\s[^>]*)?>([\\s\\S]*?)<\\/" + tag + ">", "i"))
-  return m ? m[1].trim() : ""
-}
+
 function itemValue(block: string, tags: string[]) {
-  for (const tag of tags) { const value = firstTag(block, tag); if (value) return value }
+  for (const tag of tags) {
+    const value = firstTag(block, tag)
+    if (value) return value
+  }
   return ""
 }
+
 function itemLink(block: string) {
   const rss = firstTag(block, "link")
   if (rss) return rss
   const atom = block.match(/<link[^>]+href=["']([^"']+)["'][^>]*>/i)
   return atom ? atom[1] : ""
 }
+
 function itemImage(block: string) {
   const media = block.match(/<(?:media:content|enclosure)[^>]+url=["']([^"']+)["']/i)
   return media ? media[1] : ""
 }
+
+function blocks(xml: string) {
+  const rss = xml.match(/<item[\s\S]*?<\/item>/gi) || []
+  const atom = xml.match(/<entry[\s\S]*?<\/entry>/gi) || []
+  return [...rss, ...atom]
+}
+
+function parseDate(value: string) {
+  if (!value) return null
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
+
+function withTimeout(ms: number) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), ms)
+  return { controller, clear: () => clearTimeout(timer) }
+}
+
 async function auth(request: Request) {
   const secret = process.env.CRON_SECRET || process.env.NEWSROOM_CRON_SECRET
   if (secret && request.headers.get("authorization") === "Bearer " + secret) return true
@@ -36,47 +62,135 @@ async function auth(request: Request) {
   const admins = (process.env.LIVE_ADMIN_EMAILS || "").split(",").map(v => v.trim().toLowerCase()).filter(Boolean)
   return Boolean(user?.email && admins.includes(user.email.toLowerCase()))
 }
-function blocks(xml: string) {
-  const rss = xml.match(/<item[\s\S]*?<\/item>/gi) || []
-  const atom = xml.match(/<entry[\s\S]*?<\/entry>/gi) || []
-  return [...rss, ...atom]
-}
 
 export async function GET(request: Request) {
   if (!(await auth(request))) return NextResponse.json({ error: "Not authorised" }, { status: 401 })
+
   const db = createAdminClient()
-  const { data: sources, error } = await db.from("news_sources").select("*").eq("active", true).in("source_type", ["rss", "google_news"]).eq("monitoring_enabled", true)
+  const { data: sources, error } = await db
+    .from("news_sources")
+    .select("*")
+    .eq("active", true)
+    .in("source_type", ["rss", "google_news"])
+    .eq("monitoring_enabled", true)
+
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  let detected = 0
-  let checked = 0
-  for (const source of sources ?? []) {
-    checked++
+  const now = Date.now()
+  const cutoff = now - LOOKBACK_MS
+
+  const results = await Promise.allSettled((sources ?? []).map(async (source) => {
+    const checkedAt = new Date().toISOString()
+    const timer = withTimeout(SOURCE_TIMEOUT_MS)
+
     try {
-      const response = await fetch(source.url, { headers: { "user-agent": "WIGOD-Newsroom/1.0" }, cache: "no-store" })
+      const response = await fetch(source.url, {
+        headers: { "user-agent": "WIGOD-Newsroom/1.0" },
+        cache: "no-store",
+        signal: timer.controller.signal,
+      })
       if (!response.ok) throw new Error("HTTP " + response.status)
+
       const xml = await response.text()
-      for (const block of blocks(xml).slice(0, 25)) {
-        const title = itemValue(block, ["title"])
-        const link = itemLink(block)
-        if (!title || !link) continue
-        const publishedRaw = itemValue(block, ["pubDate","published","updated","date"])
-        const publishedAt = publishedRaw ? new Date(publishedRaw).toISOString() : null
-        const summary = itemValue(block, ["description","summary","content"])
-        const imageUrl = itemImage(block)
-        const { data: existing } = await db.from("newsroom_stories").select("id").eq("canonical_url", link).maybeSingle()
-        if (existing) continue
-        const { error: insertError } = await db.from("newsroom_stories").insert({
-          title, source_id: source.id, source_name: source.name, source_url: source.url,
-          canonical_url: link, author: itemValue(block, ["author","dc:creator"]),
-          published_at: publishedAt, summary, image_url: imageUrl
+      const rows = blocks(xml)
+        .slice(0, MAX_ITEMS_PER_SOURCE)
+        .map((block) => {
+          const title = itemValue(block, ["title"])
+          const link = itemLink(block)
+          const publishedRaw = itemValue(block, ["pubDate", "published", "updated", "date"])
+          return {
+            title,
+            link,
+            publishedRaw,
+            publishedAt: parseDate(publishedRaw),
+            summary: itemValue(block, ["description", "summary", "content"]),
+            imageUrl: itemImage(block),
+            author: itemValue(block, ["author", "dc:creator"]),
+          }
         })
-        if (!insertError) detected++
+        .filter((item) => {
+          if (!item.title || !item.link) return false
+          if (!item.publishedAt) return true
+          return new Date(item.publishedAt).getTime() >= cutoff
+        })
+
+      const payload = rows.map((item) => ({
+        title: item.title,
+        source_id: source.id,
+        source_name: source.name,
+        source_url: source.url,
+        canonical_url: item.link,
+        author: item.author,
+        published_at: item.publishedAt,
+        summary: item.summary,
+        image_url: item.imageUrl,
+      }))
+
+      let detected = 0
+      if (payload.length) {
+        const { data: inserted, error: insertError } = await db
+          .from("newsroom_stories")
+          .upsert(payload, { onConflict: "canonical_url", ignoreDuplicates: true })
+          .select("id")
+
+        if (insertError) throw new Error("Story insert failed: " + insertError.message)
+        detected = inserted?.length ?? 0
       }
-      await db.from("news_sources").update({ last_checked_at: new Date().toISOString(), last_error: null }).eq("id", source.id)
+
+      await db
+        .from("news_sources")
+        .update({ last_checked_at: checkedAt, last_error: null })
+        .eq("id", source.id)
+
+      return {
+        sourceId: source.id,
+        source: source.name,
+        ok: true,
+        detected,
+        checkedAt,
+      }
     } catch (error) {
-      await db.from("news_sources").update({ last_checked_at: new Date().toISOString(), last_error: error instanceof Error ? error.message : "Fetch failed" }).eq("id", source.id)
+      const message = error instanceof Error
+        ? (error.name === "AbortError" ? `Timed out after ${SOURCE_TIMEOUT_MS / 1000}s` : error.message)
+        : "Fetch failed"
+
+      await db
+        .from("news_sources")
+        .update({ last_checked_at: checkedAt, last_error: message })
+        .eq("id", source.id)
+
+      return {
+        sourceId: source.id,
+        source: source.name,
+        ok: false,
+        detected: 0,
+        checkedAt,
+        error: message,
+      }
+    } finally {
+      timer.clear()
     }
-  }
-  return NextResponse.json({ ok: true, detected, checked })
+  }))
+
+  const sourceResults = results.map((result) =>
+    result.status === "fulfilled"
+      ? result.value
+      : { ok: false, detected: 0, error: "Source task failed unexpectedly" }
+  )
+
+  const detected = sourceResults.reduce((sum, result) => sum + Number(result.detected || 0), 0)
+  const failed = sourceResults.filter((result) => !result.ok).length
+
+  return NextResponse.json({
+    ok: failed === 0,
+    detected,
+    checked: sourceResults.length,
+    failed,
+    durationProtection: {
+      perSourceTimeoutSeconds: SOURCE_TIMEOUT_MS / 1000,
+      maxItemsPerSource: MAX_ITEMS_PER_SOURCE,
+      lookbackHours: 48,
+    },
+    sources: sourceResults,
+  })
 }
