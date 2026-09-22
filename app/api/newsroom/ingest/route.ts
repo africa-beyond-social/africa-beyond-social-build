@@ -194,3 +194,5 @@ export async function GET(request: Request) {
     sources: sourceResults,
   })
 }
+
+// Phase 1 deployment trigger: keep source ingestion fixes on the production deployment path.
