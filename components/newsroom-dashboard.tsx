@@ -44,6 +44,7 @@ const statusStyles: Record<StoryStatus, string> = {
 export function NewsroomDashboard() {
   const [stories, setStories] = useState(initialStories)
   const [sources, setSources] = useState<string[]>([])
+  const [sourceHealth, setSourceHealth] = useState<any[]>([])
   const [sourceInput, setSourceInput] = useState("")
   const [query, setQuery] = useState("")
   const [activeStatus, setActiveStatus] = useState<StoryStatus | "ALL">("ALL")
@@ -62,14 +63,8 @@ export function NewsroomDashboard() {
   const [automationRuns, setAutomationRuns] = useState<any[]>([])
   const [automationBusy, setAutomationBusy] = useState(false)
 
-  async function loadNewsroom(showLoading = true) {
-    if (showLoading) setRefreshing(true)
+  async function loadNewsroom() {
     try {
-      if (showLoading) {
-        const ingestRes = await fetch("/api/newsroom/ingest", { cache: "no-store" })
-        const ingestData = await ingestRes.json()
-        if (!ingestRes.ok) throw new Error(ingestData.error || "Unable to scan newsroom sources")
-      }
       const [sourceRes, storyRes] = await Promise.all([
         fetch("/api/newsroom/sources", { cache: "no-store" }),
         fetch("/api/newsroom/stories", { cache: "no-store" }),
@@ -78,12 +73,14 @@ export function NewsroomDashboard() {
       const storyData = await storyRes.json()
       if (!sourceRes.ok) throw new Error(sourceData.error || "Unable to load newsroom sources")
       if (!storyRes.ok) throw new Error(storyData.error || "Unable to load newsroom stories")
-      setSources((sourceData.sources ?? []).map((s: { name: string }) => s.name))
+      const sourceRows = sourceData.sources ?? []
+      setSources(sourceRows.map((s: { name: string }) => s.name))
+      setSourceHealth(sourceRows)
       setStories((storyData.stories ?? []).map((s: any) => ({
         id: s.id,
         title: s.title,
         source: s.source_name ?? "Unknown source",
-        time: s.published_at ? new Date(s.published_at).toLocaleString() : "Detected",
+        time: s.published_at ? new Date(s.published_at).toLocaleString() : s.detected_at ? new Date(s.detected_at).toLocaleString() : "Detected",
         status: String(s.status).toUpperCase(),
         confidence: s.confidence === "cross_checked" ? "Cross-checked" : s.confidence === "developing" ? "Developing" : "Unverified",
         url: s.canonical_url ?? s.source_url,
@@ -92,6 +89,21 @@ export function NewsroomDashboard() {
       setSourceError(error instanceof Error ? error.message : "Unable to load newsroom data")
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function scanSources() {
+    setRefreshing(true)
+    setSourceError("")
+    try {
+      const response = await fetch("/api/newsroom/ingest", { cache: "no-store" })
+      const data = await response.json()
+      if (!response.ok && !data?.ok) throw new Error(data?.error || "Unable to scan newsroom sources")
+      if (data?.failed) setSourceError(`Source scan completed with ${data.failed} failed source(s).`)
+      await loadNewsroom()
+    } catch (error) {
+      setSourceError(error instanceof Error ? error.message : "Unable to scan newsroom sources")
+    } finally {
       setRefreshing(false)
     }
   }
@@ -108,18 +120,22 @@ export function NewsroomDashboard() {
   async function runAutomationNow() {
     setAutomationBusy(true)
     try {
-      await fetch("/api/newsroom/automation/run", { method: "POST", cache: "no-store" })
-      await Promise.all([loadAutomationRuns(), loadNewsroom(false)])
+      const response = await fetch("/api/newsroom/automation/run", { method: "POST", cache: "no-store" })
+      const data = await response.json()
+      if (!response.ok || data?.ok === false) throw new Error(data?.error || "Automation engine failed")
+      await Promise.all([loadAutomationRuns(), loadNewsroom()])
+    } catch (error) {
+      setSourceError(error instanceof Error ? error.message : "Automation engine failed")
     } finally {
       setAutomationBusy(false)
     }
   }
 
   useEffect(() => {
-    loadNewsroom(false)
+    loadNewsroom()
     loadAutomationRuns()
     const timer = window.setInterval(() => {
-      loadNewsroom(false)
+      loadNewsroom()
       loadAutomationRuns()
     }, 8000)
     return () => window.clearInterval(timer)
@@ -173,7 +189,7 @@ export function NewsroomDashboard() {
     if (!current) return
     const next = current.status === "NEW" ? "verifying" : current.status === "VERIFYING" ? "draft" : "review"
     const response = await fetch("/api/newsroom/stories", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, status: next }) })
-    if (response.ok) await loadNewsroom(false)
+    if (response.ok) await loadNewsroom()
   }
 
   async function loadDesk() {
@@ -252,11 +268,21 @@ export function NewsroomDashboard() {
             <Activity className="size-3.5" /> Monitoring
           </span>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {sources.map((source) => (
-            <span key={source} className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium">
-              <Globe2 className="size-3.5" /> {source}
-            </span>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {sourceHealth.map((source) => (
+            <div key={source.id} className="rounded-xl border border-border px-3 py-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex min-w-0 items-center gap-1.5 text-xs font-medium">
+                  <span className={`size-2 rounded-full ${source.last_error ? "bg-brand-red" : "bg-brand-green"}`} />
+                  <Globe2 className="size-3.5 shrink-0" /> <span className="truncate">{source.name}</span>
+                </span>
+                <span className="text-[10px] text-muted-foreground">{source.last_error ? "Error" : "Healthy"}</span>
+              </div>
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                {source.last_checked_at ? `Last checked ${new Date(source.last_checked_at).toLocaleString()}` : "Not checked yet"}
+              </p>
+              {source.last_error && <p className="mt-1 truncate text-[10px] text-brand-red" title={source.last_error}>{source.last_error}</p>}
+            </div>
           ))}
         </div>
         <div className="mt-4 flex gap-2">
@@ -287,8 +313,8 @@ export function NewsroomDashboard() {
               <div className="flex items-center gap-2"><h2 className="font-bold">News Detection Queue</h2><span className="rounded-full bg-brand-green/10 px-2 py-1 text-[10px] font-bold text-brand-green">LAST 48 HOURS</span></div>
               <p className="text-xs text-muted-foreground">Only content published within the rolling 48-hour newsroom window is detected, automatically cross-checked and routed by the newsroom engine.</p>
             </div>
-            <button onClick={() => loadNewsroom(true)} disabled={refreshing} className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold disabled:opacity-50">
-              <RefreshCw className={`size-3.5 ${refreshing ? "animate-spin" : ""}`} /> {refreshing ? "Refreshing" : "Refresh"}
+            <button onClick={scanSources} disabled={refreshing} className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold disabled:opacity-50">
+              <RefreshCw className={`size-3.5 ${refreshing ? "animate-spin" : ""}`} /> {refreshing ? "Scanning sources" : "Scan sources"}
             </button>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
