@@ -51,9 +51,9 @@ async function callOpenAI(prompt:string) {
       additionalProperties:false,
       properties:{
         title:{type:"string"},dek:{type:"string"},body_html:{type:"string"},seo_title:{type:"string"},seo_description:{type:"string"},
-        category:{type:"string"},tags:{type:"array",items:{type:"string"}},live_summary:{type:"string"},live_watchpoints:{type:"array",items:{type:"string"}}
+        category:{type:"string"},tags:{type:"array",items:{type:"string"}},live_summary:{type:"string"},live_watchpoints:{type:"array",items:{type:"string"}},editorial_state:{type:"string",enum:["ready","developing","editorial_review","hold"]},story_type:{type:"string"}
       },
-      required:["title","dek","body_html","seo_title","seo_description","category","tags","live_summary","live_watchpoints"]
+      required:["title","dek","body_html","seo_title","seo_description","category","tags","live_summary","live_watchpoints","editorial_state","story_type"]
     }}}
   })})
   const data=await response.json()
@@ -123,12 +123,13 @@ export async function POST(request:Request) {
     // Production build fix: the publication counter must remain mutable during automated distribution.
     for(const story of candidates||[]) {
       await logRun(db,run.id,{story_id:story.id,step:"ai_drafting",message:`Producing article: ${story.title}`,stories_verified:verifiedCount,stories_drafted:drafted,articles_ready:articlesReady})
-      const {data:sourceMeta}=await db.from("news_sources").select("priority").eq("id",story.source_id).maybeSingle()
+      const {data:sourceMeta}=await db.from("news_sources").select("priority,source_type,name,url").eq("id",story.source_id).maybeSingle()
       story.source_priority=sourceMeta?.priority||"standard"
+      story.source_type=sourceMeta?.source_type||"unknown"
       const {data:evidence}=await db.from("newsroom_evidence").select("source_name,source_url,title,published_at,summary,content_text,relation,notes").eq("story_id",story.id).order("created_at",{ascending:true}).limit(20)
       const {data:related}=await db.rpc("get_newsroom_related_sources",{p_story_id:story.id})
       const sourceRows=[
-        {source_name:story.source_name,source_url:story.canonical_url||story.source_url,title:story.title,published_at:story.published_at,summary:story.summary,content_text:story.content_text,relation:"primary"},
+        {source_name:story.source_name,source_url:story.canonical_url||story.source_url,title:story.title,published_at:story.published_at,summary:story.summary,content_text:story.content_text,relation:"primary",source_priority:story.source_priority,source_type:story.source_type},
         ...(evidence||[]),
         ...(related||[]),
       ].filter((item:any,index:number,array:any[])=>index===array.findIndex((x:any)=>String(x.source_url||"")===String(item.source_url||"") && String(x.title||"")===String(item.title||"")))
@@ -194,9 +195,13 @@ ${material}`)
       await logRun(db,run.id,{story_id:story.id,step:"automated_review",message:quality.reason,stories_drafted:drafted,articles_ready:articlesReady})
       const cleanText=String(saved.body_html||"")
       const trustedPrimary=isTrustedSource(story)
-      const safeForAutoPublish=Number(story.verification_score||0)>=60&&(trustedPrimary||Number(story.independent_source_count||0)>=2)&&(story.verification_class==="unverified"||story.verification_class==="official_statement"||story.verification_class==="denial")&&(cleanText.includes("Africa &amp; Beyond — News | Analysis | Perspective")||cleanText.includes("Africa & Beyond — News | Analysis | Perspective"))
+      const editorialState=["ready","developing","editorial_review","hold"].includes(String(article.editorial_state||"")) ? String(article.editorial_state) : "editorial_review"
+      const sourceSufficient=trustedPrimary||Number(story.independent_source_count||0)>=2
+      const safeForAutoPublish=Number(story.verification_score||0)>=60&&sourceSufficient&&(editorialState==="ready"||editorialState==="developing")&&story.verification_class!=="allegation"&&story.verification_class!=="conflicting"&&(cleanText.includes("Africa &amp; Beyond — News | Analysis | Perspective")||cleanText.includes("Africa & Beyond — News | Analysis | Perspective"))
+      await db.from("newsroom_articles").update({editorial_notes:(saved.editorial_notes||"")+" Editorial state: "+editorialState+". Story type: "+String(article.story_type||"news")+"." ,updated_at:new Date().toISOString()}).eq("id",saved.id)
       if(!safeForAutoPublish){
-        await db.from("newsroom_stories").update({status:"review",updated_at:new Date().toISOString()}).eq("id",story.id)
+        const nextStatus=editorialState==="hold" ? "held" : "review"
+        await db.from("newsroom_stories").update({status:nextStatus,editorial_route:editorialState==="hold"?"hold":"human_review",updated_at:new Date().toISOString()}).eq("id",story.id)
         continue
       }
       await db.from("newsroom_stories").update({status:"approved",updated_at:new Date().toISOString()}).eq("id",story.id)
