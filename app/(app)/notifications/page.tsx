@@ -20,7 +20,7 @@ function NotificationItem({ n }: { n: NotificationRow }) {
   const cfg = CONFIG[n.type] ?? CONFIG.like
   const Icon = cfg.icon
   const actorName = n.actor?.display_name ?? n.actor?.username ?? "Someone"
-  const href = n.post_id ? `/post/${n.post_id}` : n.actor ? `/profile/${n.actor.username}` : "/notifications"
+  const href = n.type === "message" && n.actor ? `/messages?with=${encodeURIComponent(n.actor.username)}` : n.post_id ? `/post/${n.post_id}` : n.actor ? `/profile/${n.actor.username}` : "/notifications"
   return <ClickableNotification id={n.id} href={href} className={cn("flex gap-3 border-b border-border px-4 py-3 transition-colors hover:bg-secondary/40", !n.is_read && "bg-accent/40")}>
     <span className={cn("mt-0.5 shrink-0", cfg.color)}><Icon className={cn("size-5", n.type === "like" && "fill-current")} /></span>
     <div className="min-w-0 flex-1">
