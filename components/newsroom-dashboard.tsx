@@ -448,7 +448,8 @@ export function NewsroomDashboard() {
                 <p className="text-xs font-bold">Programme Brief</p>
                 <p className="mt-2 text-sm font-semibold">{selectedEvent.title}</p>
                 <p className="mt-2 text-xs leading-5">{selectedEvent.broadcast_brief || selectedEvent.description || "No broadcast brief recorded."}</p>
-                {Array.isArray(selectedEvent.website_links) && selectedEvent.website_links.length > 0 && <div className="mt-3 space-y-1">{selectedEvent.website_links.map((link:string,i:number)=><a key={i} href={link} target="_blank" rel="noreferrer" className="block text-xs text-brand-green">{link}</a>)}</div>}
+                {Array.isArray(selectedEvent.watchpoints) && selectedEvent.watchpoints.length > 0 && <div className="mt-3"><p className="text-[10px] font-bold uppercase text-muted-foreground">Presenter watchpoints</p><ul className="mt-2 list-disc space-y-1 pl-4 text-xs">{selectedEvent.watchpoints.slice(0,8).map((point:string,i:number)=><li key={i}>{point}</li>)}</ul></div>}
+                {Array.isArray(selectedEvent.website_links) && selectedEvent.website_links.length > 0 && <div className="mt-3"><p className="text-[10px] font-bold uppercase text-muted-foreground">Website stories</p><div className="mt-2 space-y-1">{selectedEvent.website_links.map((link:any,i:number)=>{const url=typeof link==="string"?link:link?.url; const label=typeof link==="string"?link:(link?.title||link?.url); return url ? <a key={i} href={url} target="_blank" rel="noreferrer" className="block text-xs text-brand-green">{label}</a> : null})}</div></div>}
               </div>
             )}
           </div>
