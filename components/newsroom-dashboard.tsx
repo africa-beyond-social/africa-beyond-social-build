@@ -61,6 +61,7 @@ export function NewsroomDashboard() {
   const [deskLoading, setDeskLoading] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
   const [automationRuns, setAutomationRuns] = useState<any[]>([])
+  const [articles, setArticles] = useState<any[]>([])
   const [automationBusy, setAutomationBusy] = useState(false)
   const latestRun = automationRuns[0]
   const healthySources = sourceHealth.filter((s) => !s.last_error && s.active !== false).length
@@ -68,14 +69,18 @@ export function NewsroomDashboard() {
 
   async function loadNewsroom() {
     try {
-      const [sourceRes, storyRes] = await Promise.all([
+      const [sourceRes, storyRes, articleRes] = await Promise.all([
         fetch("/api/newsroom/sources", { cache: "no-store" }),
         fetch("/api/newsroom/stories", { cache: "no-store" }),
+        fetch("/api/newsroom/articles", { cache: "no-store" }),
       ])
       const sourceData = await sourceRes.json()
       const storyData = await storyRes.json()
+      const articleData = await articleRes.json()
       if (!sourceRes.ok) throw new Error(sourceData.error || "Unable to load newsroom sources")
       if (!storyRes.ok) throw new Error(storyData.error || "Unable to load newsroom stories")
+      if (!articleRes.ok) throw new Error(articleData.error || "Unable to load newsroom articles")
+      setArticles(articleData.articles ?? [])
       const sourceRows = sourceData.sources ?? []
       setSources(sourceRows.map((s: { name: string }) => s.name))
       setSourceHealth(sourceRows)
@@ -378,6 +383,25 @@ export function NewsroomDashboard() {
           {!filtered.length && (
             <div className="p-10 text-center text-sm text-muted-foreground">No newsroom items match this filter.</div>
           )}
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-2xl border border-brand-red/20 bg-brand-red/5 p-4">
+          <div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2"><Radio className="size-5 text-brand-red" /><h2 className="font-bold">Editorial Review</h2></div><span className="rounded-full bg-brand-red/10 px-2 py-1 text-[10px] font-bold text-brand-red">{articles.filter(a => ["ready","review","held"].includes(a.website_status)).length} ITEMS</span></div>
+          <p className="mt-2 text-xs text-muted-foreground">Articles that still need an editor, including held or safety-gated items.</p>
+          <div className="mt-3 space-y-2">
+            {articles.filter(a => ["ready","review","held"].includes(a.website_status)).slice(0,5).map(a => <button key={a.id} onClick={() => a.story_id && setSelectedStory(a.story_id)} className="w-full rounded-xl border border-border bg-background/70 p-3 text-left hover:bg-secondary/40"><div className="flex items-center justify-between gap-2"><span className="text-[10px] font-bold uppercase">{a.website_status}</span><span className="text-[10px] text-muted-foreground">{a.updated_at ? new Date(a.updated_at).toLocaleString() : ""}</span></div><p className="mt-1 text-sm font-semibold">{a.title}</p><p className="mt-1 text-[11px] text-muted-foreground">{a.category || "News"} · {a.social_status === "generated" ? "Social copy ready" : "Social pending"}</p></button>)}
+            {!articles.some(a => ["ready","review","held"].includes(a.website_status)) && <p className="rounded-xl bg-secondary p-3 text-xs text-muted-foreground">No articles are waiting for editorial attention.</p>}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-brand-green/20 bg-brand-green/5 p-4">
+          <div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2"><CheckCircle2 className="size-5 text-brand-green" /><h2 className="font-bold">Published Stories</h2></div><span className="rounded-full bg-brand-green/10 px-2 py-1 text-[10px] font-bold text-brand-green">{articles.filter(a => a.website_status === "published").length} PUBLISHED</span></div>
+          <p className="mt-2 text-xs text-muted-foreground">Articles successfully published to the website by the newsroom engine.</p>
+          <div className="mt-3 space-y-2">
+            {articles.filter(a => a.website_status === "published").slice(0,5).map(a => <div key={a.id} className="rounded-xl border border-border bg-background/70 p-3"><div className="flex items-center justify-between gap-2"><span className="text-[10px] font-bold uppercase text-brand-green">Published</span><span className="text-[10px] text-muted-foreground">{a.website_published_at ? new Date(a.website_published_at).toLocaleString() : ""}</span></div><p className="mt-1 text-sm font-semibold">{a.title}</p><div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground"><span>{a.social_status === "generated" ? "Social copy ready" : "Social: " + (a.social_status || "pending")}</span>{a.website_url && <a href={a.website_url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="inline-flex items-center gap-1 text-brand-green"><ExternalLink className="size-3.5" /> Open website</a>}</div></div>)}
+            {!articles.some(a => a.website_status === "published") && <p className="rounded-xl bg-secondary p-3 text-xs text-muted-foreground">No published articles recorded yet.</p>}
+          </div>
         </div>
       </section>
 
