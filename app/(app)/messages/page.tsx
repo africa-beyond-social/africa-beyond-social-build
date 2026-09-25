@@ -3,9 +3,9 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { getSessionUser, searchProfiles } from "@/lib/queries"
 import { MessageCircle, User } from "lucide-react"
-import { MessageComposer } from "@/components/message-composer"
+import { MessageComposer } from "@/components/message-composer"\nimport { MessageAttachment } from "@/components/message-attachment"
 
-type MessageRow={id:string;sender_id:string;recipient_id:string;content:string;created_at:string;read_at:string|null}
+type MessageRow={id:string;sender_id:string;recipient_id:string;content:string;created_at:string;read_at:string|null;attachment_id:string|null}\ntype AttachmentRow={id:string;message_id:string;file_name:string;mime_type:string;file_size:number}
 type ProfileRow={id:string;username:string;display_name:string|null;avatar_url:string|null}
 
 export default async function MessagesPage({searchParams}:{searchParams:Promise<{with?:string;q?:string}>}) {
@@ -13,8 +13,8 @@ export default async function MessagesPage({searchParams}:{searchParams:Promise<
  const supabase=await createClient(); const params=await searchParams
  const searchTerm=params.q?.trim()??""
  const searchResults=searchTerm?(await searchProfiles(searchTerm)).filter(p=>p.id!==user.id):[]
- const {data:rows}=await supabase.from("messages").select("id,sender_id,recipient_id,content,created_at,read_at").or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`).order("created_at",{ascending:false}).limit(200)
- const messages=(rows as MessageRow[]|null)??[]
+ const {data:rows}=await supabase.from("messages").select("id,sender_id,recipient_id,content,created_at,read_at,attachment_id").or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`).order("created_at",{ascending:false}).limit(200)
+ const messages=(rows as MessageRow[]|null)??[]\n const attachmentIds=Array.from(new Set(messages.map(m=>m.attachment_id).filter(Boolean))) as string[]\n const {data:attachments}=attachmentIds.length?await supabase.from("message_attachments").select("id,message_id,file_name,mime_type,file_size").in("id",attachmentIds):{data:[] as AttachmentRow[]}\n const attachmentByMessage=new Map<string,AttachmentRow>(); for(const a of (attachments as AttachmentRow[]|null)??[]) attachmentByMessage.set(a.message_id,a)
  const ids=Array.from(new Set(messages.map(m=>m.sender_id===user.id?m.recipient_id:m.sender_id)))
  const {data:ps}=ids.length?await supabase.from("profiles").select("id,username,display_name,avatar_url").in("id",ids):{data:[] as ProfileRow[]}
  const byId=new Map<string,ProfileRow>(); for(const p of (ps as ProfileRow[]|null)??[]) byId.set(p.id,p)
@@ -28,7 +28,7 @@ export default async function MessagesPage({searchParams}:{searchParams:Promise<
   {searchTerm&&!selected?<section className="divide-y divide-border border-b border-border">{searchResults.length?searchResults.map(p=><Link key={p.id} href={`/messages?with=${encodeURIComponent(p.username)}`} className="flex items-center gap-3 px-4 py-4 hover:bg-secondary/50"><div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary"><User className="size-5 text-muted-foreground"/></div><div><div className="font-semibold">{p.display_name??p.username}</div><div className="text-sm text-muted-foreground">@{p.username}</div></div></Link>):<div className="px-4 py-6 text-sm text-muted-foreground">No people found for “{searchTerm}”.</div>}</section>:null}
   {selected?<section className="p-4">
    <div className="mb-4 flex items-center gap-3 rounded-xl border border-border p-3"><div className="flex size-10 items-center justify-center rounded-full bg-secondary"><User className="size-5 text-muted-foreground"/></div><div><div className="font-semibold">{selected.display_name??selected.username}</div><div className="text-sm text-muted-foreground">@{selected.username}</div></div></div>
-   <div className="space-y-2">{selectedMessages.map(m=><div key={m.id} className={`flex ${m.sender_id===user.id?"justify-end":"justify-start"}`}><div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${m.sender_id===user.id?"bg-brand-green text-white":"bg-secondary"}`}><p className="whitespace-pre-wrap">{m.content}</p><time className="mt-1 block text-[0.7rem] opacity-70">{new Date(m.created_at).toLocaleString()}</time></div></div>)}</div>
+   <div className="space-y-2">{selectedMessages.map(m=><div key={m.id} className={`flex ${m.sender_id===user.id?"justify-end":"justify-start"}`}><div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${m.sender_id===user.id?"bg-brand-green text-white":"bg-secondary"}`}>{m.attachment_id?<><p className="mb-1 text-xs opacity-70">Shared file</p><div><MessageAttachment id={m.attachment_id} fileName={attachmentByMessage.get(m.id)?.file_name??m.content} mimeType={attachmentByMessage.get(m.id)?.mime_type??"application/octet-stream"}/></div></>:<p className="whitespace-pre-wrap">{m.content}</p>}<time className="mt-1 block text-[0.7rem] opacity-70">{new Date(m.created_at).toLocaleString()}</time></div></div>)}</div>
    <div className="mt-4"><Link href="/messages" className="text-sm text-muted-foreground hover:underline">← Back to messages</Link></div><MessageComposer recipientId={selected.id}/>
   </section>:<section className="divide-y divide-border">
    {Array.from(conversations.entries()).map(([id,list])=>{const other=byId.get(id);if(!other)return null;const latest=list[list.length-1];const unread=list.some(m=>m.recipient_id===user.id&&!m.read_at);return <Link key={id} href={`/messages?with=${encodeURIComponent(other.username)}`} className="flex items-center gap-3 px-4 py-4 hover:bg-secondary/50"><div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary"><User className="size-5 text-muted-foreground"/></div><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><span className="font-semibold">{other.display_name??other.username}</span><time className="text-xs text-muted-foreground">{new Date(latest.created_at).toLocaleDateString()}</time></div><p className={`truncate text-sm ${unread?"font-semibold text-foreground":"text-muted-foreground"}`}>{latest.content}</p></div></Link>})}
