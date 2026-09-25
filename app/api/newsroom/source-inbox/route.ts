@@ -87,7 +87,8 @@ export async function POST(request:Request) {
     submitted_by:user.id,original_filename:name,mime_type:type,storage_path:path,
     source_kind:sourceKind,source_name:sourceName,source_url:sourceUrl||null,
     extracted_text:extractedText,status:"received",
-    metadata:{title,source_kind:sourceKind,submitted_via:"source_inbox",decoder:"OpenAI vision",extraction_status:extractedText ? "decoded" : "failed"},\n    error:extractionError
+    metadata:{title,source_kind:sourceKind,submitted_via:"source_inbox",decoder:"OpenAI vision",extraction_status:extractedText ? "decoded" : "failed"},
+    error:extractionError
   }).select("*").single()
   if(submissionError){
     await db.storage.from("wigod-knowledge").remove([path])
