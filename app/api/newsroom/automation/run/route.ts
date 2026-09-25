@@ -58,6 +58,20 @@ async function callOpenAI(prompt:string) {
 }
 async function logRun(db:any,id:string,patch:Record<string,any>) { await db.from("newsroom_automation_runs").update(patch).eq("id",id) }
 
+function editorialQuality(html:string, sourceMaterial:string) {
+  const text=html.replace(/<[^>]+>/g," ").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/\s+/g," ").trim()
+  const words=text ? text.split(/\s+/).length : 0
+  const paragraphs=(html.match(/<p\b/gi)||[]).length
+  const headings=(html.match(/<h2\b/gi)||[]).length
+  const fillerPatterns=[/it is important to note/i,/is seen as/i,/likely to/i,/expected to/i,/this highlights the importance/i,/in a significant development/i]
+  const unsupportedFiller=fillerPatterns.some(pattern=>pattern.test(text) && !pattern.test(sourceMaterial))
+  if(words<350) return {ok:false,reason:`Article is too short (${words} words); minimum 350 words unless routed for a genuine brief.`}
+  if(paragraphs<5) return {ok:false,reason:`Article is underdeveloped (${paragraphs} paragraphs); minimum 5 substantive paragraphs required.`}
+  if(unsupportedFiller) return {ok:false,reason:"Article contains generic or predictive filler that is not supported by the supplied source material."}
+  if(headings===0 && words>650) return {ok:false,reason:"Long article needs at least one descriptive section heading."}
+  return {ok:true,reason:`Editorial quality passed: ${words} words, ${paragraphs} paragraphs.`}
+}
+
 async function publishGhost(article:any) {
   if(!process.env.GHOST_ADMIN_API_KEY||!process.env.GHOST_ADMIN_API_URL) throw new Error("Ghost Admin API is not configured")
   const base=process.env.GHOST_ADMIN_API_URL.replace(/\/$/,"")
@@ -105,7 +119,34 @@ export async function POST(request:Request) {
       const material=sourceRows.map((x:any)=>JSON.stringify(x)).join("\n")
       let article:any
       try {
-        article=await callOpenAI(`You are the Africa & Beyond newsroom production engine. Write only from the supplied material. Never invent facts, quotes, dates, people, motives or context. Preserve attribution and uncertainty. Allegations must remain allegations. Do not put a bibliography in the narrative. Return a clean news article with a strong factual headline, dek, concise opening, factual development, context and next steps only where supported. body_html may use p,h2,ul,li,strong,em,blockquote. It MUST end with <p><strong>Africa &amp; Beyond — News | Analysis | Perspective</strong></p>.
+        article=await callOpenAI(`You are the Africa & Beyond newsroom's senior editorial writer. Produce a publication-ready article from ONLY the supplied source material.
+
+NON-NEGOTIABLE EDITORIAL RULES:
+1. Never invent facts, quotes, dates, names, statistics, motives, background or outcomes. If the sources do not establish something, leave it out.
+2. Attribute claims clearly when attribution matters.
+3. Do not turn speculation into fact or use generic filler such as "this highlights the importance", "is seen as", "likely to" or "expected to" unless explicitly supported by the source material.
+4. Do not repeat the same point in different words.
+5. Do not pad an article. Every paragraph must add verified information, context, chronology, explanation or an attributed reaction.
+6. The first paragraph must answer the core news question using only established facts.
+7. Build logically: lead -> verified details -> context/background -> supported responses or data -> confirmed next steps or unresolved points.
+8. For developing stories, separate confirmed facts from what remains unknown.
+9. For sports, prioritise fixture/result, competition context, confirmed statistics and next fixture/stage. Never invent form, tactics or viewing details.
+10. For opportunities, prioritise organiser, purpose, eligibility, dates/deadlines, application method and official source details when supplied.
+11. For business/technology, explain the development, organisation, concrete details and African relevance where supported.
+12. Use a factual Africa-focused newsroom voice: professional, clear, direct and readable. Do not write like a press release.
+13. Standard articles should normally be 350-900 words. If the source only supports a brief, write a concise brief and let the quality gate route it for editorial review.
+14. Allowed HTML: p,h2,ul,li,strong,em,blockquote.
+15. Do not include a bibliography or sources list inside the narrative; the newsroom appends a separate Sources box.
+16. End with <p><strong>Africa &amp; Beyond — News | Analysis | Perspective</strong></p>.
+
+ARTICLE STRUCTURE:
+- Strong factual headline, not clickbait.
+- Informative dek that adds rather than repeats.
+- Strong opening paragraph.
+- Several substantive paragraphs developing the verified story.
+- Relevant context/background where supported.
+- At least one concrete response, data point or explanation where available.
+- Final paragraph with the next confirmed development or key unresolved point, if available.
 
 ORIGINAL STORY:
 ${story.title}
@@ -120,6 +161,7 @@ ${material}`)
       }
       const narrative=String(article.body_html||"").replace(/<p><strong>Africa &amp; Beyond — News \| Analysis \| Perspective<\/strong><\/p>\s*$/,"").trim()
       const finalBody=(narrative+"\n"+sourceBox(sourceRows)+"\n<p><strong>Africa &amp; Beyond — News | Analysis | Perspective</strong></p>").trim()
+      const quality=editorialQuality(narrative,material)
       const title=String(article.title||story.title).trim()
       const record={
         story_id:story.id,title,slug:slugify(title),dek:String(article.dek||"").trim(),body_html:finalBody,
@@ -134,6 +176,13 @@ ${material}`)
       if(saveError)throw new Error(saveError.message)
       drafted++; articlesReady++
       await logRun(db,run.id,{story_id:story.id,step:"automated_review",message:`Article passed production checks: ${title}`,stories_drafted:drafted,articles_ready:articlesReady})
+      if(!quality.ok){
+        await db.from("newsroom_stories").update({status:"review",updated_at:new Date().toISOString()}).eq("id",story.id)
+        await db.from("newsroom_articles").update({editorial_notes:`Automated editorial quality gate: ${quality.reason}`,updated_at:new Date().toISOString()}).eq("id",saved.id)
+        await logRun(db,run.id,{story_id:story.id,step:"editorial_review",message:quality.reason,stories_drafted:drafted,articles_ready:articlesReady})
+        continue
+      }
+      await logRun(db,run.id,{story_id:story.id,step:"automated_review",message:quality.reason,stories_drafted:drafted,articles_ready:articlesReady})
       const cleanText=String(saved.body_html||"")
       const safeForAutoPublish=Number(story.verification_score||0)>=60&&Number(story.independent_source_count||0)>=2&&(story.verification_class==="unverified"||story.verification_class==="official_statement")&&(cleanText.includes("Africa &amp; Beyond — News | Analysis | Perspective")||cleanText.includes("Africa & Beyond — News | Analysis | Perspective"))
       if(!safeForAutoPublish){
