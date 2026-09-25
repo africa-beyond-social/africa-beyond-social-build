@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { getSessionUser } from "@/lib/queries"
 
 export const runtime = "nodejs"
-export const maxDuration = 30
+export const maxDuration = 60
 
 const MAX_BYTES = 25 * 1024 * 1024
 const ALLOWED = new Set([
@@ -41,18 +41,42 @@ export async function POST(request:Request) {
 
   const sourceKind=kind(type,name)
   let extractedText:string|null=null
+  let extractionError:string|null=null
   if(type==="text/plain" || type==="text/markdown" || /\.(txt|md|markdown)$/i.test(name)) {
     extractedText=(await file.text()).slice(0,120000)
   } else if (process.env.OPENAI_API_KEY) {
-    const bytes=Buffer.from(await file.arrayBuffer())
-    const base64=bytes.toString("base64")
-    const model=process.env.OPENAI_MODEL || "gpt-4.1-mini"
-    const content = sourceKind==="image"
-      ? [{type:"input_text",text:"Read this submitted newsroom source carefully. Extract all legible text and factual details. Preserve names, dates, places, numbers, quotations, account/page names and visible URLs. Return only the extracted source text and no invented information."},{type:"input_image",image_url:`data:${type};base64,${base64}`}]
-      : [{type:"input_text",text:"Read this submitted newsroom document carefully. Extract the substantive text and factual details, preserving names, dates, places, numbers, quotations, document titles and visible source information. Return only extracted source material and do not invent anything."},{type:"input_file",filename:name,file_data:`data:${type};base64,${base64}`}]
-    const ai=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"content-type":"application/json",authorization:`Bearer ${process.env.OPENAI_API_KEY}`},body:JSON.stringify({model,input:[{role:"user",content}],max_output_tokens:12000})})
-    const data=await ai.json().catch(()=>({}))
-    if(ai.ok) extractedText=String(data.output_text||"").slice(0,120000) || null
+    try {
+      const model=process.env.OPENAI_MODEL || "gpt-5.6-luna"
+      let content:any[]
+      if (sourceKind==="image") {
+        const signed=await db.storage.from("wigod-knowledge").createSignedUrl(path,600)
+        if(signed.error || !signed.data?.signedUrl) throw new Error(signed.error?.message || "Unable to create a secure image URL")
+        content=[
+          {type:"input_text",text:"You are the WIGOD newsroom source decoder. Examine the submitted image carefully at high detail. Extract every legible piece of information: headline, body text, names, dates, times, places, numbers, quotations, account/page names, visible URLs and any other source-identifying information. Preserve wording where readable. If text is unclear, mark it as [unclear] rather than inventing it. Return a clean transcription followed by a short structured list of the key facts visible in the image."},
+          {type:"input_image",image_url:signed.data.signedUrl,detail:"high"}
+        ]
+      } else {
+        const bytes=Buffer.from(await file.arrayBuffer())
+        const base64=bytes.toString("base64")
+        content=[
+          {type:"input_text",text:"Read this submitted newsroom document carefully. Extract the substantive text and factual details, preserving names, dates, places, numbers, quotations, document titles and visible source information. Do not invent anything."},
+          {type:"input_file",filename:name,file_data:`data:${type};base64,${base64}`}
+        ]
+      }
+      const ai=await fetch("https://api.openai.com/v1/responses",{
+        method:"POST",
+        headers:{"content-type":"application/json",authorization:`Bearer ${process.env.OPENAI_API_KEY}`},
+        body:JSON.stringify({model,input:[{role:"user",content}],max_output_tokens:12000})
+      })
+      const data=await ai.json().catch(()=>({}))
+      if(!ai.ok) throw new Error(String(data?.error?.message || `OpenAI source decoding failed (${ai.status})`))
+      extractedText=String(data.output_text||"").slice(0,120000) || null
+      if(!extractedText) throw new Error("The vision model returned no readable text.")
+    } catch(error) {
+      extractionError=error instanceof Error ? error.message : "Source decoding failed"
+    }
+  } else {
+    extractionError="OPENAI_API_KEY is not configured in the production environment."
   }
 
   const sourceName=String(form.get("source_name")||"User-submitted source").trim().slice(0,200)
@@ -63,7 +87,7 @@ export async function POST(request:Request) {
     submitted_by:user.id,original_filename:name,mime_type:type,storage_path:path,
     source_kind:sourceKind,source_name:sourceName,source_url:sourceUrl||null,
     extracted_text:extractedText,status:"received",
-    metadata:{title,source_kind:sourceKind,submitted_via:"source_inbox"}
+    metadata:{title,source_kind:sourceKind,submitted_via:"source_inbox",decoder:"OpenAI vision",extraction_status:extractedText ? "decoded" : "failed"},\n    error:extractionError
   }).select("*").single()
   if(submissionError){
     await db.storage.from("wigod-knowledge").remove([path])
@@ -94,5 +118,5 @@ export async function POST(request:Request) {
   }
 
   await db.from("newsroom_source_submissions").update({status:"ready",newsroom_story_id:story.id,updated_at:new Date().toISOString()}).eq("id",submission.id)
-  return NextResponse.json({ok:true,submissionId:submission.id,story}, {status:201})
+  return NextResponse.json({ok:true,submissionId:submission.id,story,decoded:Boolean(extractedText),extractionError}, {status:201})
 }
