@@ -20,7 +20,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="mx-auto flex h-dvh w-full max-w-6xl overflow-hidden">
-      <div className="hidden h-dvh shrink-0 overflow-y-auto md:block">
+      <div className="hidden h-dvh w-[76px] shrink-0 overflow-y-auto md:block lg:w-64">
         <LeftSidebar profile={profile} unreadCount={unreadCount} />
       </div>
 
