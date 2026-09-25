@@ -3,11 +3,13 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { getSessionUser, searchProfiles } from "@/lib/queries"
 import { MessageCircle, User } from "lucide-react"
-import { MessageComposer } from "@/components/message-composer"\nimport { MessageAttachment } from "@/components/message-attachment"
+import { MessageComposer } from "@/components/message-composer"
+import { MessageAttachment } from "@/components/message-attachment"
 import { CallButton } from "@/components/call-button"
 import { IncomingCallListener } from "@/components/incoming-call-listener"
 
-type MessageRow={id:string;sender_id:string;recipient_id:string;content:string;created_at:string;read_at:string|null;attachment_id:string|null}\ntype AttachmentRow={id:string;message_id:string;file_name:string;mime_type:string;file_size:number}
+type MessageRow={id:string;sender_id:string;recipient_id:string;content:string;created_at:string;read_at:string|null;attachment_id:string|null}
+type AttachmentRow={id:string;message_id:string;file_name:string;mime_type:string;file_size:number}
 type ProfileRow={id:string;username:string;display_name:string|null;avatar_url:string|null}
 
 export default async function MessagesPage({searchParams}:{searchParams:Promise<{with?:string;q?:string}>}) {
@@ -16,7 +18,10 @@ export default async function MessagesPage({searchParams}:{searchParams:Promise<
  const searchTerm=params.q?.trim()??""
  const searchResults=searchTerm?(await searchProfiles(searchTerm)).filter(p=>p.id!==user.id):[]
  const {data:rows}=await supabase.from("messages").select("id,sender_id,recipient_id,content,created_at,read_at,attachment_id").or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`).order("created_at",{ascending:false}).limit(200)
- const messages=(rows as MessageRow[]|null)??[]\n const attachmentIds=Array.from(new Set(messages.map(m=>m.attachment_id).filter(Boolean))) as string[]\n const {data:attachments}=attachmentIds.length?await supabase.from("message_attachments").select("id,message_id,file_name,mime_type,file_size").in("id",attachmentIds):{data:[] as AttachmentRow[]}\n const attachmentByMessage=new Map<string,AttachmentRow>(); for(const a of (attachments as AttachmentRow[]|null)??[]) attachmentByMessage.set(a.message_id,a)
+ const messages=(rows as MessageRow[]|null)??[]
+ const attachmentIds=Array.from(new Set(messages.map(m=>m.attachment_id).filter(Boolean))) as string[]
+ const {data:attachments}=attachmentIds.length?await supabase.from("message_attachments").select("id,message_id,file_name,mime_type,file_size").in("id",attachmentIds):{data:[] as AttachmentRow[]}
+ const attachmentByMessage=new Map<string,AttachmentRow>(); for(const a of (attachments as AttachmentRow[]|null)??[]) attachmentByMessage.set(a.message_id,a)
  const ids=Array.from(new Set(messages.map(m=>m.sender_id===user.id?m.recipient_id:m.sender_id)))
  const {data:ps}=ids.length?await supabase.from("profiles").select("id,username,display_name,avatar_url").in("id",ids):{data:[] as ProfileRow[]}
  const byId=new Map<string,ProfileRow>(); for(const p of (ps as ProfileRow[]|null)??[]) byId.set(p.id,p)
