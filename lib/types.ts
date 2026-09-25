@@ -57,3 +57,6 @@ export type Comment = {
   created_at: string
   author: Profile
 }
+
+
+export type MessageRow = { id:string; sender_id:string; recipient_id:string; content:string; created_at:string; read_at:string|null; sender:Profile; recipient:Profile }
