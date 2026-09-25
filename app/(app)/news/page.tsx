@@ -7,7 +7,7 @@ export default async function NewsPage() {
   const { data: articles } = await supabase
     .from("newsroom_articles")
     .select("id,title,slug,dek,body_html,category,tags,featured_image_url,created_at")
-    .eq("website_status","ready")
+    .eq("website_status","published")
     .order("created_at",{ascending:false})
     .limit(30)
 
