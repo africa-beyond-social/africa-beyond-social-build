@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Heart, MessageCircle, Repeat2, Share, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
-import { toggleLike, toggleRepost, deletePost } from "@/lib/actions"
+import { toggleLike, toggleAmplify, deletePost } from "@/lib/actions"
 import { UserAvatar } from "@/components/user-avatar"
 import { PostContent } from "@/components/post-content"
 import { EditPostDialog } from "@/components/edit-post-dialog"
@@ -40,8 +40,8 @@ export function PostCard({
 
   const [liked, setLiked] = useState(post.liked_by_me)
   const [likeCount, setLikeCount] = useState(post.like_count)
-  const [reposted, setReposted] = useState(post.reposted_by_me)
-  const [repostCount, setRepostCount] = useState(post.repost_count)
+  const [amplified, setAmplifyed] = useState(post.amplified_by_me)
+  const [amplifyCount, setAmplifyCount] = useState(post.amplify_count)
   const [editing, setEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -72,20 +72,20 @@ export function PostCard({
     })
   }
 
-  function onRepost(e: React.MouseEvent) {
+  function onAmplify(e: React.MouseEvent) {
     e.stopPropagation()
     if (!requireAuth()) return
-    const next = !reposted
-    setReposted(next)
-    setRepostCount((c) => c + (next ? 1 : -1))
+    const next = !amplified
+    setAmplifyed(next)
+    setAmplifyCount((c) => c + (next ? 1 : -1))
     startTransition(async () => {
-      const res = await toggleRepost(post.id)
+      const res = await toggleAmplify(post.id)
       if (!res.ok) {
-        setReposted(!next)
-        setRepostCount((c) => c + (next ? -1 : 1))
+        setAmplifyed(!next)
+        setAmplifyCount((c) => c + (next ? -1 : 1))
         toast.error(res.error)
       } else if (next) {
-        toast.success("Reposted.")
+        toast.success("Amplified.")
       }
     })
   }
@@ -142,11 +142,11 @@ export function PostCard({
       </div>
 
       <div className="min-w-0 flex-1">
-        {post.reposted_by && (
+        {post.amplified_by && (
           <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
             <Repeat2 className="size-3.5" />
             <span>
-              {post.reposted_by.display_name ?? `@${post.reposted_by.username}`} reposted
+              {post.amplified_by.display_name ?? `@${post.amplified_by.username}`} amplified
             </span>
           </div>
         )}
@@ -239,19 +239,19 @@ export function PostCard({
           </button>
 
           <button
-            onClick={onRepost}
+            onClick={onAmplify}
             disabled={isPending}
             className={cn(
               "group flex items-center gap-1.5 text-sm transition-colors hover:text-brand-green",
-              reposted && "text-brand-green",
+              amplified && "text-brand-green",
             )}
-            aria-label={reposted ? "Undo repost" : "Repost"}
-            aria-pressed={reposted}
+            aria-label={amplified ? "Undo amplify" : "Amplify"}
+            aria-pressed={amplified}
           >
             <span className="flex size-8 items-center justify-center rounded-full transition-colors group-hover:bg-accent">
               <Repeat2 className="size-[1.15rem]" />
             </span>
-            <span className="tabular-nums">{formatCount(repostCount)}</span>
+            <span className="tabular-nums">{formatCount(amplifyCount)}</span>
           </button>
 
           <button
