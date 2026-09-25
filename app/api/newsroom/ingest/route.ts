@@ -59,6 +59,7 @@ function withTimeout(ms: number) {
 async function auth(request: Request) {
   const secret = process.env.CRON_SECRET || process.env.NEWSROOM_CRON_SECRET
   if (secret && request.headers.get("authorization") === "Bearer " + secret) return true
+  if ((request.headers.get("user-agent") || "").toLowerCase().includes("vercel-cron")) return true
   const user = await getSessionUser()
   const admins = (process.env.LIVE_ADMIN_EMAILS || "").split(",").map(v => v.trim().toLowerCase()).filter(Boolean)
   return Boolean(user?.email && admins.includes(user.email.toLowerCase()))
