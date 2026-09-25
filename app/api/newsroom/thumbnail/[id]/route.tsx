@@ -87,7 +87,7 @@ export async function GET(
 
   const { data: story, error } = await db
     .from("newsroom_stories")
-    .select("id,title,summary,image_url,category,story_type,source_name,detected_at")
+    .select("id,title,summary,image_url,story_type,source_name,detected_at")
     .eq("id", id)
     .maybeSingle()
 
@@ -115,7 +115,7 @@ export async function GET(
 
   const title = cleanText(story.title, "Africa & Beyond")
   const dek = cleanText(story.summary)
-  const category = cleanText(story.category, "News")
+  const category = cleanText((story as any).category, story.story_type || "News")
   const storyType = cleanText(story.story_type, "news")
   const label = storyLabel(category, storyType)
   const titleLines = wrapText(title, title.length > 85 ? 31 : 37, 3)
