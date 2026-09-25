@@ -6,7 +6,7 @@ import { buildNavItems } from "@/components/nav-items"
 import { ComposeDialog } from "@/components/compose-dialog"
 import { cn } from "@/lib/utils"
 import type { Profile } from "@/lib/types"
-import { Feather, Store, Megaphone, Clapperboard, MapPin, Menu, Newspaper, Library, Users, Bell, Mail, Bookmark, User, Settings, HelpCircle, Shield } from "lucide-react"
+import { Feather, Store, Megaphone, Clapperboard, MapPin } from "lucide-react"
 import { BrandMark } from "@/components/brand-logo"
 import {
   DropdownMenu,
@@ -32,34 +32,6 @@ export function MobileNav({ profile, unreadCount }: { profile: Profile | null; u
           <Feather className="size-6" />
         </button>
       </ComposeDialog>
-
-      <DropdownMenu>
-        <DropdownMenuTrigger aria-label="Open WIGOD navigation" className="fixed right-3 top-3 z-50 flex size-11 items-center justify-center rounded-full border border-border bg-background/95 shadow-sm backdrop-blur md:hidden">
-          <Menu className="size-6" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="w-64 p-2">
-          <DropdownMenuLabel className="px-2 py-2 font-bold text-foreground">WIGOD NAVIGATION</DropdownMenuLabel>
-          <DropdownMenuItem render={<Link href="/" />}><MapPin className="size-4" />Home</DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/explore" />}><MapPin className="size-4" />Explore</DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/news" />}><Newspaper className="size-4" />News</DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/media" />}><Clapperboard className="size-4" />Media</DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/community" />}><Users className="size-4" />Community</DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/live" />}><MapPin className="size-4" />Live</DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/newsroom" />}><Newspaper className="size-4" />Newsroom</DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/knowledge" />}><Library className="size-4" />Knowledge</DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/notifications" />}><Bell className="size-4" />Notifications</DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/messages" />}><Mail className="size-4" />Messages</DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/bookmarks" />}><Bookmark className="size-4" />Bookmarks</DropdownMenuItem>
-          <DropdownMenuItem render={<Link href={profile ? `/profile/${profile.username}` : "/auth/login"} />}><User className="size-4" />Profile</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem render={<Link href="/marketplace" />}><Store className="size-4" />Marketplace</DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/advertise" />}><Megaphone className="size-4" />Advertise</DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/live/studio" />}><Clapperboard className="size-4" />Creator Studio</DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/explore" />}><Settings className="size-4" />Settings & more</DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/help" />}><HelpCircle className="size-4" />Help & Support</DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/privacy" />}><Shield className="size-4" />Privacy & Safety</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
 
       <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         {primaryItems.map((item) => {
