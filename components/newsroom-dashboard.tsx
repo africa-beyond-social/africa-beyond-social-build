@@ -62,6 +62,9 @@ export function NewsroomDashboard() {
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
   const [automationRuns, setAutomationRuns] = useState<any[]>([])
   const [automationBusy, setAutomationBusy] = useState(false)
+  const latestRun = automationRuns[0]
+  const healthySources = sourceHealth.filter((s) => !s.last_error && s.active !== false).length
+  const failedSources = sourceHealth.filter((s) => Boolean(s.last_error)).length
 
   async function loadNewsroom() {
     try {
@@ -224,6 +227,12 @@ export function NewsroomDashboard() {
             <RefreshCw className={`size-3.5 ${automationBusy ? "animate-spin" : ""}`} /> {automationBusy ? "Engine running…" : "Run engine now"}
           </button>
         </div>
+        <div className="mt-4 grid gap-2 sm:grid-cols-4">
+          <div className="rounded-xl border border-border bg-background/70 p-3"><p className="text-[10px] font-semibold text-muted-foreground">LAST RUN</p><p className="mt-1 text-sm font-bold">{latestRun?.status === "completed" ? "Healthy" : latestRun?.status === "failed" ? "Failed" : "Running"}</p><p className="mt-1 text-[10px] text-muted-foreground">{latestRun?.completed_at ? new Date(latestRun.completed_at).toLocaleTimeString() : "Waiting"}</p></div>
+          <div className="rounded-xl border border-border bg-background/70 p-3"><p className="text-[10px] font-semibold text-muted-foreground">VERIFIED</p><p className="mt-1 text-sm font-bold">{latestRun?.stories_verified ?? 0}</p><p className="mt-1 text-[10px] text-muted-foreground">latest cycle</p></div>
+          <div className="rounded-xl border border-border bg-background/70 p-3"><p className="text-[10px] font-semibold text-muted-foreground">ARTICLES READY</p><p className="mt-1 text-sm font-bold">{latestRun?.articles_ready ?? 0}</p><p className="mt-1 text-[10px] text-muted-foreground">latest cycle</p></div>
+          <div className="rounded-xl border border-border bg-background/70 p-3"><p className="text-[10px] font-semibold text-muted-foreground">SOURCE HEALTH</p><p className="mt-1 text-sm font-bold">{healthySources}/{sourceHealth.length}</p><p className="mt-1 text-[10px] text-muted-foreground">{failedSources ? failedSources + " source errors" : "No source errors"}</p></div>
+        </div>
         <div className="mt-4 space-y-2">
           {automationRuns.slice(0, 5).map((run) => (
             <div key={run.id} className="rounded-xl border border-border bg-background/70 p-3">
@@ -242,11 +251,13 @@ export function NewsroomDashboard() {
         </div>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {[
           ["Incoming", stories.filter((s) => s.status === "NEW").length, Activity],
           ["Verifying", stories.filter((s) => s.status === "VERIFYING").length, ShieldCheck],
           ["For review", stories.filter((s) => s.status === "REVIEW").length, FileText],
+          ["Held", stories.filter((s) => s.status === "HELD").length, XCircle],
+          ["Sources healthy", healthySources, Globe2],
         ].map(([label, value, Icon]) => (
           <div key={String(label)} className="rounded-2xl border border-border bg-card p-4">
             <div className="flex items-center justify-between">
@@ -373,7 +384,7 @@ export function NewsroomDashboard() {
       <section className="grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center gap-2"><Sparkles className="size-5 text-brand-green" /><h2 className="font-bold">Newsroom AI</h2></div>
-          <p className="mt-2 text-sm text-muted-foreground">Verification and AI drafting now run through the newsroom engine. Publication remains behind an editorial safety gate while that gate is being built.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Verification and AI drafting now run through the newsroom engine. Verified stories can publish automatically when the editorial safety gate passes; exceptions remain available for human review.</p>
           <div className="mt-4 space-y-2 text-xs text-muted-foreground">
             <p className="flex items-center gap-2"><CheckCircle2 className="size-4 text-brand-green" /> Attribution preserved</p>
             <p className="flex items-center gap-2"><CheckCircle2 className="size-4 text-brand-green" /> Conflicting sources surfaced</p>
@@ -382,7 +393,7 @@ export function NewsroomDashboard() {
         </div>
         <div className="rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center gap-2"><Radio className="size-5 text-brand-red" /><h2 className="font-bold">Editorial Review</h2></div>
-          <p className="mt-2 text-sm text-muted-foreground">Auto-ready stories are prepared into REVIEW. Only exceptions and final safety decisions should require your attention.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Verified stories publish automatically when the safety gate passes. Only exceptions, held stories and editorial flags should require your attention.</p>
           <div className="mt-4 grid grid-cols-2 gap-2">
             <div className="rounded-xl bg-secondary p-3"><Clock3 className="size-4" /><p className="mt-1 text-xs font-semibold">Review queue</p></div>
             <div className="rounded-xl bg-secondary p-3"><XCircle className="size-4" /><p className="mt-1 text-xs font-semibold">Held stories</p></div>
