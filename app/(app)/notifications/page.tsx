@@ -10,7 +10,8 @@ import type { NotificationRow } from "@/lib/types"
 import { ClickableNotification } from "@/components/clickable-notification"
 
 const CONFIG = {
-  message: { icon: MessageCircle, color: "text-brand-green", verb: "sent you a message" },\n  follow: { icon: UserPlus, color: "text-brand-green", verb: "followed you" },
+  message: { icon: MessageCircle, color: "text-brand-green", verb: "sent you a message" },
+  follow: { icon: UserPlus, color: "text-brand-green", verb: "followed you" },
   like: { icon: Heart, color: "text-brand-red", verb: "liked your post" },
   reply: { icon: MessageCircle, color: "text-brand-green", verb: "replied to your post" },
   repost: { icon: Repeat2, color: "text-brand-green", verb: "reposted your post" },
