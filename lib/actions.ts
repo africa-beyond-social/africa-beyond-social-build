@@ -219,6 +219,23 @@ export async function createReply(postId: string, content: string): Promise<Acti
   return { ok: true }
 }
 
+export async function toggleSave(postId: string): Promise<ActionResult> {
+  const userId = await getUserId()
+  if (!userId) return { ok: false, error: "You must be signed in." }
+  const supabase = await createClient()
+  const { data: existing } = await supabase.from("saved_posts").select("post_id").eq("post_id", postId).eq("user_id", userId).maybeSingle()
+  if (existing) {
+    const { error } = await supabase.from("saved_posts").delete().eq("post_id", postId).eq("user_id", userId)
+    if (error) return { ok: false, error: error.message }
+  } else {
+    const { error } = await supabase.from("saved_posts").insert({ post_id: postId, user_id: userId })
+    if (error) return { ok: false, error: error.message }
+  }
+  revalidatePath("/")
+  revalidatePath("/memory")
+  return { ok: true }
+}
+
 export async function toggleFollow(targetUserId: string): Promise<ActionResult> {
   const userId = await getUserId()
   if (!userId) return { ok: false, error: "You must be signed in." }
