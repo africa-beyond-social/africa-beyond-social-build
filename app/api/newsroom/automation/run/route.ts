@@ -135,7 +135,7 @@ ${material}`)
       drafted++; articlesReady++
       await logRun(db,run.id,{story_id:story.id,step:"automated_review",message:`Article passed production checks: ${title}`,stories_drafted:drafted,articles_ready:articlesReady})
       const cleanText=String(saved.body_html||"")
-      const safeForAutoPublish=Number(story.verification_score||0)>=60&&Number(story.independent_source_count||0)>=2&&(story.verification_class==="unverified"||story.verification_class==="official_statement")&&cleanText.includes("Africa &amp; Beyond — News | Analysis | Perspective")
+      const safeForAutoPublish=Number(story.verification_score||0)>=60&&Number(story.independent_source_count||0)>=2&&(story.verification_class==="unverified"||story.verification_class==="official_statement")&&(cleanText.includes("Africa &amp; Beyond — News | Analysis | Perspective")||cleanText.includes("Africa & Beyond — News | Analysis | Perspective"))
       if(!safeForAutoPublish){
         await db.from("newsroom_stories").update({status:"review",updated_at:new Date().toISOString()}).eq("id",story.id)
         continue
