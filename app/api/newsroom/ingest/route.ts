@@ -203,4 +203,5 @@ export async function GET(request: Request) {
 }
 
 // Phase 1 deployment trigger: keep source ingestion fixes on the production deployment path.
+// Production deployment trigger: corrected bounded ingestion is ready for the Pro deployment pipeline.
 // Force Vercel to pick up the corrected main-branch ingestion implementation.
