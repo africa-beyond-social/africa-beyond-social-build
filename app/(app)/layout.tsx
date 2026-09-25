@@ -19,12 +19,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   ])
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-6xl overflow-x-hidden">
-      <LeftSidebar profile={profile} unreadCount={unreadCount} />
-      <div className="flex min-h-dvh w-full min-w-0 flex-1 flex-col border-border md:border-x">
-        <MobileHeader profile={profile} />
-        <main className="min-h-0 flex-1 pb-24 md:pb-10">{children}</main>
+    <div className="mx-auto flex h-dvh w-full max-w-6xl overflow-hidden">
+      <div className="hidden h-dvh shrink-0 overflow-y-auto md:block">
+        <LeftSidebar profile={profile} unreadCount={unreadCount} />
       </div>
+
+      <div className="flex h-dvh min-w-0 flex-1 flex-col border-border md:border-x">
+        <MobileHeader profile={profile} />
+        <main className="min-h-0 flex-1 overflow-y-auto pb-24 md:pb-10">{children}</main>
+      </div>
+
       <MobileNav profile={profile} unreadCount={unreadCount} />
       <Toaster position="top-center" />
     </div>
