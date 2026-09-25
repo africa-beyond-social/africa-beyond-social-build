@@ -115,7 +115,12 @@ export async function POST(request:Request) {
     for(const story of candidates||[]) {
       await logRun(db,run.id,{story_id:story.id,step:"ai_drafting",message:`Producing article: ${story.title}`,stories_verified:verifiedCount,stories_drafted:drafted,articles_ready:articlesReady})
       const {data:evidence}=await db.from("newsroom_evidence").select("source_name,source_url,title,published_at,summary,content_text,relation,notes").eq("story_id",story.id).order("created_at",{ascending:true}).limit(20)
-      const sourceRows=[{source_name:story.source_name,source_url:story.canonical_url||story.source_url,title:story.title,published_at:story.published_at,summary:story.summary,content_text:story.content_text,relation:"primary"},...(evidence||[])]
+      const {data:related}=await db.rpc("get_newsroom_related_sources",{p_story_id:story.id})
+      const sourceRows=[
+        {source_name:story.source_name,source_url:story.canonical_url||story.source_url,title:story.title,published_at:story.published_at,summary:story.summary,content_text:story.content_text,relation:"primary"},
+        ...(evidence||[]),
+        ...(related||[]),
+      ].filter((item:any,index:number,array:any[])=>index===array.findIndex((x:any)=>String(x.source_url||"")===String(item.source_url||"") && String(x.title||"")===String(item.title||"")))
       const material=sourceRows.map((x:any)=>JSON.stringify(x)).join("\n")
       let article:any
       try {
