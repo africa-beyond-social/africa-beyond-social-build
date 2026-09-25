@@ -238,7 +238,7 @@ export async function getReplies(postId: string): Promise<Comment[]> {
   const supabase = await createClient()
   const { data: comments } = await supabase
     .from("comments")
-    .select("id, user_id, post_id, content, created_at")
+    .select("id, user_id, post_id, content, created_at, attachment_url, attachment_type, attachment_name")
     .eq("post_id", postId)
     .order("created_at", { ascending: true })
 
