@@ -4,9 +4,9 @@ import { getSessionUser } from "@/lib/queries"
 
 export const maxDuration = 25
 
-const SOURCE_TIMEOUT_MS = 5000
-const SOURCE_BATCH_SIZE = 4
-const MAX_ITEMS_PER_SOURCE = 15
+const SOURCE_TIMEOUT_MS = 3500
+const SOURCE_BATCH_SIZE = 2
+const MAX_ITEMS_PER_SOURCE = 10
 const LOOKBACK_MS = 48 * 60 * 60 * 1000
 
 function strip(value: string) {
