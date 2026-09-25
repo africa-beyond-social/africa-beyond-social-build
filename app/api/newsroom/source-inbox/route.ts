@@ -41,7 +41,19 @@ export async function POST(request:Request) {
 
   const sourceKind=kind(type,name)
   let extractedText:string|null=null
-  if(type==="text/plain" || type==="text/markdown" || /\.(txt|md|markdown)$/i.test(name)) extractedText=(await file.text()).slice(0,120000)
+  if(type==="text/plain" || type==="text/markdown" || /\.(txt|md|markdown)$/i.test(name)) {
+    extractedText=(await file.text()).slice(0,120000)
+  } else if (process.env.OPENAI_API_KEY) {
+    const bytes=Buffer.from(await file.arrayBuffer())
+    const base64=bytes.toString("base64")
+    const model=process.env.OPENAI_MODEL || "gpt-4.1-mini"
+    const content = sourceKind==="image"
+      ? [{type:"input_text",text:"Read this submitted newsroom source carefully. Extract all legible text and factual details. Preserve names, dates, places, numbers, quotations, account/page names and visible URLs. Return only the extracted source text and no invented information."},{type:"input_image",image_url:`data:${type};base64,${base64}`}]
+      : [{type:"input_text",text:"Read this submitted newsroom document carefully. Extract the substantive text and factual details, preserving names, dates, places, numbers, quotations, document titles and visible source information. Return only extracted source material and do not invent anything."},{type:"input_file",filename:name,file_data:`data:${type};base64,${base64}`}]
+    const ai=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"content-type":"application/json",authorization:`Bearer ${process.env.OPENAI_API_KEY}`},body:JSON.stringify({model,input:[{role:"user",content}],max_output_tokens:12000})})
+    const data=await ai.json().catch(()=>({}))
+    if(ai.ok) extractedText=String(data.output_text||"").slice(0,120000) || null
+  }
 
   const sourceName=String(form.get("source_name")||"User-submitted source").trim().slice(0,200)
   const sourceUrl=String(form.get("source_url")||"").trim().slice(0,1000)
