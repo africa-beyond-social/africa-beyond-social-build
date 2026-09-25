@@ -108,7 +108,7 @@ export async function POST(request:Request) {
     const verifiedCount=Number(verificationResult?.automated_review_ready||0)
     await logRun(db,run.id,{stories_verified:verifiedCount,step:"article_production",message:`${verifiedCount} stories passed the automated verification gate.`})
 
-    const {data:candidates,error:candidateError}=await db.from("newsroom_stories").select("*").eq("automated_review_ready",true).is("ai_draft",null).in("status",["new","review","draft"]).order("published_at",{ascending:false}).limit(4)
+    const cutoff48h=new Date(Date.now()-48*60*60*1000).toISOString()\n    // Draft newly detected stories even when they have not yet reached the automatic-publish threshold.\n    // The editorial quality gate and safeForAutoPublish check decide whether they publish or go to review.\n    const {data:candidates,error:candidateError}=await db.from("newsroom_stories").select("*").is("ai_draft",null).in("status",["new","review","draft"]).gte("detected_at",cutoff48h).order("published_at",{ascending:false,nullsFirst:false}).order("detected_at",{ascending:false}).limit(4)
     if(candidateError)throw new Error(candidateError.message)
     let drafted=0,articlesReady=0,published=0
     // Production build fix: the publication counter must remain mutable during automated distribution.
@@ -185,7 +185,7 @@ ${material}`)
         seo_title:String(article.seo_title||title).trim(),seo_description:String(article.seo_description||article.dek||story.summary||"").trim(),
         category:String(article.category||"News").trim(),tags:Array.isArray(article.tags)?article.tags:[],
         featured_image_url:story.image_url||null,source_box:sourceRows.map((s:any)=>({name:s.source_name,url:s.source_url,title:s.title,relation:s.relation})),
-        focus_areas:Array.isArray(story.focus_areas)?story.focus_areas:[],editorial_notes:"Automated verification gate passed.",live_summary:String(article.live_summary||article.dek||story.summary||"").trim(),
+        focus_areas:Array.isArray(story.focus_areas)?story.focus_areas:[],editorial_notes:story.automated_review_ready ? "Automated verification gate passed." : "AI draft prepared from detected source material; publication remains subject to corroboration and editorial review.",live_summary:String(article.live_summary||article.dek||story.summary||"").trim(),
         live_watchpoints:Array.isArray(article.live_watchpoints)
           ? article.live_watchpoints.map((item:any)=>String(item||"").trim()).filter(Boolean).slice(0,8)
           : (Array.isArray(story.editorial_watchpoints)?story.editorial_watchpoints:[]),signature:"Africa & Beyond — News | Analysis | Perspective",
