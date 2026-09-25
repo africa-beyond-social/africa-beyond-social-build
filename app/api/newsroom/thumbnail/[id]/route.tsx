@@ -120,7 +120,18 @@ export async function GET(
   const label = storyLabel(category, storyType)
   const titleLines = wrapText(title, title.length > 85 ? 31 : 37, 3)
   const dekLines = wrapText(dek, 74, 2)
-  const sourceImage = await imageAsDataUri(story.image_url || null)
+  let sourceImage = await imageAsDataUri(story.image_url || null)
+  if (!sourceImage) {
+    const { data: submission } = await db
+      .from("newsroom_source_submissions")
+      .select("storage_path,mime_type")
+      .eq("newsroom_story_id", id)
+      .maybeSingle()
+    if (submission?.storage_path && /^image\/(png|jpeg|jpg|webp)$/i.test(String(submission.mime_type || ""))) {
+      const signed = await db.storage.from("wigod-knowledge").createSignedUrl(submission.storage_path, 300)
+      if (!signed.error && signed.data?.signedUrl) sourceImage = await imageAsDataUri(signed.data.signedUrl)
+    }
+  }
 
   return new ImageResponse(
     (
