@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { CalendarDays } from "lucide-react"
+import { CalendarDays, MessageCircle } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { FeedList, EmptyState } from "@/components/feed-list"
 import { UserAvatar } from "@/components/user-avatar"
@@ -43,7 +43,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           {isSelf ? (
             <EditProfileDialog profile={profile} />
           ) : currentUserId ? (
-            <FollowButton targetUserId={profile.id} initialFollowing={stats.isFollowing} />
+            <div className="flex items-center gap-2">
+              <Link href={`/messages?with=${encodeURIComponent(profile.username)}`} className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-semibold hover:bg-secondary">
+                <MessageCircle className="size-4" />
+                Message
+              </Link>
+              <FollowButton targetUserId={profile.id} initialFollowing={stats.isFollowing} />
+            </div>
           ) : null}
         </div>
 
