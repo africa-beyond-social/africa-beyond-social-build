@@ -45,9 +45,9 @@ async function callOpenAI(prompt:string) {
       additionalProperties:false,
       properties:{
         title:{type:"string"},dek:{type:"string"},body_html:{type:"string"},seo_title:{type:"string"},seo_description:{type:"string"},
-        category:{type:"string"},tags:{type:"array",items:{type:"string"}}
+        category:{type:"string"},tags:{type:"array",items:{type:"string"}},live_summary:{type:"string"},live_watchpoints:{type:"array",items:{type:"string"}}
       },
-      required:["title","dek","body_html","seo_title","seo_description","category","tags"]
+      required:["title","dek","body_html","seo_title","seo_description","category","tags","live_summary","live_watchpoints"]
     }}}
   })})
   const data=await response.json()
@@ -141,8 +141,8 @@ NON-NEGOTIABLE EDITORIAL RULES:
 12. Use a factual Africa-focused newsroom voice: professional, clear, direct and readable. Do not write like a press release.
 13. Standard articles should normally be 350-900 words. If the source only supports a brief, write a concise brief and let the quality gate route it for editorial review.
 14. Allowed HTML: p,h2,ul,li,strong,em,blockquote.
-15. Do not include a bibliography or sources list inside the narrative; the newsroom appends a separate Sources box.
-16. End with <p><strong>Africa &amp; Beyond — News | Analysis | Perspective</strong></p>.
+15. Do not include a bibliography, source list, citation list, or "Sources" box in the published article. Source material is for verification and editorial development; the public article must read as a fully developed newsroom report.\n16. For Zimbabwe government, ministries, state-owned entities and public officials, do not simply reproduce official statements or promotional claims. Independently scrutinise stated claims against available evidence, budgets, laws, implementation, outcomes, timelines, affected communities and credible alternative views. Ask what is missing, what has changed, who is affected and whether promises have been delivered. Give the government or official body a fair opportunity to respond where a material criticism or disputed claim is reported. Apply the same accountability standard to all governments, parties, corporations and powerful institutions.\n17. Develop the story beyond the originating source when the verified material supports it: combine corroborating reports, primary documents, historical context, relevant data, affected voices and official responses. Never add unsupported context merely to make an article longer.\n18. Produce live-ready material: live_summary should be a concise presenter briefing; live_watchpoints should identify the specific facts, unanswered questions, developments or official responses that a live presenter should watch.
+19. End with <p><strong>Africa &amp; Beyond — News | Analysis | Perspective</strong></p>.
 
 ARTICLE STRUCTURE:
 - Strong factual headline, not clickbait.
@@ -165,7 +165,7 @@ ${material}`)
         continue
       }
       const narrative=String(article.body_html||"").replace(/<p><strong>Africa &amp; Beyond — News \| Analysis \| Perspective<\/strong><\/p>\s*$/,"").trim()
-      const finalBody=(narrative+"\n"+sourceBox(sourceRows)+"\n<p><strong>Africa &amp; Beyond — News | Analysis | Perspective</strong></p>").trim()
+      const finalBody=(narrative+"\n<p><strong>Africa &amp; Beyond — News | Analysis | Perspective</strong></p>").trim()
       const quality=editorialQuality(narrative,material)
       const title=String(article.title||story.title).trim()
       const record={
