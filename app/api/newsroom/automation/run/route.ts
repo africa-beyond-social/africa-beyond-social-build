@@ -52,9 +52,9 @@ async function callOpenAI(prompt:string) {
   })})
   const data=await response.json()
   if(!response.ok) throw new Error(data?.error?.message||`AI service returned HTTP ${response.status}`)
-  const output=String(data.output_text||"").trim()
+  const output=String(data.output_text||"").trim() || (Array.isArray(data.output) ? data.output.flatMap((item:any)=>Array.isArray(item?.content)?item.content:[]).map((part:any)=>String(part?.text||"")).filter(Boolean).join("").trim() : "")
   if(!output) throw new Error("AI returned no structured article")
-  return JSON.parse(output)
+  try { return JSON.parse(output) } catch { throw new Error("AI returned invalid structured article JSON") }
 }
 async function logRun(db:any,id:string,patch:Record<string,any>) { await db.from("newsroom_automation_runs").update(patch).eq("id",id) }
 
@@ -103,13 +103,21 @@ export async function POST(request:Request) {
       const {data:evidence}=await db.from("newsroom_evidence").select("source_name,source_url,title,published_at,summary,content_text,relation,notes").eq("story_id",story.id).order("created_at",{ascending:true}).limit(20)
       const sourceRows=[{source_name:story.source_name,source_url:story.canonical_url||story.source_url,title:story.title,published_at:story.published_at,summary:story.summary,content_text:story.content_text,relation:"primary"},...(evidence||[])]
       const material=sourceRows.map((x:any)=>JSON.stringify(x)).join("\n")
-      const article=await callOpenAI(`You are the Africa & Beyond newsroom production engine. Write only from the supplied material. Never invent facts, quotes, dates, people, motives or context. Preserve attribution and uncertainty. Allegations must remain allegations. Do not put a bibliography in the narrative. Return a clean news article with a strong factual headline, dek, concise opening, factual development, context and next steps only where supported. body_html may use p,h2,ul,li,strong,em,blockquote. It MUST end with <p><strong>Africa &amp; Beyond — News | Analysis | Perspective</strong></p>.
+      let article:any
+      try {
+        article=await callOpenAI(`You are the Africa & Beyond newsroom production engine. Write only from the supplied material. Never invent facts, quotes, dates, people, motives or context. Preserve attribution and uncertainty. Allegations must remain allegations. Do not put a bibliography in the narrative. Return a clean news article with a strong factual headline, dek, concise opening, factual development, context and next steps only where supported. body_html may use p,h2,ul,li,strong,em,blockquote. It MUST end with <p><strong>Africa &amp; Beyond — News | Analysis | Perspective</strong></p>.
 
 ORIGINAL STORY:
 ${story.title}
 
 SOURCE MATERIAL:
 ${material}`)
+      } catch(error) {
+        const message=error instanceof Error?error.message:"AI drafting failed"
+        await db.from("newsroom_stories").update({status:"review",updated_at:new Date().toISOString()}).eq("id",story.id)
+        await logRun(db,run.id,{story_id:story.id,step:"editorial_review",message:`AI drafting failed; routed to editorial review: ${message}`,stories_drafted:drafted,articles_ready:articlesReady,error:message})
+        continue
+      }
       const narrative=String(article.body_html||"").replace(/<p><strong>Africa &amp; Beyond — News \| Analysis \| Perspective<\/strong><\/p>\s*$/,"").trim()
       const finalBody=(narrative+"\n"+sourceBox(sourceRows)+"\n<p><strong>Africa &amp; Beyond — News | Analysis | Perspective</strong></p>").trim()
       const title=String(article.title||story.title).trim()
@@ -139,7 +147,7 @@ ${material}`)
       const x=(title+" "+publishedUrl).slice(0,280)
       const fb=`${title}\n\n${String(article.dek||story.summary||"").trim()}\n\n${publishedUrl}`.trim()
       const tt=`${title} — ${publishedUrl} #AfricaAndBeyond #News`
-      await db.from("newsroom_articles").update({website_status:"published",website_post_id:ghostPublished.postId,website_url:published.url,website_published_at:new Date().toISOString(),social_x:x,social_facebook:fb,social_tiktok:tt,social_status:"generated",updated_at:new Date().toISOString()}).eq("id",saved.id)
+      await db.from("newsroom_articles").update({website_status:"published",website_post_id:ghostPublished.postId,website_url:publishedUrl,website_published_at:new Date().toISOString(),social_x:x,social_facebook:fb,social_tiktok:tt,social_status:"generated",updated_at:new Date().toISOString()}).eq("id",saved.id)
       await db.from("newsroom_stories").update({status:"published",updated_at:new Date().toISOString()}).eq("id",story.id)
       published++
       await logRun(db,run.id,{story_id:story.id,step:"distribution_ready",message:`Published and prepared social distribution: ${publishedUrl}`,stories_drafted:drafted,articles_ready:articlesReady})
