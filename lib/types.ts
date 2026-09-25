@@ -55,6 +55,9 @@ export type Comment = {
   post_id: string
   content: string
   created_at: string
+  attachment_url?: string | null
+  attachment_type?: string | null
+  attachment_name?: string | null
   author: Profile
 }
 
