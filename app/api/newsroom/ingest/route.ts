@@ -2,10 +2,11 @@ import { NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { getSessionUser } from "@/lib/queries"
 
-export const maxDuration = 120
+export const maxDuration = 25
 
-const SOURCE_TIMEOUT_MS = 8000
-const MAX_ITEMS_PER_SOURCE = 25
+const SOURCE_TIMEOUT_MS = 5000
+const SOURCE_BATCH_SIZE = 4
+const MAX_ITEMS_PER_SOURCE = 15
 const LOOKBACK_MS = 48 * 60 * 60 * 1000
 
 function strip(value: string) {
@@ -73,12 +74,17 @@ export async function GET(request: Request) {
     .eq("active", true)
     .in("source_type", ["rss", "google_news"])
     .eq("monitoring_enabled", true)
+    .order("last_checked_at", { ascending: true, nullsFirst: true })
+    .limit(SOURCE_BATCH_SIZE)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const now = Date.now()
   const cutoff = now - LOOKBACK_MS
 
+  // Process only the least-recently checked sources on each run. This keeps the cron
+  // invocation safely below the platform runtime ceiling while rotating through the
+  // complete source list over successive five-minute runs.
   const results = await Promise.allSettled((sources ?? []).map(async (source) => {
     const checkedAt = new Date().toISOString()
     const timer = withTimeout(SOURCE_TIMEOUT_MS)
@@ -188,6 +194,7 @@ export async function GET(request: Request) {
     failed,
     durationProtection: {
       perSourceTimeoutSeconds: SOURCE_TIMEOUT_MS / 1000,
+      sourceBatchSize: SOURCE_BATCH_SIZE,
       maxItemsPerSource: MAX_ITEMS_PER_SOURCE,
       lookbackHours: 48,
     },
