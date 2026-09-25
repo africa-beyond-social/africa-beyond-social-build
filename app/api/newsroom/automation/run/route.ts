@@ -108,7 +108,10 @@ export async function POST(request:Request) {
     const verifiedCount=Number(verificationResult?.automated_review_ready||0)
     await logRun(db,run.id,{stories_verified:verifiedCount,step:"article_production",message:`${verifiedCount} stories passed the automated verification gate.`})
 
-    const cutoff48h=new Date(Date.now()-48*60*60*1000).toISOString()\n    // Draft newly detected stories even when they have not yet reached the automatic-publish threshold.\n    // The editorial quality gate and safeForAutoPublish check decide whether they publish or go to review.\n    const {data:candidates,error:candidateError}=await db.from("newsroom_stories").select("*").is("ai_draft",null).in("status",["new","review","draft"]).gte("detected_at",cutoff48h).order("published_at",{ascending:false,nullsFirst:false}).order("detected_at",{ascending:false}).limit(4)
+    const cutoff48h=new Date(Date.now()-48*60*60*1000).toISOString()
+    // Draft newly detected stories even when they have not yet reached the automatic-publish threshold.
+    // The editorial quality gate and safeForAutoPublish check decide whether they publish or go to review.
+    const {data:candidates,error:candidateError}=await db.from("newsroom_stories").select("*").is("ai_draft",null).in("status",["new","review","draft"]).gte("detected_at",cutoff48h).order("published_at",{ascending:false,nullsFirst:false}).order("detected_at",{ascending:false}).limit(4)
     if(candidateError)throw new Error(candidateError.message)
     let drafted=0,articlesReady=0,published=0
     // Production build fix: the publication counter must remain mutable during automated distribution.
