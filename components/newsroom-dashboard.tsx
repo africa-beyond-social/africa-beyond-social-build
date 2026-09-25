@@ -63,6 +63,7 @@ export function NewsroomDashboard() {
   const [automationRuns, setAutomationRuns] = useState<any[]>([])
   const [articles, setArticles] = useState<any[]>([])
   const [automationBusy, setAutomationBusy] = useState(false)
+  const [queueAction, setQueueAction] = useState<string | null>(null)
   const latestRun = automationRuns[0]
   const healthySources = sourceHealth.filter((s) => !s.last_error && s.active !== false).length
   const failedSources = sourceHealth.filter((s) => Boolean(s.last_error)).length
@@ -195,9 +196,40 @@ export function NewsroomDashboard() {
   async function advance(id: string) {
     const current = stories.find((s) => s.id === id)
     if (!current) return
-    const next = current.status === "NEW" ? "verifying" : current.status === "VERIFYING" ? "draft" : "review"
-    const response = await fetch("/api/newsroom/stories", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, status: next }) })
-    if (response.ok) await loadNewsroom()
+    setQueueAction(id)
+    setSourceError("")
+    try {
+      if (current.status === "NEW") {
+        const response = await fetch("/api/newsroom/verify", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ id }),
+        })
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(data.error || "Verification failed")
+      } else if (current.status === "VERIFYING") {
+        const response = await fetch("/api/newsroom/ai-draft", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ id }),
+        })
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(data.error || "AI draft generation failed")
+      } else if (current.status === "DRAFT") {
+        const response = await fetch("/api/newsroom/story", {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ id, status: "review" }),
+        })
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(data.error || "Unable to send story to review")
+      }
+      await loadNewsroom()
+    } catch (error) {
+      setSourceError(error instanceof Error ? error.message : "Unable to advance newsroom story")
+    } finally {
+      setQueueAction(null)
+    }
   }
 
   async function loadDesk() {
@@ -367,12 +399,12 @@ export function NewsroomDashboard() {
                 </div>
                 <div className="flex shrink-0 gap-2">
                   {story.status !== "REVIEW" && story.status !== "HELD" && (
-                    <button onClick={() => advance(story.id)} className="rounded-full bg-brand-green px-3 py-2 text-xs font-semibold text-white">
-                      {story.status === "NEW" ? "Verify" : story.status === "VERIFYING" ? "Prepare draft" : "Send to review"}
+                    <button onClick={(e) => { e.stopPropagation(); advance(story.id) }} disabled={queueAction === story.id} className="rounded-full bg-brand-green px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">
+                      {queueAction === story.id ? "Working…" : story.status === "NEW" ? "Verify" : story.status === "VERIFYING" ? "Generate draft" : "Send to review"}
                     </button>
                   )}
                   {story.status !== "HELD" && (
-                    <button onClick={() => hold(story.id)} className="rounded-full border border-border px-3 py-2 text-xs font-semibold">
+                    <button onClick={(e) => { e.stopPropagation(); hold(story.id) }} className="rounded-full border border-border px-3 py-2 text-xs font-semibold">
                       Hold
                     </button>
                   )}
