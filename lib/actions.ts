@@ -292,3 +292,10 @@ export async function markNotificationsRead(): Promise<ActionResult> {
   revalidatePath("/notifications")
   return { ok: true }
 }
+
+
+export async function sendMessage(recipientId:string, content:string):Promise<ActionResult>{const trimmed=content.trim();if(!trimmed)return{ok:false,error:"Message cannot be empty."};if(trimmed.length>2000)return{ok:false,error:"Message is limited to 2000 characters."};const userId=await getUserId();if(!userId)return{ok:false,error:"You must be signed in."};if(userId===recipientId)return{ok:false,error:"You cannot message yourself."};const supabase=await createClient();const{error}=await supabase.from("messages").insert({sender_id:userId,recipient_id:recipientId,content:trimmed});if(error)return{ok:false,error:error.message};revalidatePath("/messages");return{ok:true}}
+
+export async function markConversationRead(otherUserId:string):Promise<ActionResult>{const userId=await getUserId();if(!userId)return{ok:false,error:"You must be signed in."};const supabase=await createClient();const{error}=await supabase.from("messages").update({read_at:new Date().toISOString()}).eq("sender_id",otherUserId).eq("recipient_id",userId).is("read_at",null);if(error)return{ok:false,error:error.message};revalidatePath("/messages");return{ok:true}}
+
+export async function dismissNotification(notificationId:string):Promise<ActionResult>{const userId=await getUserId();if(!userId)return{ok:false,error:"You must be signed in."};const supabase=await createClient();const{error}=await supabase.from("notifications").delete().eq("id",notificationId).eq("user_id",userId);if(error)return{ok:false,error:error.message};revalidatePath("/notifications");revalidatePath("/","layout");return{ok:true}}
