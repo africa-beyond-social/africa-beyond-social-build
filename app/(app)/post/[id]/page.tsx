@@ -58,6 +58,19 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
                 </div>
                 <div className="mt-0.5">
                   <PostContent content={reply.content} />
+                {reply.attachment_url && (
+                  <div className="mt-2 overflow-hidden rounded-xl border border-border bg-secondary/20">
+                    {reply.attachment_type?.startsWith("image/") ? (
+                      <img src={reply.attachment_url} alt={reply.attachment_name ?? "Reply attachment"} className="max-h-96 w-full object-contain" />
+                    ) : reply.attachment_type?.startsWith("video/") ? (
+                      <video src={reply.attachment_url} controls playsInline className="max-h-96 w-full" />
+                    ) : reply.attachment_type?.startsWith("audio/") ? (
+                      <audio src={reply.attachment_url} controls className="w-full" />
+                    ) : (
+                      <a href={reply.attachment_url} target="_blank" rel="noreferrer" className="block p-3 text-sm underline">{reply.attachment_name ?? "Open attachment"}</a>
+                    )}
+                  </div>
+                )}
                 </div>
               </div>
             </article>
