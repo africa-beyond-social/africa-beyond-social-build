@@ -44,6 +44,59 @@ function blocks(xml: string) {
   return [...rss, ...atom]
 }
 
+const AFRICAN_COUNTRIES = [
+  "Algeria","Angola","Benin","Botswana","Burkina Faso","Burundi","Cameroon","Cape Verde","Central African Republic",
+  "Chad","Comoros","Congo","Cote d'Ivoire","Djibouti","Egypt","Equatorial Guinea","Eritrea","Eswatini","Ethiopia",
+  "Gabon","Gambia","Ghana","Guinea","Guinea-Bissau","Kenya","Lesotho","Liberia","Libya","Madagascar","Malawi",
+  "Mali","Mauritania","Mauritius","Morocco","Mozambique","Namibia","Niger","Nigeria","Rwanda","Sao Tome",
+  "Senegal","Seychelles","Sierra Leone","Somalia","South Africa","South Sudan","Sudan","Tanzania","Togo",
+  "Tunisia","Uganda","Zambia","Zimbabwe"
+]
+
+const ZIMBABWE_TERMS = [
+  "zimbabwe","harare","bulawayo","mutare","gweru","masvingo","mwenezi","chiredzi","triangle","victoria falls",
+  "marondera","kadoma","kwekwe","bindura","chinhoyi","kariba","plumtree","beira corridor","zanu-pf","zanupf",
+  "mnangagwa","chiwenga","chamisa","parliament of zimbabwe","reserve bank of zimbabwe","rbz","zimra","zimbabwe republic police"
+]
+
+const SADC_TERMS = [
+  "sadc","southern african development community","angola","botswana","comoros","democratic republic of congo",
+  "eswatini","lesotho","madagascar","malawi","mauritius","mozambique","namibia","seychelles","south africa",
+  "tanzania","zambia","zimbabwe"
+]
+
+function hasAny(text: string, terms: string[]) {
+  const value = text.toLowerCase()
+  return terms.some(term => value.includes(term.toLowerCase()))
+}
+
+function isRelevantItem(sourceName: string, title: string, summary: string) {
+  const text = (title + " " + summary).toLowerCase()
+  const name = sourceName.toLowerCase()
+
+  if (name.includes("africanews") || name.includes("allafrica")) return true
+  if (name.includes("world & africa")) return hasAny(text, ["africa","african", ...AFRICAN_COUNTRIES])
+  if (name.includes("sadc")) return hasAny(text, SADC_TERMS)
+  if (name.includes("zimbabwe") || name.includes("origins zimbabwe")) return hasAny(text, ZIMBABWE_TERMS)
+  if (name.includes("community") || name.includes("health") || name.includes("education")) {
+    return hasAny(text, ["zimbabwe","africa","african","health","hospital","clinic","education","school","university","community","ngo","humanitarian"])
+  }
+  if (name.includes("business") || name.includes("development")) {
+    return hasAny(text, ["zimbabwe","africa","african","mining","agriculture","economy","business","trade","investment","development","manufacturing","finance"])
+  }
+  if (name.includes("culture")) {
+    return hasAny(text, ["zimbabwe","africa","african","culture","arts","music","heritage","literature","film","theatre","museum"])
+  }
+  if (name.includes("sports")) {
+    return hasAny(text, ["zimbabwe","africa","african","cricket","football","soccer","rugby","athletics","olympics","sport"])
+  }
+  if (name.includes("technology")) {
+    return hasAny(text, ["zimbabwe","africa","african","technology","digital","innovation","ai","artificial intelligence","cyber","internet","telecom"])
+  }
+  if (name.includes("africa")) return hasAny(text, ["africa","african", ...AFRICAN_COUNTRIES])
+  return true
+}
+
 function parseDate(value: string) {
   if (!value) return null
   const date = new Date(value)
@@ -117,6 +170,7 @@ export async function GET(request: Request) {
         })
         .filter((item) => {
           if (!item.title || !item.link) return false
+          if (!isRelevantItem(source.name, item.title, item.summary)) return false
           if (!item.publishedAt) return true
           return new Date(item.publishedAt).getTime() >= cutoff
         })
