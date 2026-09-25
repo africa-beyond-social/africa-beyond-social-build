@@ -173,8 +173,10 @@ ${material}`)
         seo_title:String(article.seo_title||title).trim(),seo_description:String(article.seo_description||article.dek||story.summary||"").trim(),
         category:String(article.category||"News").trim(),tags:Array.isArray(article.tags)?article.tags:[],
         featured_image_url:story.image_url||null,source_box:sourceRows.map((s:any)=>({name:s.source_name,url:s.source_url,title:s.title,relation:s.relation})),
-        focus_areas:Array.isArray(story.focus_areas)?story.focus_areas:[],editorial_notes:"Automated verification gate passed.",live_summary:String(article.dek||story.summary||"").trim(),
-        live_watchpoints:Array.isArray(story.editorial_watchpoints)?story.editorial_watchpoints:[],signature:"Africa & Beyond — News | Analysis | Perspective",
+        focus_areas:Array.isArray(story.focus_areas)?story.focus_areas:[],editorial_notes:"Automated verification gate passed.",live_summary:String(article.live_summary||article.dek||story.summary||"").trim(),
+        live_watchpoints:Array.isArray(article.live_watchpoints)
+          ? article.live_watchpoints.map((item:any)=>String(item||"").trim()).filter(Boolean).slice(0,8)
+          : (Array.isArray(story.editorial_watchpoints)?story.editorial_watchpoints:[]),signature:"Africa & Beyond — News | Analysis | Perspective",
         website_status:"ready",updated_at:new Date().toISOString()
       }
       const {data:saved,error:saveError}=await db.from("newsroom_articles").upsert(record,{onConflict:"story_id"}).select("*").single()
