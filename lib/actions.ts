@@ -172,7 +172,7 @@ export async function toggleLike(postId: string): Promise<ActionResult> {
   return { ok: true }
 }
 
-export async function toggleRepost(postId: string): Promise<ActionResult> {
+export async function toggleAmplify(postId: string): Promise<ActionResult> {
   const userId = await getUserId()
   if (!userId) return { ok: false, error: "You must be signed in." }
 
