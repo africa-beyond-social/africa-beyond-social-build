@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   const startAt = String(b.startAt || "")
   if (!articleId || !startAt) return NextResponse.json({ error: "Article and start time are required" }, { status: 400 })
   const db = createAdminClient()
-  const { data: article, error: articleError } = await db.from("newsroom_articles").select("id,story_id,title,dek,featured_image_url,website_url").eq("id", articleId).single()
+  const { data: article, error: articleError } = await db.from("newsroom_articles").select("id,story_id,title,dek,featured_image_url,website_url,live_summary,live_watchpoints").eq("id", articleId).single()
   if (articleError || !article) return NextResponse.json({ error: articleError?.message || "Article not found" }, { status: 404 })
   const { data: story } = await db.from("newsroom_stories").select("status").eq("id", article.story_id).single()
   if (!story || story.status !== "published") return NextResponse.json({ error: "Publish the approved article to Africa & Beyond before scheduling a programme" }, { status: 409 })
@@ -34,6 +34,11 @@ export async function POST(request: Request) {
     thumbnail_url: article.featured_image_url || null,
     category: b.category || "news",
     newsroom_story_id: article.story_id,
+    newsroom_story_ids: [article.story_id],
+    website_links: article.website_url ? [{ title: article.title, url: article.website_url }] : [],
+    live_summary: article.live_summary || article.dek || null,
+    watchpoints: Array.isArray(article.live_watchpoints) ? article.live_watchpoints.filter(Boolean).slice(0,8) : [],
+    broadcast_brief: article.live_summary || article.dek || null,
     streamyard_status: "prepared",
   }).select("*").single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
