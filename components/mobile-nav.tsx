@@ -6,8 +6,7 @@ import { buildNavItems } from "@/components/nav-items"
 import { ComposeDialog } from "@/components/compose-dialog"
 import { cn } from "@/lib/utils"
 import type { Profile } from "@/lib/types"
-import { Feather, Store, Megaphone, Clapperboard, MapPin } from "lucide-react"
-import { BrandMark } from "@/components/brand-logo"
+import { Feather } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,34 +53,6 @@ export function MobileNav({ profile, unreadCount }: { profile: Profile | null; u
           )
         })}
 
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            aria-label="WIGOD menu"
-            className="flex min-h-16 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[0.65rem] font-medium"
-          >
-            <BrandMark className="size-6" />
-            <span className="text-muted-foreground">WIGOD</span>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="center" side="top" sideOffset={8} className="w-56 p-2">
-            <DropdownMenuLabel className="px-2 py-1.5 font-bold text-foreground">WIGOD</DropdownMenuLabel>
-            <DropdownMenuItem render={<Link href="/marketplace" />}>
-              <Store className="text-brand-green" />
-              MARKETPLACE
-            </DropdownMenuItem>
-            <DropdownMenuItem render={<Link href="/advertise" />}>
-              <Megaphone className="text-brand-red" />
-              ADVERTISE
-            </DropdownMenuItem>
-            <DropdownMenuItem render={<Link href="/live/studio" />}>
-              <Clapperboard className="text-brand-green" />
-              CREATOR STUDIO
-            </DropdownMenuItem>
-            <DropdownMenuItem render={<Link href="/explore" />}>
-              <MapPin className="text-[#d4a017]" />
-              EXPLORE THE WORLD
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </nav>
     </>
   )
