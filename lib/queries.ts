@@ -7,9 +7,9 @@ type Enrichment = {
   author: Profile
   like_count: number
   reply_count: number
-  repost_count: number
+  amplify_count: number
   liked_by_me: boolean
-  reposted_by_me: boolean
+  amplified_by_me: boolean
 }
 
 const EMPTY_PROFILE = (id: string): Profile => ({
@@ -61,16 +61,16 @@ async function enrichPosts(postRows: PostRow[], currentUserId: string | null): P
       author: profileById.get(row.user_id) ?? EMPTY_PROFILE(row.user_id),
       like_count: likeCount.get(row.id) ?? 0,
       reply_count: replyCount.get(row.id) ?? 0,
-      repost_count: repostCount.get(row.id) ?? 0,
+      amplify_count: repostCount.get(row.id) ?? 0,
       liked_by_me: likedByMe.has(row.id),
-      reposted_by_me: repostedByMe.has(row.id),
+      amplified_by_me: repostedByMe.has(row.id),
     })
   }
 
   return result
 }
 
-function toFeedPost(row: PostRow, e: Enrichment, repostedBy?: FeedPost["reposted_by"]): FeedPost {
+function toFeedPost(row: PostRow, e: Enrichment, repostedBy?: FeedPost["amplified_by"]): FeedPost {
   return {
     id: row.id,
     content: row.content,
@@ -81,10 +81,10 @@ function toFeedPost(row: PostRow, e: Enrichment, repostedBy?: FeedPost["reposted
     author: e.author,
     like_count: e.like_count,
     reply_count: e.reply_count,
-    repost_count: e.repost_count,
+    amplify_count: e.amplify_count,
     liked_by_me: e.liked_by_me,
-    reposted_by_me: e.reposted_by_me,
-    reposted_by: repostedBy ?? null,
+    amplified_by_me: e.amplified_by_me,
+    amplified_by: repostedBy ?? null,
   }
 }
 
@@ -185,7 +185,7 @@ export async function getHomeFeed(userId: string): Promise<FeedPost[]> {
   const deduped: FeedPost[] = []
   const usedIds = new Set<string>()
   for (const it of items) {
-    const key = it.feed.reposted_by ? `rp-${it.feed.id}-${it.feed.reposted_by.id}` : it.feed.id
+    const key = it.feed.amplified_by ? `rp-${it.feed.id}-${it.feed.amplified_by.id}` : it.feed.id
     if (usedIds.has(key)) continue
     if (usedIds.has(it.feed.id)) continue
     usedIds.add(key)
