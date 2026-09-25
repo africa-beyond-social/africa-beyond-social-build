@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react"
 export default async function NewsStoryPage({params}:{params:Promise<{slug:string}>}) {
   const {slug}=await params
   const supabase=await createClient()
-  const {data:article}=await supabase.from("newsroom_articles").select("id,title,slug,dek,body_html,category,tags,featured_image_url,created_at,source_box").eq("slug",slug).eq("website_status","ready").maybeSingle()
+  const {data:article}=await supabase.from("newsroom_articles").select("id,title,slug,dek,body_html,category,tags,featured_image_url,created_at,source_box").eq("slug",slug).eq("website_status","published").maybeSingle()
   if(!article) notFound()
   return <article className="mx-auto w-full max-w-3xl px-4 py-6">
     <Link href="/news" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:underline"><ArrowLeft className="size-4"/>Back to News</Link>
