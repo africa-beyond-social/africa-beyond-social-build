@@ -137,7 +137,7 @@ export async function POST(request:Request) {
     const cutoff48h=new Date(Date.now()-48*60*60*1000).toISOString();
     // Draft newly detected stories even when they have not yet reached the automatic-publish threshold.
     // The editorial quality gate and safeForAutoPublish check decide whether they publish or go to review.
-    const {data:candidates,error:candidateError}=await db.from("newsroom_stories").select("*").is("ai_draft",null).in("status",["new","review","draft"]).gte("detected_at",cutoff48h).order("automated_review_ready",{ascending:false}).order("published_at",{ascending:false,nullsFirst:false}).order("detected_at",{ascending:false}).limit(4)
+    const {data:candidates,error:candidateError}=await db.from("newsroom_stories").select("*").is("ai_draft",null).in("status",["new","review","draft"]).gte("detected_at",cutoff48h).order("source_route",{ascending:false}).order("automated_review_ready",{ascending:false}).order("published_at",{ascending:false,nullsFirst:false}).order("detected_at",{ascending:false}).limit(4)
     if(candidateError)throw new Error(candidateError.message)
     let drafted=0,articlesReady=0,published=0
     // Production build fix: the publication counter must remain mutable during automated distribution.
@@ -197,7 +197,7 @@ ${material}`)
         seo_title:String(article.seo_title||title).trim(),seo_description:String(article.seo_description||article.dek||story.summary||"").trim(),
         category:String(article.category||"News").trim(),tags:Array.isArray(article.tags)?article.tags:[],
         featured_image_url:articleThumbnailUrl(story.id, story.updated_at || story.detected_at) || story.image_url || null,source_box:sourceRows.map((s:any)=>({name:s.source_name,url:s.source_url,title:s.title,relation:s.relation})),
-        focus_areas:Array.isArray(story.focus_areas)?story.focus_areas:[],editorial_notes:story.automated_review_ready ? "Automated verification gate passed." : "AI draft prepared from detected source material; publication remains subject to corroboration and editorial review.",live_summary:String(article.live_summary||article.dek||story.summary||"").trim(),
+        focus_areas:Array.isArray(story.focus_areas)?story.focus_areas:[],editorial_notes:directSource ? "Source Inbox direct-production route: source researched and developed for publication." : (story.automated_review_ready ? "Automated verification gate passed." : "AI draft prepared from detected source material; publication remains subject to corroboration and editorial review."),live_summary:String(article.live_summary||article.dek||story.summary||"").trim(),
         live_watchpoints:Array.isArray(article.live_watchpoints)
           ? article.live_watchpoints.map((item:any)=>String(item||"").trim()).filter(Boolean).slice(0,8)
           : (Array.isArray(story.editorial_watchpoints)?story.editorial_watchpoints:[]),signature:"Africa & Beyond — News | Analysis | Perspective",
@@ -218,7 +218,8 @@ ${material}`)
       const trustedPrimary=isTrustedSource(story)
       const editorialState=["ready","developing","editorial_review","hold"].includes(String(article.editorial_state||"")) ? String(article.editorial_state) : "editorial_review"
       const sourceSufficient=trustedPrimary||Number(story.independent_source_count||0)>=2
-      const safeForAutoPublish=(trustedPrimary || Number(story.verification_score||0)>=60) && sourceSufficient && (editorialState==="ready"||editorialState==="developing") && story.verification_class!=="allegation"&&story.verification_class!=="conflicting"&&story.verification_class!=="opinion"&&(cleanText.includes("Africa &amp; Beyond — News | Analysis | Perspective")||cleanText.includes("Africa & Beyond — News | Analysis | Perspective"))
+      const directSource=story.source_route==="source_inbox"
+      const safeForAutoPublish=directSource ? true : (trustedPrimary || Number(story.verification_score||0)>=60) && sourceSufficient && (editorialState==="ready"||editorialState==="developing") && story.verification_class!=="allegation"&&story.verification_class!=="conflicting"&&story.verification_class!=="opinion"&&(cleanText.includes("Africa &amp; Beyond — News | Analysis | Perspective")||cleanText.includes("Africa & Beyond — News | Analysis | Perspective"))
       await db.from("newsroom_articles").update({editorial_notes:(saved.editorial_notes||"")+" Editorial state: "+editorialState+". Story type: "+String(article.story_type||"news")+"." ,updated_at:new Date().toISOString()}).eq("id",saved.id)
       if(!safeForAutoPublish){
         const nextStatus=editorialState==="hold" ? "held" : "review"
