@@ -322,7 +322,7 @@ export function NewsroomDashboard() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-border bg-card">
+      <section id="news-detection-queue" className="rounded-2xl border border-border bg-card">
         <div className="border-b border-border p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -391,7 +391,18 @@ export function NewsroomDashboard() {
           <div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2"><Radio className="size-5 text-brand-red" /><h2 className="font-bold">Editorial Review</h2></div><span className="rounded-full bg-brand-red/10 px-2 py-1 text-[10px] font-bold text-brand-red">{articles.filter(a => ["ready","review","held"].includes(a.website_status)).length} ITEMS</span></div>
           <p className="mt-2 text-xs text-muted-foreground">Articles that still need an editor, including held or safety-gated items.</p>
           <div className="mt-3 space-y-2">
-            {articles.filter(a => ["ready","review","held"].includes(a.website_status)).slice(0,5).map(a => <button key={a.id} onClick={() => a.story_id && setSelectedStory(a.story_id)} className="w-full rounded-xl border border-border bg-background/70 p-3 text-left hover:bg-secondary/40"><div className="flex items-center justify-between gap-2"><span className="text-[10px] font-bold uppercase">{a.website_status}</span><span className="text-[10px] text-muted-foreground">{a.updated_at ? new Date(a.updated_at).toLocaleString() : ""}</span></div><p className="mt-1 text-sm font-semibold">{a.title}</p><p className="mt-1 text-[11px] text-muted-foreground">{a.category || "News"} · {a.social_status === "generated" ? "Social copy ready" : "Social pending"}</p></button>)}
+            {articles.filter(a => ["ready","review","held"].includes(a.website_status)).slice(0,5).map(a => (
+  <div key={a.id} className="rounded-xl border border-border bg-background/70 p-3">
+    <button type="button" onClick={() => a.story_id && setSelectedStory(a.story_id)} className="w-full text-left hover:bg-secondary/40">
+      <div className="flex items-center justify-between gap-2"><span className="text-[10px] font-bold uppercase">{a.website_status}</span><span className="text-[10px] text-muted-foreground">{a.updated_at ? new Date(a.updated_at).toLocaleString() : ""}</span></div>
+      <p className="mt-1 text-sm font-semibold">{a.title}</p><p className="mt-1 text-[11px] text-muted-foreground">{a.category || "News"} · {a.social_status === "generated" ? "Social copy ready" : "Social pending"}</p>
+    </button>
+    <div className="mt-3 flex gap-2">
+      {a.story_id ? <button type="button" onClick={() => setSelectedStory(a.story_id)} className="rounded-full bg-brand-green px-3 py-1.5 text-[11px] font-semibold text-white">Review article</button> : <span className="text-[10px] text-brand-red">Story record unavailable</span>}
+      {a.website_url && <a href={a.website_url} target="_blank" rel="noreferrer" className="rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold" onClick={(e) => e.stopPropagation()}>Open</a>}
+    </div>
+  </div>
+))}
             {!articles.some(a => ["ready","review","held"].includes(a.website_status)) && <p className="rounded-xl bg-secondary p-3 text-xs text-muted-foreground">No articles are waiting for editorial attention.</p>}
           </div>
         </div>
@@ -419,8 +430,12 @@ export function NewsroomDashboard() {
           <div className="flex items-center gap-2"><Radio className="size-5 text-brand-red" /><h2 className="font-bold">Editorial Review</h2></div>
           <p className="mt-2 text-sm text-muted-foreground">Verified stories publish automatically when the safety gate passes. Only exceptions, held stories and editorial flags should require your attention.</p>
           <div className="mt-4 grid grid-cols-2 gap-2">
-            <div className="rounded-xl bg-secondary p-3"><Clock3 className="size-4" /><p className="mt-1 text-xs font-semibold">Review queue</p></div>
-            <div className="rounded-xl bg-secondary p-3"><XCircle className="size-4" /><p className="mt-1 text-xs font-semibold">Held stories</p></div>
+            <button type="button" onClick={() => { setActiveStatus("REVIEW"); document.getElementById("news-detection-queue")?.scrollIntoView({ behavior: "smooth", block: "start" }) }} className="rounded-xl bg-secondary p-3 text-left hover:bg-secondary/80">
+              <Clock3 className="size-4" /><p className="mt-1 text-xs font-semibold">Review queue</p><p className="mt-1 text-[10px] text-muted-foreground">{stories.filter((s) => s.status === "REVIEW").length} stories</p>
+            </button>
+            <button type="button" onClick={() => { setActiveStatus("HELD"); document.getElementById("news-detection-queue")?.scrollIntoView({ behavior: "smooth", block: "start" }) }} className="rounded-xl bg-secondary p-3 text-left hover:bg-secondary/80">
+              <XCircle className="size-4" /><p className="mt-1 text-xs font-semibold">Held stories</p><p className="mt-1 text-[10px] text-muted-foreground">{stories.filter((s) => s.status === "HELD").length} stories</p>
+            </button>
           </div>
         </div>
       </section>
