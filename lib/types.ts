@@ -28,11 +28,11 @@ export type FeedPost = {
   author: Profile
   like_count: number
   reply_count: number
-  repost_count: number
+  amplify_count: number
   liked_by_me: boolean
-  reposted_by_me: boolean
+  amplified_by_me: boolean
   // Present when this row appears in the feed because someone reposted it.
-  reposted_by?: { id: string; display_name: string | null; username: string } | null
+  amplified_by?: { id: string; display_name: string | null; username: string } | null
 }
 
 export type NotificationType = "follow" | "like" | "reply" | "repost" | "message"
