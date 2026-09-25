@@ -11,6 +11,7 @@ export async function GET(request: Request) {
   if (!isAdmin(user?.email)) return NextResponse.json({ error: "Not authorised" }, { status: 403 })
   const params = new URL(request.url).searchParams
   const status = params.get("status")
+  const includeRejected = params.get("includeRejected") === "true"
   const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
   let query = createAdminClient()
     .from("newsroom_stories")
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
     .order("detected_at", { ascending: false })
     .limit(100)
   if (status && status !== "all") query = query.eq("status", status)
+  else if (!includeRejected) query = query.neq("status", "rejected")
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ stories: data ?? [], windowHours: 48, cutoff })
