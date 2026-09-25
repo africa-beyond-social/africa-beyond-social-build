@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Sparkles,
   XCircle,
+  Upload,
 } from "lucide-react"
 
 type StoryStatus = "NEW" | "VERIFYING" | "DRAFT" | "REVIEW" | "HELD"
@@ -64,6 +65,10 @@ export function NewsroomDashboard() {
   const [articles, setArticles] = useState<any[]>([])
   const [automationBusy, setAutomationBusy] = useState(false)
   const [queueAction, setQueueAction] = useState<string | null>(null)
+  const [sourceFile, setSourceFile] = useState<File | null>(null)
+  const [sourceTitle, setSourceTitle] = useState("")
+  const [sourceInboxBusy, setSourceInboxBusy] = useState(false)
+  const [sourceInboxMessage, setSourceInboxMessage] = useState("")
   const latestRun = automationRuns[0]
   const healthySources = sourceHealth.filter((s) => !s.last_error && s.active !== false).length
   const failedSources = sourceHealth.filter((s) => Boolean(s.last_error)).length
@@ -232,6 +237,32 @@ export function NewsroomDashboard() {
     }
   }
 
+  async function submitSource() {
+    if (!sourceFile) return
+    setSourceInboxBusy(true)
+    setSourceInboxMessage("")
+    setSourceError("")
+    try {
+      const form = new FormData()
+      form.append("file", sourceFile)
+      form.append("title", sourceTitle.trim() || sourceFile.name.replace(/\.[^.]+$/, ""))
+      form.append("source_name", "User-submitted source")
+      const response = await fetch("/api/newsroom/source-inbox", { method: "POST", body: form })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || "Unable to submit source")
+      setSourceInboxMessage("Source received. It is now in the direct Source Inbox production route.")
+      setSourceFile(null)
+      setSourceTitle("")
+      const input = document.getElementById("source-inbox-file") as HTMLInputElement | null
+      if (input) input.value = ""
+      await loadNewsroom()
+    } catch (error) {
+      setSourceError(error instanceof Error ? error.message : "Unable to submit source")
+    } finally {
+      setSourceInboxBusy(false)
+    }
+  }
+
   async function loadDesk() {
     setDeskLoading(true)
     try {
@@ -304,6 +335,24 @@ export function NewsroomDashboard() {
             <p className="mt-2 text-2xl font-bold">{value as number}</p>
           </div>
         ))}
+      </section>
+
+      <section className="rounded-2xl border border-brand-green/30 bg-brand-green/5 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2"><Upload className="size-4 text-brand-green" /><h2 className="font-bold">Source Inbox</h2><span className="rounded-full bg-brand-green/10 px-2 py-1 text-[10px] font-bold text-brand-green">DIRECT PRODUCTION</span></div>
+            <p className="mt-1 text-xs text-muted-foreground">Submit a screenshot, X/Facebook capture, PDF, official statement or document. The source enters the newsroom directly for research, development and publication.</p>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+          <input value={sourceTitle} onChange={(e) => setSourceTitle(e.target.value)} placeholder="Story/source title (optional)" className="rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none" />
+          <input id="source-inbox-file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,application/pdf,image/png,image/jpeg,image/webp,text/plain,text/markdown" onChange={(e) => setSourceFile(e.target.files?.[0] ?? null)} className="rounded-xl border border-input bg-background px-3 py-2 text-sm" />
+          <button type="button" onClick={submitSource} disabled={!sourceFile || sourceInboxBusy} className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-green px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+            <Upload className="size-4" /> {sourceInboxBusy ? "Submitting…" : "Submit Source"}
+          </button>
+        </div>
+        {sourceFile && <p className="mt-2 text-[11px] text-muted-foreground">Selected: {sourceFile.name}</p>}
+        {sourceInboxMessage && <p className="mt-2 rounded-xl border border-brand-green/20 bg-brand-green/10 px-3 py-2 text-xs text-brand-green">{sourceInboxMessage}</p>}
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-4">
