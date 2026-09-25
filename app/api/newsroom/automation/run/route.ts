@@ -32,7 +32,7 @@ function slugify(value:string) {
 function productionBaseUrl() {
   const raw = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || process.env.NEXT_PUBLIC_SITE_URL || ""
   if (!raw) return ""
-  return /^https?:\\/\\//i.test(raw) ? raw.replace(/\\/$/, "") : "https://" + raw.replace(/\\/$/, "")
+ return /^https?:\/\//i.test(raw) ? raw.replace(/\/$/, "") : "https://" + raw.replace(/\/$/,"")
 }
 function articleThumbnailUrl(storyId:string, version?:string|null) {
   const base = productionBaseUrl()
