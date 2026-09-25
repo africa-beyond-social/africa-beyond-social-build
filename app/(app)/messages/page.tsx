@@ -20,7 +20,8 @@ export default async function MessagesPage({searchParams}:{searchParams:Promise<
  const byId=new Map<string,ProfileRow>(); for(const p of (ps as ProfileRow[]|null)??[]) byId.set(p.id,p)
  const conversations=new Map<string,MessageRow[]>()
  for(const m of [...messages].reverse()){const id=m.sender_id===user.id?m.recipient_id:m.sender_id;const list=conversations.get(id)??[];list.push(m);conversations.set(id,list)}
- const selected=params.with?Array.from(byId.values()).find(p=>p.username===params.with):undefined
+ let selected:ProfileRow|undefined=params.with?Array.from(byId.values()).find(p=>p.username.toLowerCase()===params.with!.toLowerCase()):undefined
+ if(params.with&&!selected){const {data}=await supabase.from("profiles").select("id,username,display_name,avatar_url").ilike("username",params.with).maybeSingle();selected=(data as ProfileRow|null)??undefined}
  const selectedMessages=selected?conversations.get(selected.id)??[]:[]
  return <div className="mx-auto w-full max-w-3xl">
   <header className="sticky top-0 z-10 border-b border-border bg-background/95 px-4 py-4 backdrop-blur"><div className="flex items-center gap-3"><MessageCircle className="size-6 text-brand-green"/><div><h1 className="text-xl font-bold">Messages</h1><p className="text-sm text-muted-foreground">Private conversations on WIGOD.</p></div></div><form action="/messages" method="get" className="mt-4 flex gap-2"><input name="q" defaultValue={searchTerm} placeholder="Find someone to message..." className="min-w-0 flex-1 rounded-full border border-border bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-green"/><button type="submit" className="rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white">Search</button></form></header>
