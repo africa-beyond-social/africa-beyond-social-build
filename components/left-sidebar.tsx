@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import type { Profile } from "@/lib/types"
-import { Feather, MoreHorizontal, Settings } from "lucide-react"
+import { Feather, MoreHorizontal, Settings, HelpCircle, Shield, Store, Megaphone, Palette } from "lucide-react"
 
 export function LeftSidebar({ profile, unreadCount }: { profile: Profile | null; unreadCount: number }) {
   const pathname = usePathname()
@@ -26,7 +26,7 @@ export function LeftSidebar({ profile, unreadCount }: { profile: Profile | null;
     <aside className="flex min-h-full w-full flex-col justify-between px-2 py-4 md:flex lg:px-3">
       <div className="flex flex-col gap-1">
         <nav className="flex flex-col gap-1">
-          {items.map((item) => {
+          {items.filter((item) => item.label !== "More").map((item) => {
             const active = item.match(pathname)
             const Icon = item.icon
             const isNotifications = item.label === "Notifications"
@@ -52,6 +52,48 @@ export function LeftSidebar({ profile, unreadCount }: { profile: Profile | null;
             )
           })}
         </nav>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <button
+                type="button"
+                className="group flex w-full items-center gap-4 rounded-full px-3 py-2.5 text-lg font-medium text-foreground/80 transition-colors hover:bg-secondary lg:justify-start justify-center"
+                aria-label="More navigation"
+              >
+                <MoreHorizontal className="size-6" />
+                <span className="hidden lg:inline">More</span>
+              </button>
+            }
+          />
+          <DropdownMenuContent align="start" side="right" className="w-64">
+            <DropdownMenuItem render={<Link href="/marketplace" />}>
+              <Store className="size-4" />
+              Marketplace
+            </DropdownMenuItem>
+            <DropdownMenuItem render={<Link href="/advertise" />}>
+              <Megaphone className="size-4" />
+              Advertise
+            </DropdownMenuItem>
+            <DropdownMenuItem render={<Link href="/creator-studio" />}>
+              <Palette className="size-4" />
+              Creator Studio
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem render={<Link href="/settings" />}>
+              <Settings className="size-4" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem render={<Link href="/help" />}>
+              <HelpCircle className="size-4" />
+              Help & Support
+            </DropdownMenuItem>
+            <DropdownMenuItem render={<Link href="/privacy" />}>
+              <Shield className="size-4" />
+              Privacy & Safety
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <ComposeDialog profile={profile}>
           <Button size="lg" className="mt-4 w-full rounded-full lg:h-11">
