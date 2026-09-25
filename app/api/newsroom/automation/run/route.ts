@@ -97,6 +97,7 @@ export async function POST(request:Request) {
     const {data:candidates,error:candidateError}=await db.from("newsroom_stories").select("*").eq("automated_review_ready",true).is("ai_draft",null).in("status",["new","review","draft"]).order("published_at",{ascending:false}).limit(4)
     if(candidateError)throw new Error(candidateError.message)
     let drafted=0,articlesReady=0,published=0
+    // Production build fix: the publication counter must remain mutable during automated distribution.
     for(const story of candidates||[]) {
       await logRun(db,run.id,{story_id:story.id,step:"ai_drafting",message:`Producing article: ${story.title}`,stories_verified:verifiedCount,stories_drafted:drafted,articles_ready:articlesReady})
       const {data:evidence}=await db.from("newsroom_evidence").select("source_name,source_url,title,published_at,summary,content_text,relation,notes").eq("story_id",story.id).order("created_at",{ascending:true}).limit(20)
