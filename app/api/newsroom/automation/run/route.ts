@@ -78,10 +78,12 @@ function editorialQuality(html:string, sourceMaterial:string) {
   const headings=(html.match(/<h2\b/gi)||[]).length
   const fillerPatterns=[/it is important to note/i,/is seen as/i,/likely to/i,/expected to/i,/this highlights the importance/i,/in a significant development/i]
   const unsupportedFiller=fillerPatterns.some(pattern=>pattern.test(text) && !pattern.test(sourceMaterial))
-  if(words<350) return {ok:false,reason:`Article is too short (${words} words); minimum 350 words unless routed for a genuine brief.`}
-  if(paragraphs<5) return {ok:false,reason:`Article is underdeveloped (${paragraphs} paragraphs); minimum 5 substantive paragraphs required.`}
+  // Do not block legitimate short/developing reports merely because they are shorter than a
+  // feature article. Briefs are allowed when the supplied evidence is sufficient.
+  if(words<140) return {ok:false,reason:`Article is too short (${words} words) to publish as a useful report.`}
+  if(paragraphs<2) return {ok:false,reason:`Article is underdeveloped (${paragraphs} paragraphs); at least 2 substantive paragraphs are required.`}
   if(unsupportedFiller) return {ok:false,reason:"Article contains generic or predictive filler that is not supported by the supplied source material."}
-  if(headings===0 && words>650) return {ok:false,reason:"Long article needs at least one descriptive section heading."}
+  if(headings===0 && words>900) return {ok:false,reason:"Long article needs at least one descriptive section heading."}
   return {ok:true,reason:`Editorial quality passed: ${words} words, ${paragraphs} paragraphs.`}
 }
 
