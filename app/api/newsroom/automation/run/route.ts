@@ -163,6 +163,9 @@ ${AFRICA_BEYOND_EDITORIAL_SPEC}
 EXECUTION RULES FOR THIS STORY:
 - Apply the specification to the supplied evidence, not to assumptions.
 - The originating source is evidence, not a template. Reconstruct the story in Africa & Beyond's own structure and voice.
+- If the source is a submitted PNG/screenshot containing an official or public statement, turn the statement into a proper news report: identify who made the statement, what was said, when/where it was issued if visible, why it matters, what is confirmed versus merely claimed, and what remains unknown.
+- A statement must remain attributed. Never rewrite a person's statement as an independently established fact merely because it appears in an image.
+- If the submitted image contains a denial, allegation, political claim, announcement or reaction, report it as a statement/claim and preserve the distinction between the speaker's words and independently established facts.
 - A credible professional source may be sufficient to develop a legitimate report; do not invent a requirement for multiple independent sources.
 - When the originating publisher is an established professional newsroom or primary institution, do not route the story to editorial review merely because there is only one credible source. If the supplied facts are sufficient and there is no material contradiction, classify it ready or developing and proceed with production.
 - If a reliable source reports a developing event, use State B when the known facts support publication with attribution and explicit uncertainty.
@@ -219,7 +222,7 @@ ${material}`)
       const editorialState=["ready","developing","editorial_review","hold"].includes(String(article.editorial_state||"")) ? String(article.editorial_state) : "editorial_review"
       const sourceSufficient=trustedPrimary||Number(story.independent_source_count||0)>=2
       const directSource=story.source_route==="source_inbox"
-      const safeForAutoPublish=directSource ? true : (trustedPrimary || Number(story.verification_score||0)>=60) && sourceSufficient && (editorialState==="ready"||editorialState==="developing") && story.verification_class!=="allegation"&&story.verification_class!=="conflicting"&&story.verification_class!=="opinion"&&(cleanText.includes("Africa &amp; Beyond — News | Analysis | Perspective")||cleanText.includes("Africa & Beyond — News | Analysis | Perspective"))
+      const safeForAutoPublish=(directSource && (editorialState==="ready"||editorialState==="developing") && story.verification_class!=="allegation"&&story.verification_class!=="conflicting"&&story.verification_class!=="opinion") || (!directSource && (trustedPrimary || Number(story.verification_score||0)>=60) && sourceSufficient && (editorialState==="ready"||editorialState==="developing") && story.verification_class!=="allegation"&&story.verification_class!=="conflicting"&&story.verification_class!=="opinion")&&(cleanText.includes("Africa &amp; Beyond — News | Analysis | Perspective")||cleanText.includes("Africa & Beyond — News | Analysis | Perspective"))
       await db.from("newsroom_articles").update({editorial_notes:(saved.editorial_notes||"")+" Editorial state: "+editorialState+". Story type: "+String(article.story_type||"news")+"." ,updated_at:new Date().toISOString()}).eq("id",saved.id)
       if(!safeForAutoPublish){
         const nextStatus=editorialState==="hold" ? "held" : "review"
