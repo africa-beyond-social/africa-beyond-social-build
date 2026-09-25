@@ -250,7 +250,8 @@ export function NewsroomDashboard() {
       const response = await fetch("/api/newsroom/source-inbox", { method: "POST", body: form })
       const data = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(data.error || "Unable to submit source")
-      setSourceInboxMessage("Source received. It is now in the direct Source Inbox production route.")
+      setSourceInboxMessage("Source received. WIGOD is now researching, developing and publishing it through the direct Source Inbox route.")
+      await fetch("/api/newsroom/automation/run", { method: "POST", cache: "no-store" })
       setSourceFile(null)
       setSourceTitle("")
       const input = document.getElementById("source-inbox-file") as HTMLInputElement | null
