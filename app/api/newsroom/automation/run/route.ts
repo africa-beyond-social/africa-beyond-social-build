@@ -29,6 +29,17 @@ function isTrustedSource(story:any) {
 function slugify(value:string) {
   return value.toLowerCase().normalize("NFKD").replace(/[^a-z0-9\s-]/g,"").replace(/\s+/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"").slice(0,120)
 }
+function productionBaseUrl() {
+  const raw = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || process.env.NEXT_PUBLIC_SITE_URL || ""
+  if (!raw) return ""
+  return /^https?:\\/\\//i.test(raw) ? raw.replace(/\\/$/, "") : "https://" + raw.replace(/\\/$/, "")
+}
+function articleThumbnailUrl(storyId:string, version?:string|null) {
+  const base = productionBaseUrl()
+  if (!base) return ""
+  const suffix = version ? "?v=" + encodeURIComponent(version) : ""
+  return base + "/api/newsroom/thumbnail/" + encodeURIComponent(storyId) + suffix
+}
 function ghostToken() {
   const key=process.env.GHOST_ADMIN_API_KEY||""
   const [id,secret]=key.split(":")
@@ -185,7 +196,7 @@ ${material}`)
         story_id:story.id,title,slug:slugify(title),dek:String(article.dek||"").trim(),body_html:finalBody,
         seo_title:String(article.seo_title||title).trim(),seo_description:String(article.seo_description||article.dek||story.summary||"").trim(),
         category:String(article.category||"News").trim(),tags:Array.isArray(article.tags)?article.tags:[],
-        featured_image_url:story.image_url||null,source_box:sourceRows.map((s:any)=>({name:s.source_name,url:s.source_url,title:s.title,relation:s.relation})),
+        featured_image_url:articleThumbnailUrl(story.id, story.updated_at || story.detected_at) || story.image_url || null,source_box:sourceRows.map((s:any)=>({name:s.source_name,url:s.source_url,title:s.title,relation:s.relation})),
         focus_areas:Array.isArray(story.focus_areas)?story.focus_areas:[],editorial_notes:story.automated_review_ready ? "Automated verification gate passed." : "AI draft prepared from detected source material; publication remains subject to corroboration and editorial review.",live_summary:String(article.live_summary||article.dek||story.summary||"").trim(),
         live_watchpoints:Array.isArray(article.live_watchpoints)
           ? article.live_watchpoints.map((item:any)=>String(item||"").trim()).filter(Boolean).slice(0,8)
