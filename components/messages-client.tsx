@@ -10,18 +10,25 @@ export function MessagesClient({ currentUserId, selectedUser, messages, contacts
 }) {
   const router=useRouter()
   const [content,setContent]=useState("")
+  const [search,setSearch]=useState(searchTerm)
   const [sending,setSending]=useState(false)
   const [error,setError]=useState("")
+  function findPeople(e:React.FormEvent){e.preventDefault();router.push(search.trim()?"/messages?q="+encodeURIComponent(search.trim()):"/messages")}
   useEffect(()=>{ if(selectedUser) markConversationRead(selectedUser.id) },[selectedUser?.id])
   async function submit(e:React.FormEvent){e.preventDefault();if(!selectedUser||!content.trim())return;setSending(true);setError("");const r=await sendMessage(selectedUser.id,content);setSending(false);if(!r.ok){setError(r.error);return}setContent("");router.refresh()}
   const people=searchTerm?searchResults:contacts
   return <div className="flex min-h-[calc(100dvh-5rem)] flex-col md:flex-row">
     <aside className="w-full shrink-0 border-b border-border md:w-80 md:border-b-0 md:border-r">
-      <form className="p-3" action="/messages">
-        <input name="q" defaultValue={searchTerm} placeholder="Search people to message..." className="w-full rounded-full border border-border bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-green/30"/>
-      </form>
+      <div className="border-b border-border p-3">
+        <div className="mb-2 text-sm font-bold">Find people to message</div>
+        <form onSubmit={findPeople} className="flex gap-2">
+          <input value={search} onChange={e=>setSearch(e.target.value)} aria-label="Search people" placeholder="Search name or username" className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-green/30"/>
+          <button type="submit" className="rounded-lg bg-brand-green px-3 py-2 text-sm font-semibold text-white">Search</button>
+        </form>
+        {searchTerm&&<button type="button" onClick={()=>{setSearch("");router.push("/messages")}} className="mt-2 text-xs text-muted-foreground">Clear search</button>}
+      </div>
       <div className="px-2 pb-3">
-        {(people.length?people:<div className="px-3 py-6 text-sm text-muted-foreground">{searchTerm?"No people found.":"No conversations yet. Search for someone above."}</div>).map(p=>
+        {(people.length?people:<div className="px-3 py-6 text-sm text-muted-foreground">{searchTerm?"No people found.":"No conversations yet. Search for a person above to start a conversation."}</div>).map(p=>
           <button type="button" key={p.id} onClick={()=>router.push(`/messages?with=${encodeURIComponent(p.id)}`)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left hover:bg-secondary ${selectedUser?.id===p.id?"bg-secondary":""}`}>
             <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-green/15 font-bold text-brand-green">{(p.display_name||p.username).slice(0,1).toUpperCase()}</div>
             <div className="min-w-0"><div className="truncate text-sm font-semibold">{p.display_name||p.username}</div><div className="truncate text-xs text-muted-foreground">@{p.username}</div></div>
