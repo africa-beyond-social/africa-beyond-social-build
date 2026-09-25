@@ -16,8 +16,15 @@ function isCron(request: Request) {
 }
 function isTrustedSource(story:any) {
   const priority=String(story.source_priority||story.priority||"").toLowerCase()
-  const text=(String(story.source_name||"")+" "+String(story.source_url||"")).toLowerCase()
-  return ["critical","high"].includes(priority) && /(bbc(?: news)?|south african broadcasting corporation|sabc|zimbabwe broadcasting corporation|zbc|reuters|associated press|ap news|africanews|allafrica|al jazeera|the guardian|financial times|cnn|dw|deutsche welle|sky news|france 24|voice of america|voa)/i.test(text)
+  const source=String(story.source_name||"")
+  const url=String(story.source_url||"")
+  const title=String(story.title||"")
+  const publisher=source.toLowerCase().startsWith("google news")
+    ? (title.match(/ - ([^-]+)$/)?.[1]||"")
+    : ""
+  const text=(source+" "+url+" "+publisher).toLowerCase()
+  const trusted=/(bbc(?: news)?|south african broadcasting corporation|sabc|zimbabwe broadcasting corporation|zbc(?: news)?|reuters|associated press|ap news|africanews|allafrica|al jazeera|the guardian|financial times|cnn|dw|deutsche welle|sky news|france 24|voice of america|voa|who|unhcr|imf|world bank|african development bank|afdb|united nations)/i.test(text)
+  return priority!=="archive" && trusted
 }
 function slugify(value:string) {
   return value.toLowerCase().normalize("NFKD").replace(/[^a-z0-9\s-]/g,"").replace(/\s+/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"").slice(0,120)
@@ -117,7 +124,7 @@ export async function POST(request:Request) {
     const cutoff48h=new Date(Date.now()-48*60*60*1000).toISOString();
     // Draft newly detected stories even when they have not yet reached the automatic-publish threshold.
     // The editorial quality gate and safeForAutoPublish check decide whether they publish or go to review.
-    const {data:candidates,error:candidateError}=await db.from("newsroom_stories").select("*").is("ai_draft",null).in("status",["new","review","draft"]).gte("detected_at",cutoff48h).order("published_at",{ascending:false,nullsFirst:false}).order("detected_at",{ascending:false}).limit(4)
+    const {data:candidates,error:candidateError}=await db.from("newsroom_stories").select("*").is("ai_draft",null).in("status",["new","review","draft"]).gte("detected_at",cutoff48h).order("automated_review_ready",{ascending:false}).order("published_at",{ascending:false,nullsFirst:false}).order("detected_at",{ascending:false}).limit(4)
     if(candidateError)throw new Error(candidateError.message)
     let drafted=0,articlesReady=0,published=0
     // Production build fix: the publication counter must remain mutable during automated distribution.
@@ -144,6 +151,7 @@ EXECUTION RULES FOR THIS STORY:
 - Apply the specification to the supplied evidence, not to assumptions.
 - The originating source is evidence, not a template. Reconstruct the story in Africa & Beyond's own structure and voice.
 - A credible professional source may be sufficient to develop a legitimate report; do not invent a requirement for multiple independent sources.
+- When the originating publisher is an established professional newsroom or primary institution, do not route the story to editorial review merely because there is only one credible source. If the supplied facts are sufficient and there is no material contradiction, classify it ready or developing and proceed with production.
 - If a reliable source reports a developing event, use State B when the known facts support publication with attribution and explicit uncertainty.
 - Route to State C when significant allegations, credible contradictions, serious legal/factual ambiguity, or material evidence gaps make automatic publication unsafe.
 - Route to State D when source reliability is poor or the claim is unsupported.
@@ -197,7 +205,7 @@ ${material}`)
       const trustedPrimary=isTrustedSource(story)
       const editorialState=["ready","developing","editorial_review","hold"].includes(String(article.editorial_state||"")) ? String(article.editorial_state) : "editorial_review"
       const sourceSufficient=trustedPrimary||Number(story.independent_source_count||0)>=2
-      const safeForAutoPublish=Number(story.verification_score||0)>=60&&sourceSufficient&&(editorialState==="ready"||editorialState==="developing")&&story.verification_class!=="allegation"&&story.verification_class!=="conflicting"&&(cleanText.includes("Africa &amp; Beyond — News | Analysis | Perspective")||cleanText.includes("Africa & Beyond — News | Analysis | Perspective"))
+      const safeForAutoPublish=(trustedPrimary || Number(story.verification_score||0)>=60) && sourceSufficient && (editorialState==="ready"||editorialState==="developing") && story.verification_class!=="allegation"&&story.verification_class!=="conflicting"&&story.verification_class!=="opinion"&&(cleanText.includes("Africa &amp; Beyond — News | Analysis | Perspective")||cleanText.includes("Africa & Beyond — News | Analysis | Perspective"))
       await db.from("newsroom_articles").update({editorial_notes:(saved.editorial_notes||"")+" Editorial state: "+editorialState+". Story type: "+String(article.story_type||"news")+"." ,updated_at:new Date().toISOString()}).eq("id",saved.id)
       if(!safeForAutoPublish){
         const nextStatus=editorialState==="hold" ? "held" : "review"
