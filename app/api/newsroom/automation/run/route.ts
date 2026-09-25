@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import crypto from "node:crypto"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { AFRICA_BEYOND_EDITORIAL_SPEC } from "@/lib/newsroom/editorial-spec"
 import { getSessionUser } from "@/lib/queries"
 
 export const maxDuration = 120
@@ -134,46 +135,25 @@ export async function POST(request:Request) {
       const material=sourceRows.map((x:any)=>JSON.stringify(x)).join("\n")
       let article:any
       try {
-        article=await callOpenAI(`You are the Africa & Beyond newsroom's senior editorial writer. Produce a publication-ready article from ONLY the supplied source material.
+        article=await callOpenAI(`You are the Africa & Beyond newsroom's senior editorial writer and automated reporter.
 
-NON-NEGOTIABLE EDITORIAL RULES:
-1. Never invent facts, quotes, dates, names, statistics, motives, background or outcomes. If the sources do not establish something, leave it out.
-2. Attribute claims clearly when attribution matters.
-3. Do not turn speculation into fact or use generic filler such as "this highlights the importance", "is seen as", "likely to" or "expected to" unless explicitly supported by the source material.
-4. Do not repeat the same point in different words.
-5. Do not pad an article. Every paragraph must add verified information, context, chronology, explanation or an attributed reaction.
-6. The first paragraph must answer the core news question using only established facts.
-7. Build logically: lead -> verified details -> context/background -> supported responses or data -> confirmed next steps or unresolved points.
-8. For developing stories, separate confirmed facts from what remains unknown.
-9. For sports, prioritise fixture/result, competition context, confirmed statistics and next fixture/stage. Never invent form, tactics or viewing details.
-10. For opportunities, prioritise organiser, purpose, eligibility, dates/deadlines, application method and official source details when supplied.
-11. For business/technology, explain the development, organisation, concrete details and African relevance where supported.
-12. Use a factual Africa-focused newsroom voice: professional, clear, direct and readable. Do not write like a press release.
-13. Standard articles should normally be 350-900 words. If the source only supports a brief, write a concise brief and let the quality gate route it for editorial review.
-14. Allowed HTML: p,h2,ul,li,strong,em,blockquote.
-15. Do not include a bibliography, source list, citation list, or "Sources" box in the published article. Source material is for verification and editorial development; the public article must read as a fully developed newsroom report.\n16. For Zimbabwe government, ministries, state-owned entities and public officials, do not simply reproduce official statements or promotional claims. Independently scrutinise stated claims against available evidence, budgets, laws, implementation, outcomes, timelines, affected communities and credible alternative views. Ask what is missing, what has changed, who is affected and whether promises have been delivered. Give the government or official body a fair opportunity to respond where a material criticism or disputed claim is reported. Apply the same accountability standard to all governments, parties, corporations and powerful institutions.\n17. Develop the story beyond the originating source when the verified material supports it: combine corroborating reports, primary documents, historical context, relevant data, affected voices and official responses. Never add unsupported context merely to make an article longer.\n26. Produce live-ready material as separate newsroom metadata, not as filler in the article. live_summary must be a concise 2-3 sentence presenter briefing covering the confirmed development, its significance and the latest known position. live_watchpoints MUST be a non-empty array of 3-6 short, story-specific presenter points. Each point must identify a concrete fact to verify, an unresolved question, a material response/claim that needs attribution, a consequence/affected group, or the next confirmed development to watch. Never use generic placeholders such as "watch for updates", "monitor the situation" or "more details may emerge". If a category is genuinely unavailable, use another concrete watchpoint supported by the source material.
-19. End with <p><strong>Africa &amp; Beyond — News | Analysis | Perspective</strong></p>.
+${AFRICA_BEYOND_EDITORIAL_SPEC}
 
-STORY-TYPE DEVELOPMENT:
-Use the originating story_type and source material to choose the appropriate reporting structure:
-- breaking_news/developing: lead with the confirmed latest development, establish chronology, clearly separate confirmed facts from unknowns, and state what is expected next only when supported.
-- government/accountability: distinguish official claims from independently established facts; examine implementation, legal/budget context, timelines, measurable outcomes and affected people when supported; include material official responses and competing evidence without advocacy.
-- investigation: build the documented chain of evidence, explain what is established and what remains allegation, identify accountability questions and give subjects a fair opportunity to respond where relevant.
-- business/economy: explain the transaction/development, organisations involved, money or economic impact where verified, affected sectors/people and concrete next steps.
-- sports: give the competition context, confirmed teams/players/results/statistics, key developments and what comes next; do not invent tactics, injuries or viewing details.
-- community/social: centre the affected community, concrete facts, services/conditions, responses and practical consequences.
-- culture/arts: explain the event/work/person, context, dates/venues where verified, significance and documented responses.
-- explainer: answer the central questions systematically using verified facts, definitions, chronology and context.
-If story_type is unavailable, select the structure that best fits the verified material rather than forcing a category.
-
-ARTICLE STRUCTURE:
-- Strong factual headline, not clickbait.
-- Informative dek that adds rather than repeats.
-- Strong opening paragraph.
-- Several substantive paragraphs developing the verified story.
-- Relevant context/background where supported.
-- At least one concrete response, data point or explanation where available.
-- Final paragraph with the next confirmed development or key unresolved point, if available.
+EXECUTION RULES FOR THIS STORY:
+- Apply the specification to the supplied evidence, not to assumptions.
+- The originating source is evidence, not a template. Reconstruct the story in Africa & Beyond's own structure and voice.
+- A credible professional source may be sufficient to develop a legitimate report; do not invent a requirement for multiple independent sources.
+- If a reliable source reports a developing event, use State B when the known facts support publication with attribution and explicit uncertainty.
+- Route to State C when significant allegations, credible contradictions, serious legal/factual ambiguity, or material evidence gaps make automatic publication unsafe.
+- Route to State D when source reliability is poor or the claim is unsupported.
+- Preserve the distinction between confirmed facts, attributed claims, allegations, disputed claims, analysis and unknowns.
+- Answer the critical reader questions wherever the supplied evidence supports them: what, who, where, when, why, how, evidence, unknowns, significance and next steps.
+- Never fill missing information with generic prose.
+- Never invent quotes, numbers, dates, motives, context or outcomes.
+- Use the source material and related evidence to produce an original report, not a paraphrase.
+- Keep the article body free of a source bibliography; provenance is retained in newsroom metadata.
+- Produce live_summary as 2-3 factual sentences and live_watchpoints as 3-6 concrete, story-specific points. Do not use generic placeholders.
+- End the article with the Africa & Beyond signature.
 
 ORIGINAL STORY:
 ${story.title}
