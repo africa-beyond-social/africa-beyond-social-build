@@ -23,7 +23,7 @@ export function LeftSidebar({ profile, unreadCount }: { profile: Profile | null;
   const items = buildNavItems(profile?.username ?? null)
 
   return (
-    <aside className="sticky top-0 hidden h-dvh w-[76px] shrink-0 flex-col justify-between px-2 py-4 md:flex lg:w-64 lg:px-3">
+    <aside className="flex min-h-full w-full flex-col justify-between px-2 py-4 md:flex lg:px-3">
       <div className="flex flex-col gap-1">
         <nav className="flex flex-col gap-1">
           {items.map((item) => {
