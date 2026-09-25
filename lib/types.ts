@@ -35,7 +35,7 @@ export type FeedPost = {
   reposted_by?: { id: string; display_name: string | null; username: string } | null
 }
 
-export type NotificationType = "follow" | "like" | "reply" | "repost"
+export type NotificationType = "follow" | "like" | "reply" | "repost" | "message"
 
 export type NotificationRow = {
   id: string
