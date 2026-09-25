@@ -67,6 +67,27 @@ export function LeftSidebar({ profile, unreadCount }: { profile: Profile | null;
             }
           />
           <DropdownMenuContent align="start" side="right" className="w-64">
+            <DropdownMenuItem render={<Link href="/explore" />}>
+              <Settings className="size-4" />
+              Explore
+            </DropdownMenuItem>
+            <DropdownMenuItem render={<Link href="/newsroom" />}>
+              <Feather className="size-4" />
+              Newsroom
+            </DropdownMenuItem>
+            <DropdownMenuItem render={<Link href="/knowledge" />}>
+              <HelpCircle className="size-4" />
+              Knowledge
+            </DropdownMenuItem>
+            <DropdownMenuItem render={<Link href="/messages" />}>
+              <MoreHorizontal className="size-4" />
+              Messages
+            </DropdownMenuItem>
+            <DropdownMenuItem render={<Link href="/bookmarks" />}>
+              <Shield className="size-4" />
+              Bookmarks
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem render={<Link href="/marketplace" />}>
               <Store className="size-4" />
               Marketplace
@@ -75,22 +96,9 @@ export function LeftSidebar({ profile, unreadCount }: { profile: Profile | null;
               <Megaphone className="size-4" />
               Advertise
             </DropdownMenuItem>
-            <DropdownMenuItem render={<Link href="/creator-studio" />}>
+            <DropdownMenuItem render={<Link href="/live/studio" />}>
               <Palette className="size-4" />
               Creator Studio
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem render={<Link href="/settings" />}>
-              <Settings className="size-4" />
-              Settings
-            </DropdownMenuItem>
-            <DropdownMenuItem render={<Link href="/help" />}>
-              <HelpCircle className="size-4" />
-              Help & Support
-            </DropdownMenuItem>
-            <DropdownMenuItem render={<Link href="/privacy" />}>
-              <Shield className="size-4" />
-              Privacy & Safety
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
