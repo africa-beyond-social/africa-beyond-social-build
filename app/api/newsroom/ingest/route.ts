@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { getSessionUser } from "@/lib/queries"
 
-export const maxDuration = 25
+export const maxDuration = 60
 
 const SOURCE_TIMEOUT_MS = 2500
 const SOURCE_BATCH_SIZE = 1
