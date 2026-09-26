@@ -240,7 +240,7 @@ export async function getPostsByUser(userId: string, currentUserId: string | nul
   const supabase = await createClient()
   const { data } = await supabase
     .from("posts")
-    .select("id, user_id, content, image_url, created_at, updated_at")
+    .select("id, user_id, content, image_url, video_url, created_at, updated_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(60)
@@ -253,7 +253,7 @@ export async function getSinglePost(postId: string, currentUserId: string | null
   const supabase = await createClient()
   const { data } = await supabase
     .from("posts")
-    .select("id, user_id, content, image_url, created_at, updated_at")
+    .select("id, user_id, content, image_url, video_url, created_at, updated_at")
     .eq("id", postId)
     .maybeSingle()
   if (!data) return null
@@ -337,7 +337,9 @@ export async function getConnectionProfiles(userId: string, kind: "followers" | 
     .from("profiles")
     .select("id, username, display_name, bio, avatar_url, created_at")
     .in("id", ids)
-  return (data as Profile[] | null) ?? []
+  const byId = new Map<string, Profile>()
+  for (const profile of (data as Profile[] | null) ?? []) byId.set(profile.id, profile)
+  return ids.map((id) => byId.get(id)).filter((profile): profile is Profile => Boolean(profile))
 }
 
 /** People discovery: recent profiles, excluding the signed-in user and people already followed. */
@@ -377,7 +379,7 @@ export async function searchPosts(term: string, currentUserId: string | null): P
   const supabase = await createClient()
   const { data } = await supabase
     .from("posts")
-    .select("id, user_id, content, image_url, created_at, updated_at")
+    .select("id, user_id, content, image_url, video_url, created_at, updated_at")
     .ilike("content", `%${term.trim()}%`)
     .order("created_at", { ascending: false })
     .limit(30)
