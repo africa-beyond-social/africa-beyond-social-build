@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import type { NotificationType } from "@/lib/types"
 
-const MAX_LEN = 280
+const MAX_POST_LEN = 1500
+const MAX_REPLY_LEN = 280
 
 type ActionResult = { ok: true } | { ok: false; error: string }
 
@@ -96,7 +97,7 @@ export async function signUpAction(formData: FormData): Promise<ActionResult> {
 export async function createPost(content: string, imageUrl?: string | null, videoUrl?: string | null, attachment?: { url: string; type: string; name?: string }): Promise<ActionResult> {
   const trimmed = content.trim()
   if (!trimmed && !imageUrl && !videoUrl && !attachment) return { ok: false, error: "Post cannot be empty." }
-  if (trimmed.length > MAX_LEN) return { ok: false, error: `Posts are limited to ${MAX_LEN} characters.` }
+  if (trimmed.length > MAX_POST_LEN) return { ok: false, error: `Posts are limited to ${MAX_POST_LEN} characters.` }
 
   const userId = await getUserId()
   if (!userId) return { ok: false, error: "You must be signed in." }
@@ -114,7 +115,7 @@ export async function createPost(content: string, imageUrl?: string | null, vide
 export async function editPost(postId: string, content: string): Promise<ActionResult> {
   const trimmed = content.trim()
   if (!trimmed) return { ok: false, error: "Post cannot be empty." }
-  if (trimmed.length > MAX_LEN) return { ok: false, error: `Posts are limited to ${MAX_LEN} characters.` }
+  if (trimmed.length > MAX_POST_LEN) return { ok: false, error: `Posts are limited to ${MAX_POST_LEN} characters.` }
 
   const userId = await getUserId()
   if (!userId) return { ok: false, error: "You must be signed in." }
@@ -209,7 +210,7 @@ export async function createReply(
 ): Promise<ActionResult> {
   const trimmed = content.trim()
   if (!trimmed && !attachment) return { ok: false, error: "Reply cannot be empty." }
-  if (trimmed.length > MAX_LEN) return { ok: false, error: `Replies are limited to ${MAX_LEN} characters.` }
+  if (trimmed.length > MAX_REPLY_LEN) return { ok: false, error: `Replies are limited to ${MAX_REPLY_LEN} characters.` }
 
   const userId = await getUserId()
   if (!userId) return { ok: false, error: "You must be signed in." }
