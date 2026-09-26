@@ -51,9 +51,9 @@ export async function PATCH(request: Request) {
     ai_draft: body.aiDraft ?? current.ai_draft ?? null,
     status: requested,
     confidence: humanVerified ? "cross_checked" : (body.confidence ?? undefined),
-    editorial_route: humanVerified ? "human_verified" : undefined,
+    editorial_route: humanVerified ? "human_review" : undefined,
     updated_at: new Date().toISOString(),
   }).eq("id", id).select("*").single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) { console.error("newsroom story update failed", { id, requested, humanVerified, error: error.message, details: error.details, hint: error.hint, code: error.code }); return NextResponse.json({ error: error.message || "Unable to save newsroom decision" }, { status: 500 }) }
   return NextResponse.json({ story: data })
 }
