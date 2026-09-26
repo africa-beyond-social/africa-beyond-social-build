@@ -93,11 +93,13 @@ export async function GET(request: Request) {
 
   if (!configuredNetworks.length) {
     return NextResponse.json({
-      ok: false,
+      ok: true,
+      status: "waiting_for_credentials",
       queued: articles.length,
-      message: "Direct social publishing is built but no platform credentials are configured yet.",
+      published: 0,
+      message: "Direct social publishing is ready, but no platform credentials are configured yet. Queued articles remain in generated status and will be retried automatically.",
       networks: { x: false, facebook: false, tiktok: false },
-    }, { status: 503 })
+    })
   }
 
   let published = 0
