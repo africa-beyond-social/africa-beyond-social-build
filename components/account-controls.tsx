@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useTransition } from "react"
-import { Ban, BellOff, Flag, MoreHorizontal, VolumeX } from "lucide-react"
+import { Ban, Flag, MoreHorizontal, VolumeX } from "lucide-react"
 import { toast } from "sonner"
 import { getSafetyState, reportUser, toggleBlock, toggleMute } from "@/lib/actions"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
