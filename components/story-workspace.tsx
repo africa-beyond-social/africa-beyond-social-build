@@ -20,6 +20,7 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
   const [schedule, setSchedule] = useState({ title: "", startAt: "", endAt: "", category: "news", streamUrl: "", description: "" })
   const [intelligenceBusy, setIntelligenceBusy] = useState(false)
   const [intelligenceMessage, setIntelligenceMessage] = useState("")
+  const [decisionMessage, setDecisionMessage] = useState("")
 
   useEffect(() => {
     fetch("/api/newsroom/story?id=" + encodeURIComponent(storyId))
@@ -130,8 +131,9 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
     const data = await response.json().catch(() => ({}))
     if (response.ok) {
       setStory(data.story)
+      setDecisionMessage(status === "approved" ? "Story approved for publication." : humanVerified ? "Human verification recorded. Approval is now available if all editorial checks are satisfied." : "Editorial decision saved.")
     } else if (data.error) {
-      setIntelligenceMessage(data.error)
+      setDecisionMessage(data.error)
     }
     setSaving(false)
   }
@@ -293,6 +295,7 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
               <button disabled={saving || story.status !== "review" || !["cross_checked","developing"].includes(String(story.confidence)) || !draft.trim() || notes.trim().length < 40} onClick={() => save("approved")} title={story.status !== "review" ? "Send the story to review first" : !["cross_checked","developing"].includes(String(story.confidence)) ? "Cross-check the story or mark it verified first" : !draft.trim() ? "Create or enter a draft before approval" : notes.trim().length < 40 ? "Add verification notes before approval" : ""} className="rounded-full bg-brand-red px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Approve</button>
 
             </div>
+            {decisionMessage && <div className="mt-3 rounded-xl border border-border bg-secondary/50 p-3 text-xs font-medium">{decisionMessage}</div>}
           </div>
         </section>
       </div>
