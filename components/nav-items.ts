@@ -34,7 +34,7 @@ export function buildNavItems(username: string | null): NavItem[] {
     { label: "Knowledge", href: "/knowledge", icon: Library, match: (p) => p.startsWith("/knowledge") },
     { label: "Notifications", href: "/notifications", icon: Bell, match: (p) => p.startsWith("/notifications") },
     { label: "Messages", href: "/messages", icon: Mail, match: (p) => p.startsWith("/messages") },
-    { label: "Bookmarks", href: "/bookmarks", icon: Bookmark, match: (p) => p.startsWith("/bookmarks") },
+    { label: "Memory", href: "/memory", icon: Bookmark, match: (p) => p.startsWith("/memory") },
     { label: "Profile", href: profileHref, icon: User, match: (p) => p.startsWith("/profile") },
     { label: "More", href: "#", icon: MoreHorizontal, match: () => false },
   ]
