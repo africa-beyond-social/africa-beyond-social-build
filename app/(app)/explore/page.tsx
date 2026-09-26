@@ -4,8 +4,8 @@ import { SearchBar } from "@/components/search-bar"
 import { FeedList, EmptyState } from "@/components/feed-list"
 import { UserCard } from "@/components/user-card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getFollowingSet, getRecentPosts, getSessionUser, getSuggestedProfiles, getTrendingHashtags, searchPosts, searchProfiles } from "@/lib/queries"
-import { ArrowRight, Compass, Hash, MessageCircle, Newspaper, PlaySquare, Radio, SearchX, Sparkles, Users, Video } from "lucide-react"
+import { getFollowingSet, getRecentPosts, getSessionUser, getDiscoveryEngine, getTrendingHashtags, searchPosts, searchProfiles } from "@/lib/queries"
+import { ArrowRight, Compass, Hash, MessageCircle, Newspaper, PlaySquare, Radio, SearchX, Sparkles, Users, UserRoundPlus, Activity, ShieldCheck, Video } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -41,11 +41,12 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
 }
 
 async function DiscoveryHome({ currentUserId }: { currentUserId: string | null }) {
-  const [people, trending, recent] = await Promise.all([
-    getSuggestedProfiles(currentUserId, 6),
+  const [discovery, trending, recent] = await Promise.all([
+    getDiscoveryEngine(currentUserId, 6),
     getTrendingHashtags(8),
     getRecentPosts(currentUserId, 12),
   ])
+  const people = Array.from(new Map([...discovery.newVoices, ...discovery.mutual, ...discovery.active, ...discovery.verified].map((p) => [p.id, p])).values())
   const followingSet = await getFollowingSet(currentUserId, people.map((profile) => profile.id))
 
   return (
@@ -64,8 +65,16 @@ async function DiscoveryHome({ currentUserId }: { currentUserId: string | null }
       </section>
 
       <section className="border-b border-border bg-secondary/10 px-4 py-5">
-        <div className="mb-3 flex items-center justify-between"><div><h2 className="flex items-center gap-2 font-serif text-base font-bold"><Users className="size-4 text-brand-green" /> New voices on WIGOD</h2><p className="text-xs text-muted-foreground">Recently joined people appear here first so new accounts can find an audience quickly.</p></div><Link href="/explore?q=people" className="text-xs font-semibold text-brand-green">See all</Link></div>
-        {people.length === 0 ? <div className="rounded-xl border border-dashed border-border bg-background px-4 py-6 text-center"><Users className="mx-auto mb-2 size-5 text-muted-foreground" /><p className="text-sm font-medium">No new people to suggest yet</p><p className="mt-1 text-xs text-muted-foreground">More creators will appear as people join WIGOD.</p></div> : <div className="grid gap-2 md:grid-cols-2">{people.map((profile) => <UserCard key={profile.id} profile={profile} currentUserId={currentUserId} isFollowing={followingSet.has(profile.id)} />)}</div>}
+        <div className="mb-4 flex items-center justify-between">
+          <div><h2 className="flex items-center gap-2 font-serif text-base font-bold"><Compass className="size-4 text-brand-green" /> People for you</h2><p className="text-xs text-muted-foreground">WIGOD finds people through meaningful connections, freshness and activity — not popularity alone.</p></div>
+          <Link href="/explore?q=people" className="text-xs font-semibold text-brand-green">Find people</Link>
+        </div>
+        <div className="space-y-5">
+          <DiscoveryRail title="People connected to your network" icon={<Users className="size-4 text-brand-green" />} items={discovery.mutual} reason="mutual" followingSet={followingSet} currentUserId={currentUserId} />
+          <DiscoveryRail title="New voices" icon={<UserRoundPlus className="size-4 text-brand-red" />} items={discovery.newVoices} reason="new" followingSet={followingSet} currentUserId={currentUserId} />
+          <DiscoveryRail title="Active conversations" icon={<Activity className="size-4 text-brand-green" />} items={discovery.active} reason="active" followingSet={followingSet} currentUserId={currentUserId} />
+          {discovery.verified.length > 0 && <DiscoveryRail title="Verified WIGOD identities" icon={<ShieldCheck className="size-4 text-brand-red" />} items={discovery.verified} reason="verified" followingSet={followingSet} currentUserId={currentUserId} />}
+        </div>
       </section>
 
       <section className="border-b border-border px-4 py-5">
@@ -85,6 +94,27 @@ async function DiscoveryHome({ currentUserId }: { currentUserId: string | null }
       </section>
     </div>
   )
+}
+
+
+
+function DiscoveryRail({
+  title, icon, items, reason, followingSet, currentUserId,
+}: {
+  title: string
+  icon: React.ReactNode
+  items: Array<Awaited<ReturnType<typeof getDiscoveryEngine>>["newVoices"][number]>
+  reason: "mutual" | "new" | "active" | "verified"
+  followingSet: Set<string>
+  currentUserId: string | null
+}) {
+  if (!items.length) return null
+  return <div>
+    <div className="mb-2 flex items-center gap-2">{icon}<h3 className="text-sm font-semibold">{title}</h3></div>
+    <div className="grid gap-2 md:grid-cols-2">{items.map((profile) =>
+      <UserCard key={profile.id} profile={profile} currentUserId={currentUserId} isFollowing={followingSet.has(profile.id)} discoveryReason={reason} mutualCount={profile.mutual_count} />
+    )}</div>
+  </div>
 }
 
 async function SearchResults({ query, mode, currentUserId }: { query: string; mode: string; currentUserId: string | null }) {
