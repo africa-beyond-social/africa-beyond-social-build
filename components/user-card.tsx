@@ -2,6 +2,7 @@ import Link from "next/link"
 import { UserAvatar } from "@/components/user-avatar"
 import { FollowButton } from "@/components/follow-button"
 import { VerificationBadge } from "@/components/verification-badge"
+import { AccountControls } from "@/components/account-controls"
 import type { Profile } from "@/lib/types"
 
 export function UserCard({
@@ -42,7 +43,7 @@ export function UserCard({
             <p className="truncate text-sm text-muted-foreground">@{profile.username}{typeof followerCount === "number" && <> · {followerCount} follower{followerCount === 1 ? "" : "s"}</>}</p>
           </Link>
           {currentUserId && currentUserId !== profile.id && (
-            <FollowButton targetUserId={profile.id} initialFollowing={isFollowing} size="sm" />
+            <div className="flex items-center gap-1.5"><FollowButton targetUserId={profile.id} initialFollowing={isFollowing} size="sm" /><AccountControls targetUserId={profile.id} /></div>
           )}
         </div>
 
