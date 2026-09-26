@@ -83,9 +83,9 @@ export function LeftSidebar({ profile, unreadCount }: { profile: Profile | null;
               <MoreHorizontal className="size-4" />
               Messages
             </DropdownMenuItem>
-            <DropdownMenuItem render={<Link href="/bookmarks" />}>
+            <DropdownMenuItem render={<Link href="/memory" />}>
               <Shield className="size-4" />
-              Bookmarks
+              Memory
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem render={<Link href="/marketplace" />}>
