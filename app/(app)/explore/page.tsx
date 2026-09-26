@@ -21,6 +21,7 @@ const discoveryCards = [
 export default async function ExplorePage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams
   const query = q?.trim() ?? ""
+  const mode = query.toLowerCase()
   const user = await getSessionUser()
   const currentUserId = user?.id ?? null
 
@@ -34,7 +35,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
         </div>
         <SearchBar initialQuery={query} />
       </section>
-      {query ? <SearchResults query={query} currentUserId={currentUserId} /> : <DiscoveryHome currentUserId={currentUserId} />}
+      {query ? <SearchResults query={query} mode={mode} currentUserId={currentUserId} /> : <DiscoveryHome currentUserId={currentUserId} />}
     </div>
   )
 }
@@ -86,18 +87,37 @@ async function DiscoveryHome({ currentUserId }: { currentUserId: string | null }
   )
 }
 
-async function SearchResults({ query, currentUserId }: { query: string; currentUserId: string | null }) {
-  const [profiles, posts] = await Promise.all([searchProfiles(query), searchPosts(query, currentUserId)])
+async function SearchResults({ query, mode, currentUserId }: { query: string; mode: string; currentUserId: string | null }) {
+  const isPeopleMode = mode === "people"
+  const isTrendingMode = mode === "trending"
+  const hashtag = query.startsWith("#") ? query : ""
+  const [profiles, posts, trending] = await Promise.all([
+    isPeopleMode || isTrendingMode ? Promise.resolve([]) : searchProfiles(query),
+    isPeopleMode || isTrendingMode ? Promise.resolve([]) : searchPosts(query, currentUserId),
+    hashtag || isTrendingMode ? getTrendingHashtags(20) : Promise.resolve([]),
+  ])
   const followingSet = await getFollowingSet(currentUserId, profiles.map((p) => p.id))
+  const hashtagPosts = hashtag ? await searchPosts(hashtag, currentUserId) : []
+  const shownPosts = hashtag ? hashtagPosts : posts
 
   return (
-    <Tabs defaultValue="posts">
+    <Tabs defaultValue={isPeopleMode ? "people" : "posts"}>
       <TabsList variant="line" className="w-full justify-start rounded-none border-b border-border px-4">
-        <TabsTrigger value="posts">Posts ({posts.length})</TabsTrigger>
+        <TabsTrigger value="posts">Posts ({shownPosts.length})</TabsTrigger>
         <TabsTrigger value="people">People ({profiles.length})</TabsTrigger>
       </TabsList>
-      <TabsContent value="posts"><FeedList posts={posts} currentUserId={currentUserId} empty={<EmptyState icon={<SearchX className="size-6" />} title="No posts found" description={`We couldn&apos;t find any posts matching "${query}".`} />} /></TabsContent>
-      <TabsContent value="people">{profiles.length === 0 ? <EmptyState icon={<SearchX className="size-6" />} title="No people found" description={`We couldn&apos;t find anyone matching "${query}".`} /> : profiles.map((p) => <UserCard key={p.id} profile={p} currentUserId={currentUserId} isFollowing={followingSet.has(p.id)} />)}</TabsContent>
+      <TabsContent value="posts"><FeedList posts={shownPosts} currentUserId={currentUserId} empty={<EmptyState icon={<SearchX className="size-6" />} title="No posts found" description={`We couldn&apos;t find any posts matching "${query}".`} />} /></TabsContent>
+      <TabsContent value="people">{isTrendingMode ? (
+        <div className="grid gap-1 px-4 py-5 sm:grid-cols-2">
+          {trending.map((t) => (
+            <Link key={t.tag} href={`/explore?q=${encodeURIComponent(t.tag)}`} className="flex items-center gap-3 rounded-xl border border-border px-3 py-3 transition-colors hover:bg-secondary">
+              <span className="flex size-8 items-center justify-center rounded-full bg-accent text-brand-green"><Hash className="size-4" /></span>
+              <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{t.tag}</span><span className="text-xs text-muted-foreground">{t.count} {t.count === 1 ? "post" : "posts"}</span></span>
+              <ArrowRight className="size-4 text-muted-foreground" />
+            </Link>
+          ))}
+        </div>
+      ) : profiles.length === 0 ? <EmptyState icon={<SearchX className="size-6" />} title="No people found" description={`We couldn&apos;t find anyone matching "${query}".`} /> : profiles.map((p) => <UserCard key={p.id} profile={p} currentUserId={currentUserId} isFollowing={followingSet.has(p.id)} />)}</TabsContent>
     </Tabs>
   )
 }
