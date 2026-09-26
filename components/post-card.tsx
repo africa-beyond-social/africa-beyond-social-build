@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useRef, useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Heart, MessageCircle, Repeat2, Share, Quote, MoreHorizontal, Pencil, Trash2, Bookmark } from "lucide-react"
+import { Heart, MessageCircle, Repeat2, Share, Quote, MoreHorizontal, Pencil, Trash2, Bookmark, Paperclip, X } from "lucide-react"
 import { toggleLike, toggleAmplify, toggleSave, createPost, deletePost } from "@/lib/actions"
 import { UserAvatar } from "@/components/user-avatar"
 import { PostContent } from "@/components/post-content"
@@ -45,6 +45,8 @@ export function PostCard({
   const [saved, setSaved] = useState(post.saved_by_me)
   const [editing, setEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [quoteFile, setQuoteFile] = useState<File | null>(null)
+  const quoteFileRef = useRef<HTMLInputElement>(null)
 
   const isOwner = currentUserId === post.author.id
   const postHref = `/post/${post.id}`
@@ -115,8 +117,25 @@ export function PostCard({
     const prefix = comment.trim()
     const quote = `@${post.author.username}: "${quotedText}"`
     const content = prefix ? `${prefix.slice(0, 160)}\n\n${quote}` : quote
-    const res = await createPost(content)
+    const file = quoteFile
+    let imageUrl: string | null = null
+    let videoUrl: string | null = null
+    if (file) {
+      if (file.size > 50 * 1024 * 1024) { toast.error("Files must be 50 MB or smaller."); return }
+      const supabase = createClient()
+      const ext = file.name.split(".").pop()?.toLowerCase() || "bin"
+      const path = (currentUserId ?? "user") + "/" + crypto.randomUUID() + "." + ext
+      const uploaded = await supabase.storage.from("post-media").upload(path, file, { cacheControl: "3600", upsert: false, contentType: file.type })
+      if (uploaded.error) { toast.error(uploaded.error.message); return }
+      const url = supabase.storage.from("post-media").getPublicUrl(path).data.publicUrl
+      if (file.type.startsWith("video/")) videoUrl = url
+      else if (file.type.startsWith("image/")) imageUrl = url
+      else { toast.error("Quote attachments currently support images and video."); return }
+    }
+    const res = await createPost(content, imageUrl, videoUrl)
     if (!res.ok) { toast.error(res.error); return }
+    setQuoteFile(null)
+    if (quoteFileRef.current) quoteFileRef.current.value = ""
     toast.success("Quoted to your profile.")
     router.refresh()
   }
@@ -300,6 +319,36 @@ export function PostCard({
             </span>
             <span className="tabular-nums">{formatCount(likeCount)}</span>
           </button>
+
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <input
+              ref={quoteFileRef}
+              type="file"
+              accept="image/*,video/*"
+              className="hidden"
+              onChange={(e) => setQuoteFile(e.target.files?.[0] ?? null)}
+            />
+            <button
+              type="button"
+              onClick={() => quoteFileRef.current?.click()}
+              className={cn("group flex items-center gap-1.5 text-sm transition-colors hover:text-brand-green", quoteFile && "text-brand-green")}
+              aria-label={quoteFile ? "Quote file attached" : "Add files to quote"}
+            >
+              <span className="flex size-8 items-center justify-center rounded-full transition-colors group-hover:bg-accent">
+                <Paperclip className="size-[1.05rem]" />
+              </span>
+            </button>
+            {quoteFile && (
+              <button
+                type="button"
+                onClick={() => { setQuoteFile(null); if (quoteFileRef.current) quoteFileRef.current.value = "" }}
+                className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-background text-muted-foreground shadow"
+                aria-label="Remove quote attachment"
+              >
+                <X className="size-3" />
+              </button>
+            )}
+          </div>
 
           <button
             onClick={onQuote}
