@@ -1,0 +1,1 @@
+alter table public.news_sources add column if not exists last_fetch_mode text;
