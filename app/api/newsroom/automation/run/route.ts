@@ -226,6 +226,9 @@ ${material}`)
         research_status:"complete",
         research_attempts:Number(story.research_attempts||0)+1,
         last_researched_at:new Date().toISOString(),
+        evidence_basis:evidenceBasis,
+        unsupported_claims:unsupportedClaims,
+        current_role_status:String(article.current_role_status||"not_established"),
         updated_at:new Date().toISOString()
       }).eq("id",story.id)
 
