@@ -13,6 +13,9 @@ export type Post = {
   content: string
   image_url: string | null
   video_url: string | null
+  attachment_url: string | null
+  attachment_type: string | null
+  attachment_name: string | null
   created_at: string
   updated_at: string | null
 }
@@ -23,6 +26,9 @@ export type FeedPost = {
   content: string
   image_url: string | null
   video_url: string | null
+  attachment_url: string | null
+  attachment_type: string | null
+  attachment_name: string | null
   created_at: string
   updated_at: string | null
   author: Profile
