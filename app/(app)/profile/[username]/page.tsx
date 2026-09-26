@@ -15,6 +15,7 @@ import {
 import { joinDate } from "@/lib/format"
 import { FileText } from "lucide-react"
 import { VerificationBadge } from "@/components/verification-badge"
+import { AccountControls } from "@/components/account-controls"
 
 export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params
@@ -45,6 +46,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             <EditProfileDialog profile={profile} />
           ) : currentUserId ? (
             <div className="flex items-center gap-2">
+              <AccountControls targetUserId={profile.id} />
               <Link href={`/messages?with=${encodeURIComponent(profile.username)}`} className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-semibold hover:bg-secondary">
                 <MessageCircle className="size-4" />
                 Message
