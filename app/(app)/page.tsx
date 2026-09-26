@@ -2,10 +2,18 @@ import Link from "next/link"
 import { BrandWordmark } from "@/components/brand-logo"
 import { PostComposer } from "@/components/post-composer"
 import { FeedList, EmptyState } from "@/components/feed-list"
-import { getCurrentProfile, getHomeFeed, getSessionUser } from "@/lib/queries"
+import { getCurrentProfile, getFollowingFeed, getHomeFeed, getSessionUser } from "@/lib/queries"
 import { Compass, Globe2, Radio, Sparkles, Newspaper, PlaySquare, Users, MapPin, Store, Megaphone, Clapperboard } from "lucide-react"
 
-const feedTabs = ["For You", "Following", "Africa", "News", "Media", "Community", "Live"]
+const feedTabs = [
+  { label: "For You", href: "/" },
+  { label: "Following", href: "/?feed=following" },
+  { label: "Africa", href: "/explore" },
+  { label: "News", href: "/news" },
+  { label: "Media", href: "/media" },
+  { label: "Community", href: "/community" },
+  { label: "Live", href: "/live" },
+]
 
 const trending = [
   { country: "Zimbabwe", topic: "Community conversations" },
@@ -45,18 +53,19 @@ export default async function HomePage() {
           </section>
 
           <div className="flex gap-1 overflow-x-auto border-b border-border px-2 py-1 scrollbar-none md:px-4">
-            {feedTabs.map((tab, index) => (
-              <div
-                key={tab}
-                className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${index === 0 ? "bg-brand-red/10 text-brand-red" : "text-muted-foreground hover:bg-secondary"}`}
+            {feedTabs.map((tab) => (
+              <Link
+                key={tab.label}
+                href={tab.href}
+                className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${activeFeed === tab.label ? "bg-brand-red/10 text-brand-red" : "text-muted-foreground hover:bg-secondary"}`}
               >
-                {tab === "Africa" && <Compass className="size-4" />}
-                {tab === "News" && <Newspaper className="size-4" />}
-                {tab === "Media" && <PlaySquare className="size-4" />}
-                {tab === "Community" && <Users className="size-4" />}
-                {tab === "Live" && <Radio className="size-4" />}
-                {tab}
-              </div>
+                {tab.label === "Africa" && <Compass className="size-4" />}
+                {tab.label === "News" && <Newspaper className="size-4" />}
+                {tab.label === "Media" && <PlaySquare className="size-4" />}
+                {tab.label === "Community" && <Users className="size-4" />}
+                {tab.label === "Live" && <Radio className="size-4" />}
+                {tab.label}
+              </Link>
             ))}
           </div>
 
