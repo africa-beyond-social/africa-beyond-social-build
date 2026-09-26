@@ -8,7 +8,11 @@ export function UserCard({
   profile,
   currentUserId,
   isFollowing,
+  discoveryReason,
+  mutualCount,
 }: {
+  discoveryReason?: "mutual" | "new" | "active" | "verified"
+  mutualCount?: number
   profile: Profile
   currentUserId: string | null
   isFollowing: boolean
@@ -39,7 +43,16 @@ export function UserCard({
             <FollowButton targetUserId={profile.id} initialFollowing={isFollowing} size="sm" />
           )}
         </div>
+
         {profile.bio && <p className="mt-1 line-clamp-2 text-sm text-foreground/80">{profile.bio}</p>}
+        {discoveryReason && (
+          <p className="mt-1.5 text-[11px] font-medium text-brand-green">
+            {discoveryReason === "mutual" && `${mutualCount ?? 0} mutual connection${(mutualCount ?? 0) === 1 ? "" : "s"}`}
+            {discoveryReason === "new" && "New to WIGOD"}
+            {discoveryReason === "active" && "Active on WIGOD"}
+            {discoveryReason === "verified" && "Verified WIGOD identity"}
+          </p>
+        )}
       </div>
     </div>
   )
