@@ -274,13 +274,17 @@ ${material}`)
       await logRun(db,run.id,{story_id:story.id,step:"website_publish",message:`Publishing verified story to Africa & Beyond: ${title}`})
       const ghostPublished=await publishGhost({...saved,body_html:cleanText})
       const publishedUrl=ghostPublished.url
-      const x=(title+" "+publishedUrl).slice(0,280)
-      const fb=`${title}\n\n${String(article.dek||story.summary||"").trim()}\n\n${publishedUrl}`.trim()
-      const tt=`${title} — ${publishedUrl} #AfricaAndBeyond #News`
-      await db.from("newsroom_articles").update({website_status:"published",website_post_id:ghostPublished.postId,website_url:publishedUrl,website_published_at:new Date().toISOString(),social_x:x,social_facebook:fb,social_tiktok:tt,social_status:"generated",updated_at:new Date().toISOString()}).eq("id",saved.id)
+      await db.from("newsroom_articles").update({
+        website_status:"published",
+        website_post_id:ghostPublished.postId,
+        website_url:publishedUrl,
+        website_published_at:new Date().toISOString(),
+        social_status:"ready",
+        updated_at:new Date().toISOString()
+      }).eq("id",saved.id)
       await db.from("newsroom_stories").update({status:"published",updated_at:new Date().toISOString()}).eq("id",story.id)
       published++
-      await logRun(db,run.id,{story_id:story.id,step:"distribution_ready",message:`Published and prepared social distribution: ${publishedUrl}`,stories_drafted:drafted,articles_ready:articlesReady})
+      await logRun(db,run.id,{story_id:story.id,step:"website_published",message:`Published to Africa & Beyond: ${publishedUrl}`,stories_drafted:drafted,articles_ready:articlesReady})
     }
     const message=`Engine completed: ${drafted} articles prepared, ${published} automatically published, ${articlesReady-published} routed to review.`
     await logRun(db,run.id,{status:"completed",step:"complete",message,stories_verified:verifiedCount,stories_drafted:drafted,articles_ready:articlesReady,completed_at:new Date().toISOString()})
