@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { AFRICA_BEYOND_EDITORIAL_SPEC } from "@/lib/newsroom/editorial-spec"
 import { getSessionUser } from "@/lib/queries"
 
-export const maxDuration = 25
+export const maxDuration = 45
 const AI_TIMEOUT_MS = 12000
 
 function isAdmin(email?: string | null) {
@@ -145,11 +145,11 @@ export async function POST(request:Request) {
     const cutoff48h=new Date(Date.now()-48*60*60*1000).toISOString();
     // Draft newly detected stories even when they have not yet reached the automatic-publish threshold.
     // The editorial quality gate and safeForAutoPublish check decide whether they publish or go to review.
-    const {data:candidates,error:candidateError}=await db.from("newsroom_stories").select("*").is("ai_draft",null).in("status",["new","review","draft"]).gte("detected_at",cutoff48h).order("source_route",{ascending:false}).order("automated_review_ready",{ascending:false}).order("published_at",{ascending:false,nullsFirst:false}).order("detected_at",{ascending:false}).limit(1)
+    const {data:candidates,error:candidateError}=await db.from("newsroom_stories").select("*").is("ai_draft",null).in("status",["new","review","draft"]).gte("detected_at",cutoff48h).order("source_route",{ascending:false}).order("automated_review_ready",{ascending:false}).order("published_at",{ascending:false,nullsFirst:false}).order("detected_at",{ascending:false}).limit(2)
     if(candidateError)throw new Error(candidateError.message)
     let drafted=0,articlesReady=0,published=0
-    // Process one story per invocation so the cron stays within Vercel's production runtime ceiling.
-    // The next scheduled run continues with the next queued story.
+    // Process a small bounded batch per invocation so the queue clears faster without returning to long-running requests.
+    // Two stories keeps the AI work within the production runtime ceiling; the next cron continues the queue.
     // Production build fix: the publication counter must remain mutable during automated distribution.
     for(const story of candidates||[]) {
       await logRun(db,run.id,{story_id:story.id,step:"ai_drafting",message:`Producing article: ${story.title}`,stories_verified:verifiedCount,stories_drafted:drafted,articles_ready:articlesReady})
