@@ -191,7 +191,7 @@ export async function getHomeFeed(userId: string): Promise<FeedPost[]> {
   const items: Item[] = []
   const seen = new Set<string>()
 
-  for (const row of postRows) {
+  for (const row of visiblePostRows) {
     const e = enrichment.get(row.id)
     if (!e) continue
     items.push({ feed: toFeedPost(row, e), sortTime: new Date(row.created_at).getTime() })
