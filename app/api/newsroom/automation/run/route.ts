@@ -4,7 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { AFRICA_BEYOND_EDITORIAL_SPEC } from "@/lib/newsroom/editorial-spec"
 import { getSessionUser } from "@/lib/queries"
 
-export const maxDuration = 120
+export const maxDuration = 25
+const AI_TIMEOUT_MS = 12000
 
 function isAdmin(email?: string | null) {
   return Boolean(email && (process.env.LIVE_ADMIN_EMAILS || "").split(",").map(v => v.trim().toLowerCase()).includes(email.toLowerCase()))
@@ -60,7 +61,11 @@ function sourceBox(sources:any[]) {
 async function callOpenAI(prompt:string) {
   const key=process.env.OPENAI_API_KEY
   if(!key) throw new Error("OPENAI_API_KEY is not configured")
-  const response=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"content-type":"application/json",authorization:`Bearer ${key}`},body:JSON.stringify({
+  const controller=new AbortController()
+  const timeout=setTimeout(()=>controller.abort(),AI_TIMEOUT_MS)
+  let response: Response
+  try {
+    response=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"content-type":"application/json",authorization:`Bearer ${key}`},body:JSON.stringify({
     model:process.env.OPENAI_MODEL||"gpt-4.1-mini",
     input:prompt,
     temperature:0.2,
@@ -73,7 +78,10 @@ async function callOpenAI(prompt:string) {
       },
       required:["title","dek","body_html","seo_title","seo_description","category","tags","live_summary","live_watchpoints","editorial_state","story_type","current_role_status","verification_notes","requires_human_review"]
     }}}
-  })})
+  }),signal:controller.signal})
+  } finally {
+    clearTimeout(timeout)
+  }
   const data=await response.json()
   if(!response.ok) throw new Error(data?.error?.message||`AI service returned HTTP ${response.status}`)
   const output=String(data.output_text||"").trim() || (Array.isArray(data.output) ? data.output.flatMap((item:any)=>Array.isArray(item?.content)?item.content:[]).map((part:any)=>String(part?.text||"")).filter(Boolean).join("").trim() : "")
@@ -137,9 +145,11 @@ export async function POST(request:Request) {
     const cutoff48h=new Date(Date.now()-48*60*60*1000).toISOString();
     // Draft newly detected stories even when they have not yet reached the automatic-publish threshold.
     // The editorial quality gate and safeForAutoPublish check decide whether they publish or go to review.
-    const {data:candidates,error:candidateError}=await db.from("newsroom_stories").select("*").is("ai_draft",null).in("status",["new","review","draft"]).gte("detected_at",cutoff48h).order("source_route",{ascending:false}).order("automated_review_ready",{ascending:false}).order("published_at",{ascending:false,nullsFirst:false}).order("detected_at",{ascending:false}).limit(4)
+    const {data:candidates,error:candidateError}=await db.from("newsroom_stories").select("*").is("ai_draft",null).in("status",["new","review","draft"]).gte("detected_at",cutoff48h).order("source_route",{ascending:false}).order("automated_review_ready",{ascending:false}).order("published_at",{ascending:false,nullsFirst:false}).order("detected_at",{ascending:false}).limit(1)
     if(candidateError)throw new Error(candidateError.message)
     let drafted=0,articlesReady=0,published=0
+    // Process one story per invocation so the cron stays within Vercel's production runtime ceiling.
+    // The next scheduled run continues with the next queued story.
     // Production build fix: the publication counter must remain mutable during automated distribution.
     for(const story of candidates||[]) {
       await logRun(db,run.id,{story_id:story.id,step:"ai_drafting",message:`Producing article: ${story.title}`,stories_verified:verifiedCount,stories_drafted:drafted,articles_ready:articlesReady})
