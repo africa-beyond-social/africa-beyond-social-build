@@ -8,6 +8,10 @@ const SOURCE_TIMEOUT_MS = 2500
 const SOURCE_BATCH_SIZE = 1
 const MAX_ITEMS_PER_SOURCE = 10
 const LOOKBACK_MS = 48 * 60 * 60 * 1000
+const PROTECTED_PUBLISHERS: Record<string,string> = {
+  "ZBC News": "https://news.google.com/rss/search?q=site%3Azbc.co.zw+when%3A2d&hl=en-ZW&gl=ZW&ceid=ZW%3Aen",
+  "The Herald": "https://news.google.com/rss/search?q=site%3Aherald.co.zw+when%3A2d&hl=en-ZW&gl=ZW&ceid=ZW%3Aen",
+}
 
 function strip(value: string) {
   return value.replace(/<!\[CDATA\[/g, "").replace(/\]\]>/g, "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()
@@ -164,11 +168,23 @@ export async function GET(request: Request) {
     const timer = withTimeout(SOURCE_TIMEOUT_MS)
 
     try {
-      const response = await fetch(source.url, {
-        headers: { "user-agent": "WIGOD-Newsroom/1.0" },
+      let response = await fetch(source.url, {
+        headers: { "user-agent": "WIGOD-Newsroom/1.0", "accept": "application/rss+xml, application/xml, text/xml, */*" },
         cache: "no-store",
         signal: timer.controller.signal,
       })
+      let fetchMode = "direct"
+      if (!response.ok && response.status === 403) {
+        const fallbackUrl = PROTECTED_PUBLISHERS[String(source.publisher_name || source.name || "")]
+        if (fallbackUrl) {
+          response = await fetch(fallbackUrl, {
+            headers: { "user-agent": "WIGOD-Newsroom/1.0", "accept": "application/rss+xml, application/xml, text/xml, */*" },
+            cache: "no-store",
+            signal: timer.controller.signal,
+          })
+          fetchMode = "google_news_fallback"
+        }
+      }
       if (!response.ok) throw new Error("HTTP " + response.status)
 
       const xml = await response.text()
