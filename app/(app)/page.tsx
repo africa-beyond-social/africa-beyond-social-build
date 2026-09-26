@@ -22,9 +22,14 @@ const trending = [
   { country: "Kenya", topic: "Culture & society" },
 ]
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ feed?: string }> }) {
+  const { feed } = await searchParams
   const user = await getSessionUser()
-  const [profile, posts] = await Promise.all([getCurrentProfile(), user ? getHomeFeed(user.id) : Promise.resolve([])])
+  const [profile, posts] = await Promise.all([
+    getCurrentProfile(),
+    user ? (feed === "following" ? getFollowingFeed(user.id) : getHomeFeed(user.id)) : Promise.resolve([]),
+  ])
+  const activeFeed = feed === "following" ? "Following" : "For You"
 
   return (
     <div className="min-h-full overflow-x-hidden">
