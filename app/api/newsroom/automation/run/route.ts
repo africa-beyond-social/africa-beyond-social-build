@@ -57,7 +57,11 @@ function cleanPublishedBody(html:string) {
   value=value.replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/gi,"$1");
   value=value.replace(/<a[^>]*>([\s\S]*?)<\/a>/gi,"$1");
   value=value.replace(/https?:\/\/[^\s<)]+/gi,"");
+  value=value.replace(/\s*\(\s*\)\s*/g," ");
   return cleanHtml(value);
+}
+function cleanPublicArticleBody(html:string) {
+  return cleanPublishedBody(html).replace(/\s{2,}/g," ").trim();
 }
 function cleanHtml(html:string) {
   return html.replace(/<script[\s\S]*?<\/script>/gi,"").replace(/<style[\s\S]*?<\/style>/gi,"").replace(/\son[a-z]+\s*=\s*(["']).*?\1/gi,"")
@@ -236,7 +240,7 @@ ${material}`)
 
       const narrative=String(article.body_html||"").replace(/<p><strong>Africa &amp; Beyond — News \| Analysis \| Perspective<\/strong><\/p>\s*$/,"").trim()
       // Sources are retained internally for verification/audit and are never rendered in the public article.
-      const finalBody=(narrative+"\n<p><strong>Africa & Beyond — News | Analysis | Perspective</strong></p>").trim()
+      const finalBody=(cleanPublicArticleBody(narrative)+"\n<p><strong>Africa & Beyond — News | Analysis | Perspective</strong></p>").trim()
       const quality=editorialQuality(narrative,material)
       if(unsupportedClaims.length>0){
         quality.ok=false
@@ -269,7 +273,7 @@ ${material}`)
         continue
       }
       await logRun(db,run.id,{story_id:story.id,step:"automated_review",message:quality.reason,stories_drafted:drafted,articles_ready:articlesReady})
-      const cleanText=String(saved.body_html||"")
+      const cleanText=cleanPublicArticleBody(String(saved.body_html||""))
       const trustedPrimary=isTrustedSource(story)
       const editorialState=["ready","developing","editorial_review","hold"].includes(String(article.editorial_state||"")) ? String(article.editorial_state) : "editorial_review"
       const sourceSufficient=trustedPrimary||Number(story.independent_source_count||0)>=2
