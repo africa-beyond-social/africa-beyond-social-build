@@ -229,7 +229,7 @@ ${material}`)
       const directSource=story.source_route==="source_inbox"
       const roleStatus=String(article.current_role_status||"not_established")
       const requiresHumanReview=Boolean(article.requires_human_review)
-      const temporalRisk=Array.isArray(article.verification_notes) && article.verification_notes.some((note:any)=>/current|former|role|leader|president|minister|official|chair|secretary|date|dated|undated|old|outdated|timeline|status/i.test(String(note||"")))
+      const temporalRisk=Array.isArray(article.verification_notes) && article.verification_notes.some((note:any)=>/not established|not verified|unverified|unable to verify|cannot verify|cannot establish|unclear|undated|outdated|old screenshot|stale|conflicting|disputed|unknown current status|current status unknown|former role cannot be established/i.test(String(note||"")))
       // Source Inbox is never an automatic publication bypass. A screenshot, image or PDF
       // can be decoded and turned into a draft, but publication still requires the same
       // verification threshold as detected newsroom material, plus a clean temporal/entity check.
