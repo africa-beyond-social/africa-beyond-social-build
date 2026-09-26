@@ -9,7 +9,7 @@ const SOURCE_BATCH_SIZE = 1
 const MAX_ITEMS_PER_SOURCE = 10
 const LOOKBACK_MS = 48 * 60 * 60 * 1000
 const PROTECTED_PUBLISHERS: Record<string,string> = {
-  "ZBC News": "https://news.google.com/rss/search?q=site%3Azbc.co.zw+when%3A2d&hl=en-ZW&gl=ZW&ceid=ZW%3Aen",
+  "ZBC News": "https://news.google.com/rss/search?q=site%3Azbcnews.co.zw+OR+site%3Azbc.co.zw+when%3A2d&hl=en-ZW&gl=ZW&ceid=ZW%3Aen",
   "The Herald": "https://news.google.com/rss/search?q=site%3Aherald.co.zw+when%3A2d&hl=en-ZW&gl=ZW&ceid=ZW%3Aen",
 }
 
