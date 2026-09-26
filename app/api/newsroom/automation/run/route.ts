@@ -69,9 +69,9 @@ async function callOpenAI(prompt:string) {
       additionalProperties:false,
       properties:{
         title:{type:"string"},dek:{type:"string"},body_html:{type:"string"},seo_title:{type:"string"},seo_description:{type:"string"},
-        category:{type:"string"},tags:{type:"array",items:{type:"string"}},live_summary:{type:"string"},live_watchpoints:{type:"array",items:{type:"string"}},editorial_state:{type:"string",enum:["ready","developing","editorial_review","hold"]},story_type:{type:"string"}
+        category:{type:"string"},tags:{type:"array",items:{type:"string"}},live_summary:{type:"string"},live_watchpoints:{type:"array",items:{type:"string"}},editorial_state:{type:"string",enum:["ready","developing","editorial_review","hold"]},story_type:{type:"string"},current_role_status:{type:"string",enum:["verified_current","verified_former","not_established","not_applicable"]},verification_notes:{type:"array",items:{type:"string"}},requires_human_review:{type:"boolean"}
       },
-      required:["title","dek","body_html","seo_title","seo_description","category","tags","live_summary","live_watchpoints","editorial_state","story_type"]
+      required:["title","dek","body_html","seo_title","seo_description","category","tags","live_summary","live_watchpoints","editorial_state","story_type","current_role_status","verification_notes","requires_human_review"]
     }}}
   })})
   const data=await response.json()
@@ -166,8 +166,13 @@ EXECUTION RULES FOR THIS STORY:
 - If the source is a submitted PNG/screenshot containing an official or public statement, turn the statement into a proper news report: identify who made the statement, what was said, when/where it was issued if visible, why it matters, what is confirmed versus merely claimed, and what remains unknown.
 - A statement must remain attributed. Never rewrite a person's statement as an independently established fact merely because it appears in an image.
 - If the submitted image contains a denial, allegation, political claim, announcement or reaction, report it as a statement/claim and preserve the distinction between the speaker's words and independently established facts.
+- TEMPORAL AND ENTITY VERIFICATION IS MANDATORY: never infer that a person currently holds a political, government, corporate, party or institutional role merely because a source describes them that way. Check the date of the source, distinguish current from former roles, and use only a current role that is established by the supplied evidence or corroborating evidence. If current status cannot be established, do not state the role as current.
+- For people, organisations and office-holders, explicitly assess whether the role/status is current, former, disputed or not established. Set current_role_status accordingly and put the reason in verification_notes.
+- If a claim depends on an old screenshot, repost, archived statement or undated image, treat the date/status as unresolved unless independently established.
+- If the story contains a material identity, role, date, title, affiliation or leadership claim that cannot be verified from the available evidence, set requires_human_review=true and editorial_state=editorial_review or hold. Do not fill the gap by inference.
 - A credible professional source may be sufficient to develop a legitimate report; do not invent a requirement for multiple independent sources.
 - When the originating publisher is an established professional newsroom or primary institution, do not route the story to editorial review merely because there is only one credible source. If the supplied facts are sufficient and there is no material contradiction, classify it ready or developing and proceed with production.
+- This single-source rule does NOT apply to an unidentified or user-submitted screenshot/image/PDF. Source Inbox material is source evidence to investigate, not automatic proof and not an automatic publication pass.
 - If a reliable source reports a developing event, use State B when the known facts support publication with attribution and explicit uncertainty.
 - Route to State C when significant allegations, credible contradictions, serious legal/factual ambiguity, or material evidence gaps make automatic publication unsafe.
 - Route to State D when source reliability is poor or the claim is unsupported.
@@ -222,11 +227,37 @@ ${material}`)
       const editorialState=["ready","developing","editorial_review","hold"].includes(String(article.editorial_state||"")) ? String(article.editorial_state) : "editorial_review"
       const sourceSufficient=trustedPrimary||Number(story.independent_source_count||0)>=2
       const directSource=story.source_route==="source_inbox"
-      const safeForAutoPublish=(directSource && (editorialState==="ready"||editorialState==="developing") && story.verification_class!=="allegation"&&story.verification_class!=="conflicting"&&story.verification_class!=="opinion") || (!directSource && (trustedPrimary || Number(story.verification_score||0)>=60) && sourceSufficient && (editorialState==="ready"||editorialState==="developing") && story.verification_class!=="allegation"&&story.verification_class!=="conflicting"&&story.verification_class!=="opinion")&&(cleanText.includes("Africa &amp; Beyond — News | Analysis | Perspective")||cleanText.includes("Africa & Beyond — News | Analysis | Perspective"))
+      const roleStatus=String(article.current_role_status||"not_established")
+      const requiresHumanReview=Boolean(article.requires_human_review)
+      const temporalRisk=Array.isArray(article.verification_notes) && article.verification_notes.some((note:any)=>/current|former|role|leader|president|minister|official|chair|secretary|date|dated|undated|old|outdated|timeline|status/i.test(String(note||"")))
+      // Source Inbox is never an automatic publication bypass. A screenshot, image or PDF
+      // can be decoded and turned into a draft, but publication still requires the same
+      // verification threshold as detected newsroom material, plus a clean temporal/entity check.
+      // This prevents old screenshots or stale descriptions of public figures from becoming
+      // current facts simply because the decoder could read them.
+      const sourceInboxVerified=!directSource || (
+        (trustedPrimary || Number(story.verification_score||0)>=60) &&
+        sourceSufficient &&
+        !requiresHumanReview &&
+        !temporalRisk &&
+        (roleStatus==="verified_current" || roleStatus==="verified_former" || roleStatus==="not_applicable")
+      )
+      const safeForAutoPublish=sourceInboxVerified &&
+        (trustedPrimary || Number(story.verification_score||0)>=60) &&
+        sourceSufficient &&
+        (editorialState==="ready"||editorialState==="developing") &&
+        story.verification_class!=="allegation" &&
+        story.verification_class!=="conflicting" &&
+        story.verification_class!=="opinion" &&
+        (cleanText.includes("Africa &amp; Beyond — News | Analysis | Perspective")||cleanText.includes("Africa & Beyond — News | Analysis | Perspective"))
       await db.from("newsroom_articles").update({editorial_notes:(saved.editorial_notes||"")+" Editorial state: "+editorialState+". Story type: "+String(article.story_type||"news")+"." ,updated_at:new Date().toISOString()}).eq("id",saved.id)
       if(!safeForAutoPublish){
         const nextStatus=editorialState==="hold" ? "held" : "review"
+        const reviewReason=directSource
+          ? "Source Inbox verification required: submitted source material cannot bypass temporal/entity verification or independent corroboration."
+          : "Automated publication gate not satisfied; routed to editorial review."
         await db.from("newsroom_stories").update({status:nextStatus,editorial_route:editorialState==="hold"?"hold":"human_review",updated_at:new Date().toISOString()}).eq("id",story.id)
+        await db.from("newsroom_articles").update({editorial_notes:(saved.editorial_notes||"")+" "+reviewReason,updated_at:new Date().toISOString()}).eq("id",saved.id)
         continue
       }
       await db.from("newsroom_stories").update({status:"approved",updated_at:new Date().toISOString()}).eq("id",story.id)
