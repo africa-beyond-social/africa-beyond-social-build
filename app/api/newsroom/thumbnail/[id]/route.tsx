@@ -87,7 +87,7 @@ export async function GET(
 
   const { data: story, error } = await db
     .from("newsroom_stories")
-    .select("id,title,summary,image_url,story_type,source_name,detected_at")
+    .select("id,title,image_url,story_type,detected_at")
     .eq("id", id)
     .maybeSingle()
 
@@ -114,12 +114,10 @@ export async function GET(
   }
 
   const title = cleanText(story.title, "Africa & Beyond")
-  const dek = cleanText(story.summary)
   const category = cleanText((story as any).category, story.story_type || "News")
   const storyType = cleanText(story.story_type, "news")
   const label = storyLabel(category, storyType)
   const titleLines = wrapText(title, title.length > 85 ? 31 : 37, 3)
-  const dekLines = wrapText(dek, 74, 2)
   let sourceImage = await imageAsDataUri(story.image_url || null)
   if (!sourceImage) {
     const { data: submission } = await db
@@ -224,38 +222,14 @@ export async function GET(
                 fontWeight: 950,
                 letterSpacing: "-1px",
                 textTransform: "uppercase",
-                textShadow: "3px 3px 8px rgba(0,0,0,0.55)",
+                color: index % 2 === 0 ? "#ffffff" : "#ffd400",
+                textShadow: "3px 3px 8px rgba(0,0,0,0.70)",
               }}
             >
               {line}
             </div>
           ))}
         </div>
-
-        {dekLines.length ? (
-          <div style={{
-            position: "absolute",
-            left: "54px",
-            top: "390px",
-            width: "650px",
-            display: "flex",
-            flexDirection: "column",
-            background: "rgba(0,0,0,0.88)",
-            borderLeft: "8px solid #ffd400",
-            padding: "15px 20px",
-          }}>
-            {dekLines.map((line, index) => (
-              <div key={index} style={{
-                display: "flex",
-                fontSize: "25px",
-                lineHeight: 1.22,
-                fontWeight: 700,
-              }}>
-                {line}
-              </div>
-            ))}
-          </div>
-        ) : null}
 
         <div style={{
           position: "absolute",
