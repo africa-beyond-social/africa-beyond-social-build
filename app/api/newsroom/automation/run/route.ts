@@ -4,8 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { AFRICA_BEYOND_EDITORIAL_SPEC } from "@/lib/newsroom/editorial-spec"
 import { getSessionUser } from "@/lib/queries"
 
-export const maxDuration = 45
-const AI_TIMEOUT_MS = 28000
+export const maxDuration = 60
+const AI_TIMEOUT_MS = 50000
 
 function isAdmin(email?: string | null) {
   return Boolean(email && (process.env.LIVE_ADMIN_EMAILS || "").split(",").map(v => v.trim().toLowerCase()).includes(email.toLowerCase()))
@@ -210,7 +210,7 @@ SOURCE MATERIAL:
 ${material}`)
       } catch(error) {
         const message=error instanceof Error?error.message:"AI drafting failed"
-        await db.from("newsroom_stories").update({status:"review",updated_at:new Date().toISOString()}).eq("id",story.id)
+        await db.from("newsroom_stories").update({status:Number(story.research_attempts||0)>=1?"held":"review",research_status:"failed",research_attempts:Number(story.research_attempts||0)+1,last_researched_at:new Date().toISOString(),editorial_route:Number(story.research_attempts||0)>=1?"hold":"human_review",updated_at:new Date().toISOString()}).eq("id",story.id)
         await logRun(db,run.id,{story_id:story.id,step:"editorial_review",message:`AI drafting failed; routed to editorial review: ${message}`,stories_drafted:drafted,articles_ready:articlesReady,error:message})
         continue
       }
