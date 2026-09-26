@@ -72,6 +72,16 @@ async function publishTikTok(title: string, imageUrl: string) {
   return data?.data?.publish_id || null
 }
 
+function previousNetworkResults(notes: unknown) {
+  if (typeof notes !== "string" || !notes.trim()) return {}
+  try {
+    const parsed = JSON.parse(notes)
+    return parsed && typeof parsed === "object" && parsed.networks && typeof parsed.networks === "object" ? parsed.networks : {}
+  } catch {
+    return {}
+  }
+}
+
 export async function GET(request: Request) {
   if (!isCron(request)) return NextResponse.json({ error: "Not authorised" }, { status: 403 })
   const db = createAdminClient()
@@ -107,34 +117,48 @@ export async function GET(request: Request) {
 
   for (const article of articles) {
     const result: any = { id: article.id, networks: {} }
+    const previous = previousNetworkResults(article.editorial_notes)
+
     try {
       if (env("X_ACCESS_TOKEN")) {
-        try {
-          result.networks.x = { ok: true, id: await publishX(String(article.social_x || "").trim()) }
-        } catch (e) {
-          result.networks.x = { ok: false, error: e instanceof Error ? e.message : "X publishing failed" }
+        if (previous.x?.ok) {
+          result.networks.x = previous.x
+        } else {
+          try {
+            result.networks.x = { ok: true, id: await publishX(String(article.social_x || "").trim()) }
+          } catch (e) {
+            result.networks.x = { ok: false, error: e instanceof Error ? e.message : "X publishing failed" }
+          }
         }
       }
 
       if (env("FACEBOOK_PAGE_ID") && env("FACEBOOK_PAGE_ACCESS_TOKEN")) {
-        try {
-          result.networks.facebook = {
-            ok: true,
-            id: await publishFacebook(
-              String(article.social_facebook || article.title || "").replace("[ARTICLE LINK]", String(article.website_url || "")),
-              String(article.website_url || "")
-            ),
+        if (previous.facebook?.ok) {
+          result.networks.facebook = previous.facebook
+        } else {
+          try {
+            result.networks.facebook = {
+              ok: true,
+              id: await publishFacebook(
+                String(article.social_facebook || article.title || "").replace("[ARTICLE LINK]", String(article.website_url || "")),
+                String(article.website_url || "")
+              ),
+            }
+          } catch (e) {
+            result.networks.facebook = { ok: false, error: e instanceof Error ? e.message : "Facebook publishing failed" }
           }
-        } catch (e) {
-          result.networks.facebook = { ok: false, error: e instanceof Error ? e.message : "Facebook publishing failed" }
         }
       }
 
       if (env("TIKTOK_ACCESS_TOKEN")) {
-        try {
-          result.networks.tiktok = { ok: true, publishId: await publishTikTok(String(article.title || ""), String(article.featured_image_url || "")) }
-        } catch (e) {
-          result.networks.tiktok = { ok: false, error: e instanceof Error ? e.message : "TikTok publishing failed" }
+        if (previous.tiktok?.ok) {
+          result.networks.tiktok = previous.tiktok
+        } else {
+          try {
+            result.networks.tiktok = { ok: true, publishId: await publishTikTok(String(article.title || ""), String(article.featured_image_url || "")) }
+          } catch (e) {
+            result.networks.tiktok = { ok: false, error: e instanceof Error ? e.message : "TikTok publishing failed" }
+          }
         }
       }
 
@@ -143,28 +167,25 @@ export async function GET(request: Request) {
       const failed = attempted.filter(v => !v.ok).length
 
       if (succeeded > 0 && failed === 0) {
-        await db.from("newsroom_articles").update({ social_status: "published", updated_at: new Date().toISOString() }).eq("id", article.id)
+        await db.from("newsroom_articles").update({ social_status: "published", editorial_notes: JSON.stringify({ networks: result.networks }).slice(0, 4000), updated_at: new Date().toISOString() }).eq("id", article.id)
         result.status = "published"
         published++
-      } else if (succeeded > 0) {
-        await db.from("newsroom_articles").update({
-          social_status: "partial",
-          editorial_notes: JSON.stringify(result.networks).slice(0, 4000),
-          updated_at: new Date().toISOString(),
-        }).eq("id", article.id)
-        result.status = "partial"
       } else {
         await db.from("newsroom_articles").update({
-          social_status: "failed",
-          editorial_notes: JSON.stringify(result.networks).slice(0, 4000),
+          social_status: "generated",
+          editorial_notes: JSON.stringify({ networks: result.networks, retryable: true }).slice(0, 4000),
           updated_at: new Date().toISOString(),
         }).eq("id", article.id)
-        result.status = "failed"
+        result.status = succeeded > 0 ? "partial_retry" : "retrying"
       }
     } catch (error) {
-      result.status = "failed"
+      result.status = "retrying"
       result.error = error instanceof Error ? error.message : "Social publishing failed"
-      await db.from("newsroom_articles").update({ social_status: "failed", editorial_notes: result.error, updated_at: new Date().toISOString() }).eq("id", article.id)
+      await db.from("newsroom_articles").update({
+        social_status: "generated",
+        editorial_notes: JSON.stringify({ networks: result.networks, retryable: true, error: result.error }).slice(0, 4000),
+        updated_at: new Date().toISOString(),
+      }).eq("id", article.id)
     }
     results.push(result)
   }
