@@ -221,8 +221,8 @@ ${material}`)
         updated_at:new Date().toISOString()
       }).eq("id",story.id)
 
-      // Published stories are self-contained Africa & Beyond reports. Sources remain in newsroom metadata for verification/audit, but are never rendered publicly.
-      const narrative=String(article.body_html||"").replace(/<p><strong>Africa &amp; Beyond — News \\| Analysis \\| Perspective<\\/strong><\\/p>\\s*$/,"").trim()
+      const narrative=String(article.body_html||"").replace(/<p><strong>Africa &amp; Beyond — News \\| Analysis \\| Perspective<\\/strong><\\/p>\\s*$/, "").trim()
+      // Sources remain internal newsroom evidence and are never rendered in the public article.
       const finalBody=(narrative+"\\n<p><strong>Africa & Beyond — News | Analysis | Perspective</strong></p>").trim()
       const quality=editorialQuality(narrative,material)
       const unsupportedClaims=Array.isArray(article.unsupported_claims) ? article.unsupported_claims.map((item:any)=>String(item||"").trim()).filter(Boolean) : []
