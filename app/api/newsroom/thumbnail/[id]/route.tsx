@@ -113,7 +113,10 @@ export async function GET(
     )
   }
 
-  const title = cleanText(story.title, "Africa & Beyond")
+  // Use the editorial headline only. Scout/source suffixes such as " - Reuters" or " - BBC"
+  // are provenance metadata and must never appear as thumbnail text.
+  const rawTitle = cleanText(story.title, "Africa & Beyond")
+  const title = cleanText(rawTitle.replace(/\s+[—–-]\s+[^—–-]+$/u, ""), "Africa & Beyond")
   const category = cleanText((story as any).category, story.story_type || "News")
   const storyType = cleanText(story.story_type, "news")
   const label = storyLabel(category, storyType)
