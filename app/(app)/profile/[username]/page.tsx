@@ -14,6 +14,7 @@ import {
 } from "@/lib/queries"
 import { joinDate } from "@/lib/format"
 import { FileText } from "lucide-react"
+import { VerificationBadge } from "@/components/verification-badge"
 
 export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params
@@ -54,7 +55,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         </div>
 
         <div className="mt-3">
-          <h2 className="font-serif text-xl font-bold leading-tight">{profile.display_name ?? profile.username}</h2>
+          <div className="flex items-center gap-2"><h2 className="font-serif text-xl font-bold leading-tight">{profile.display_name ?? profile.username}</h2><VerificationBadge type={profile.verification_type} size="sm" showLabel /></div>
           <p className="text-sm text-muted-foreground">@{profile.username}</p>
         </div>
 
@@ -65,15 +66,19 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           <span>Joined {joinDate(profile.created_at)}</span>
         </div>
 
-        <div className="mt-3 flex gap-5 text-sm">
-          <Link href={`/profile/${profile.username}/following`} className="hover:underline">
-            <span className="font-bold text-foreground">{stats.following}</span>{" "}
-            <span className="text-muted-foreground">Following</span>
+        <div className="mt-4 grid grid-cols-3 overflow-hidden rounded-2xl border border-border bg-secondary/20">
+          <Link href={`/profile/${profile.username}/following`} className="px-3 py-2.5 text-center hover:bg-secondary">
+            <span className="block font-bold text-foreground">{stats.following}</span>
+            <span className="text-xs text-muted-foreground">Following</span>
           </Link>
-          <Link href={`/profile/${profile.username}/followers`} className="hover:underline">
-            <span className="font-bold text-foreground">{stats.followers}</span>{" "}
-            <span className="text-muted-foreground">Followers</span>
+          <Link href={`/profile/${profile.username}/followers`} className="border-x border-border px-3 py-2.5 text-center hover:bg-secondary">
+            <span className="block font-bold text-foreground">{stats.followers}</span>
+            <span className="text-xs text-muted-foreground">Followers</span>
           </Link>
+          <div className="px-3 py-2.5 text-center">
+            <span className="block font-bold text-foreground">{posts.length}</span>
+            <span className="text-xs text-muted-foreground">Posts</span>
+          </div>
         </div>
       </div>
 
