@@ -10,6 +10,7 @@ type Enrichment = {
   amplify_count: number
   liked_by_me: boolean
   amplified_by_me: boolean
+  saved_by_me: boolean
 }
 
 const EMPTY_PROFILE = (id: string): Profile => ({
@@ -29,11 +30,12 @@ async function enrichPosts(postRows: PostRow[], currentUserId: string | null): P
   const postIds = postRows.map((p) => p.id)
   const authorIds = Array.from(new Set(postRows.map((p) => p.user_id)))
 
-  const [profilesRes, likesRes, commentsRes, repostsRes] = await Promise.all([
+  const [profilesRes, likesRes, commentsRes, repostsRes, savedRes] = await Promise.all([
     supabase.from("profiles").select("id, username, display_name, bio, avatar_url, created_at").in("id", authorIds),
     supabase.from("likes").select("post_id, user_id").in("post_id", postIds),
     supabase.from("comments").select("post_id").in("post_id", postIds),
     supabase.from("reposts").select("post_id, user_id").in("post_id", postIds),
+    currentUserId ? supabase.from("saved_posts").select("post_id").eq("user_id", currentUserId).in("post_id", postIds) : Promise.resolve({ data: [] }),
   ])
 
   const profileById = new Map<string, Profile>()
@@ -48,6 +50,9 @@ async function enrichPosts(postRows: PostRow[], currentUserId: string | null): P
 
   const replyCount = new Map<string, number>()
   for (const c of commentsRes.data ?? []) replyCount.set(c.post_id, (replyCount.get(c.post_id) ?? 0) + 1)
+
+  const savedByMe = new Set<string>()
+  for (const s of savedRes.data ?? []) savedByMe.add(s.post_id)
 
   const repostCount = new Map<string, number>()
   const repostedByMe = new Set<string>()
@@ -64,6 +69,7 @@ async function enrichPosts(postRows: PostRow[], currentUserId: string | null): P
       amplify_count: repostCount.get(row.id) ?? 0,
       liked_by_me: likedByMe.has(row.id),
       amplified_by_me: repostedByMe.has(row.id),
+      saved_by_me: savedByMe.has(row.id),
     })
   }
 
