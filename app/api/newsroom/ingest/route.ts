@@ -148,7 +148,7 @@ export async function GET(request: Request) {
     .eq("active", true)
     .in("source_type", ["rss", "google_news"])
     .eq("monitoring_enabled", true)
-    .order("priority", { ascending: false })
+     .order("priority_rank", { ascending: false })
     .order("last_checked_at", { ascending: true, nullsFirst: true })
     .limit(SOURCE_BATCH_SIZE)
 
