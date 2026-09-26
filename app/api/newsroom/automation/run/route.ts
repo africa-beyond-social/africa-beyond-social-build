@@ -222,6 +222,8 @@ ${material}`)
         await logRun(db,run.id,{story_id:story.id,step:"editorial_review",message:`AI drafting failed; routed to editorial review: ${message}`,stories_drafted:drafted,articles_ready:articlesReady,error:message})
         continue
       }
+      const unsupportedClaims=Array.isArray(article.unsupported_claims) ? article.unsupported_claims.map((item:any)=>String(item||"").trim()).filter(Boolean) : []
+      const evidenceBasis=Array.isArray(article.evidence_basis) ? article.evidence_basis.map((item:any)=>String(item||"").trim()).filter(Boolean) : []
       await db.from("newsroom_stories").update({
         research_status:"complete",
         research_attempts:Number(story.research_attempts||0)+1,
@@ -236,8 +238,6 @@ ${material}`)
       // Sources are retained internally for verification/audit and are never rendered in the public article.
       const finalBody=(narrative+"\n<p><strong>Africa & Beyond — News | Analysis | Perspective</strong></p>").trim()
       const quality=editorialQuality(narrative,material)
-      const unsupportedClaims=Array.isArray(article.unsupported_claims) ? article.unsupported_claims.map((item:any)=>String(item||"").trim()).filter(Boolean) : []
-      const evidenceBasis=Array.isArray(article.evidence_basis) ? article.evidence_basis.map((item:any)=>String(item||"").trim()).filter(Boolean) : []
       if(unsupportedClaims.length>0){
         quality.ok=false
         quality.reason=`AI evidence audit found ${unsupportedClaims.length} unsupported factual claim(s); routed to editorial review.`
