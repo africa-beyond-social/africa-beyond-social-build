@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { Paperclip, X } from "lucide-react"
 import type { Profile } from "@/lib/types"
 
-const MAX_LEN = 280
+const MAX_LEN = 1500
 const MAX_FILE_SIZE = 50 * 1024 * 1024
 
 export function PostComposer({ profile, onPosted, autoFocus = false, placeholder = "What's happening across Africa and beyond?" }: {
