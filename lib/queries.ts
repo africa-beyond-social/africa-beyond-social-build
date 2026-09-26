@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import type { Comment, FeedPost, NotificationRow, Post, Profile } from "@/lib/types"
 
-type PostRow = Pick<Post, "id" | "user_id" | "content" | "image_url" | "video_url" | "created_at" | "updated_at">
+type PostRow = Pick<Post, "id" | "user_id" | "content" | "image_url" | "video_url" | "attachment_url" | "attachment_type" | "attachment_name" | "created_at" | "updated_at">
 
 type Enrichment = {
   author: Profile
@@ -82,6 +82,9 @@ function toFeedPost(row: PostRow, e: Enrichment, repostedBy?: FeedPost["amplifie
     content: row.content,
     image_url: row.image_url,
     video_url: row.video_url,
+    attachment_url: row.attachment_url,
+    attachment_type: row.attachment_type,
+    attachment_name: row.attachment_name,
     created_at: row.created_at,
     updated_at: row.updated_at,
     author: e.author,
@@ -124,7 +127,7 @@ export async function getHomeFeed(userId: string): Promise<FeedPost[]> {
   const [{ data: posts }, { data: reposts }] = await Promise.all([
     supabase
       .from("posts")
-      .select("id, user_id, content, image_url, video_url, created_at, updated_at")
+      .select("id, user_id, content, image_url, video_url, attachment_url, attachment_type, attachment_name, created_at, updated_at")
       .in("user_id", scope)
       .order("created_at", { ascending: false })
       .limit(60),
@@ -148,7 +151,7 @@ export async function getHomeFeed(userId: string): Promise<FeedPost[]> {
   if (missingIds.length > 0) {
     const { data } = await supabase
       .from("posts")
-      .select("id, user_id, content, image_url, video_url, created_at, updated_at")
+      .select("id, user_id, content, image_url, video_url, attachment_url, attachment_type, attachment_name, created_at, updated_at")
       .in("id", missingIds)
     extraPosts = (data as PostRow[] | null) ?? []
   }
@@ -211,7 +214,7 @@ export async function getFollowingFeed(userId: string): Promise<FeedPost[]> {
 
   const { data: posts } = await supabase
     .from("posts")
-    .select("id, user_id, content, image_url, video_url, created_at, updated_at")
+    .select("id, user_id, content, image_url, video_url, attachment_url, attachment_type, attachment_name, created_at, updated_at")
     .in("user_id", followingIds)
     .order("created_at", { ascending: false })
     .limit(60)
@@ -228,7 +231,7 @@ export async function getRecentPosts(currentUserId: string | null, limit = 40): 
   const supabase = await createClient()
   const { data } = await supabase
     .from("posts")
-    .select("id, user_id, content, image_url, video_url, created_at, updated_at")
+    .select("id, user_id, content, image_url, video_url, attachment_url, attachment_type, attachment_name, created_at, updated_at")
     .order("created_at", { ascending: false })
     .limit(limit)
   const rows = (data as PostRow[] | null) ?? []
@@ -240,7 +243,7 @@ export async function getPostsByUser(userId: string, currentUserId: string | nul
   const supabase = await createClient()
   const { data } = await supabase
     .from("posts")
-    .select("id, user_id, content, image_url, video_url, created_at, updated_at")
+    .select("id, user_id, content, image_url, video_url, attachment_url, attachment_type, attachment_name, created_at, updated_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(60)
@@ -253,7 +256,7 @@ export async function getSinglePost(postId: string, currentUserId: string | null
   const supabase = await createClient()
   const { data } = await supabase
     .from("posts")
-    .select("id, user_id, content, image_url, video_url, created_at, updated_at")
+    .select("id, user_id, content, image_url, video_url, attachment_url, attachment_type, attachment_name, created_at, updated_at")
     .eq("id", postId)
     .maybeSingle()
   if (!data) return null
@@ -379,7 +382,7 @@ export async function searchPosts(term: string, currentUserId: string | null): P
   const supabase = await createClient()
   const { data } = await supabase
     .from("posts")
-    .select("id, user_id, content, image_url, video_url, created_at, updated_at")
+    .select("id, user_id, content, image_url, video_url, attachment_url, attachment_type, attachment_name, created_at, updated_at")
     .ilike("content", `%${term.trim()}%`)
     .order("created_at", { ascending: false })
     .limit(30)
@@ -466,7 +469,7 @@ export async function getSavedPosts(userId: string): Promise<FeedPost[]> {
   const { data: saved } = await supabase.from("saved_posts").select("post_id, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(60)
   const ids = (saved ?? []).map((r) => r.post_id)
   if (!ids.length) return []
-  const { data: posts } = await supabase.from("posts").select("id, user_id, content, image_url, video_url, created_at, updated_at").in("id", ids)
+  const { data: posts } = await supabase.from("posts").select("id, user_id, content, image_url, video_url, attachment_url, attachment_type, attachment_name, created_at, updated_at").in("id", ids)
   const rows = (posts as PostRow[] | null) ?? []
   const enrichment = await enrichPosts(rows, userId)
   const byId = new Map(rows.map((r) => [r.id, r]))
