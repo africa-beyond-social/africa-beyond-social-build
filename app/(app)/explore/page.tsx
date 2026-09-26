@@ -1,4 +1,5 @@
 import Link from "next/link"
+import type { ReactNode } from "react"
 import { PageHeader } from "@/components/page-header"
 import { SearchBar } from "@/components/search-bar"
 import { FeedList, EmptyState } from "@/components/feed-list"
@@ -102,7 +103,7 @@ function DiscoveryRail({
   title, icon, items, reason, followingSet, currentUserId,
 }: {
   title: string
-  icon: React.ReactNode
+  icon: ReactNode
   items: Array<Awaited<ReturnType<typeof getDiscoveryEngine>>["newVoices"][number]>
   reason: "mutual" | "new" | "active" | "verified"
   followingSet: Set<string>
