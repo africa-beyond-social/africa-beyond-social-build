@@ -241,7 +241,7 @@ export async function GET(request: Request) {
 
       await db
         .from("news_sources")
-        .update({ last_checked_at: checkedAt, last_error: null })
+         .update({ last_checked_at: checkedAt, last_error: null, last_fetch_mode: fetchMode })
         .eq("id", source.id)
 
       return {
