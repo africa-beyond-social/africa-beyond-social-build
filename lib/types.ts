@@ -5,6 +5,8 @@ export type Profile = {
   bio: string | null
   avatar_url: string | null
   created_at: string
+  verification_type: "wigod_staff" | "wigod_official" | "creator" | "organization" | null
+  verified_at: string | null
 }
 
 export type Post = {
