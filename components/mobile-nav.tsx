@@ -39,7 +39,7 @@ const menuItems = [
   { label: "Knowledge", href: "/knowledge", icon: Library },
   { label: "Notifications", href: "/notifications", icon: Bell },
   { label: "Messages", href: "/messages", icon: Mail },
-  { label: "Bookmarks", href: "/bookmarks", icon: Bookmark },
+  { label: "Memory", href: "/memory", icon: Bookmark },
 ]
 
 const utilityItems = [
