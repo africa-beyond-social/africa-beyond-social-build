@@ -251,6 +251,17 @@ export async function toggleSave(postId: string): Promise<ActionResult> {
   return { ok: true }
 }
 
+export async function getSafetyState(targetUserId: string): Promise<{ muted: boolean; blocked: boolean }> {
+  const userId = await getUserId()
+  if (!userId || userId === targetUserId) return { muted: false, blocked: false }
+  const supabase = await createClient()
+  const [{ data: mute }, { data: block }] = await Promise.all([
+    supabase.from("user_mutes").select("muted_id").eq("muter_id", userId).eq("muted_id", targetUserId).maybeSingle(),
+    supabase.from("user_blocks").select("blocked_id").eq("blocker_id", userId).eq("blocked_id", targetUserId).maybeSingle(),
+  ])
+  return { muted: Boolean(mute), blocked: Boolean(block) }
+}
+
 export async function toggleMute(targetUserId: string): Promise<ActionResult> {
   const userId = await getUserId()
   if (!userId) return { ok: false, error: "You must be signed in." }
