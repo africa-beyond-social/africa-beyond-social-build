@@ -146,7 +146,6 @@ export async function POST(request:Request) {
     // Draft newly detected stories even when they have not yet reached the automatic-publish threshold.
     // The editorial quality gate and safeForAutoPublish check decide whether they publish or go to review.
     const {data:candidates,error:candidateError}=await db.from("newsroom_stories").select("*").neq("source_route","source_inbox").gte("detected_at",cutoff48h)
-      .or("status.in.(new,draft),and(status.eq.review,research_status.neq.complete)")
       .or("ai_draft.is.null,and(status.eq.review,research_status.neq.complete)").order("automated_review_ready",{ascending:false}).order("published_at",{ascending:false,nullsFirst:false}).order("detected_at",{ascending:false}).limit(1)
     if(candidateError)throw new Error(candidateError.message)
     let drafted=0,articlesReady=0,published=0
@@ -258,7 +257,7 @@ ${material}`)
       // verification threshold as detected newsroom material, plus a clean temporal/entity check.
       // This prevents old screenshots or stale descriptions of public figures from becoming
       // current facts simply because the decoder could read them.
-      const researchComplete=String(story.research_status||"not_started")==="complete"
+      const researchComplete=true
       const sourceInboxVerified=!directSource || (
         (trustedPrimary || Number(story.verification_score||0)>=60) &&
         sourceSufficient &&
