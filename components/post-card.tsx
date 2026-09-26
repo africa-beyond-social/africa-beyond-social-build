@@ -4,8 +4,8 @@ import { useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Heart, MessageCircle, Repeat2, Share, MoreHorizontal, Pencil, Trash2, Bookmark } from "lucide-react"
-import { toggleLike, toggleAmplify, toggleSave, deletePost } from "@/lib/actions"
+import { Heart, MessageCircle, Repeat2, Share, Quote, MoreHorizontal, Pencil, Trash2, Bookmark } from "lucide-react"
+import { toggleLike, toggleAmplify, toggleSave, createPost, deletePost } from "@/lib/actions"
 import { UserAvatar } from "@/components/user-avatar"
 import { PostContent } from "@/components/post-content"
 import { EditPostDialog } from "@/components/edit-post-dialog"
@@ -104,6 +104,21 @@ export function PostCard({
     } else {
       toast.success(next ? "Saved to Memory." : "Removed from Memory.")
     }
+  }
+
+  async function onQuote(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!requireAuth()) return
+    const quotedText = post.content.trim()
+    const comment = window.prompt("Add your comment to this quote (optional):", "")
+    if (comment === null) return
+    const prefix = comment.trim()
+    const quote = `@${post.author.username}: "${quotedText}"`
+    const content = prefix ? `${prefix.slice(0, 160)}\n\n${quote}` : quote
+    const res = await createPost(content)
+    if (!res.ok) { toast.error(res.error); return }
+    toast.success("Quoted to your profile.")
+    router.refresh()
   }
 
   async function onShare(e: React.MouseEvent) {
@@ -284,6 +299,16 @@ export function PostCard({
               <Heart className={cn("size-[1.15rem]", liked && "fill-current")} />
             </span>
             <span className="tabular-nums">{formatCount(likeCount)}</span>
+          </button>
+
+          <button
+            onClick={onQuote}
+            className="group flex items-center gap-1.5 text-sm transition-colors hover:text-brand-green"
+            aria-label="Quote"
+          >
+            <span className="flex size-8 items-center justify-center rounded-full transition-colors group-hover:bg-accent">
+              <Quote className="size-[1.15rem]" />
+            </span>
           </button>
 
           <button
