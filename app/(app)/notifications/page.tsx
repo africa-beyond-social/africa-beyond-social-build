@@ -14,7 +14,7 @@ const CONFIG = {
   follow: { icon: UserPlus, color: "text-brand-green", verb: "followed you" },
   like: { icon: Heart, color: "text-brand-red", verb: "liked your post" },
   reply: { icon: MessageCircle, color: "text-brand-green", verb: "replied to your post" },
-  repost: { icon: Repeat2, color: "text-brand-green", verb: "reposted your post" },
+  repost: { icon: Repeat2, color: "text-brand-green", verb: "Amplified your post" },
 } as const
 
 function NotificationItem({ n }: { n: NotificationRow }) {
