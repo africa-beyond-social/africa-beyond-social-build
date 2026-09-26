@@ -64,7 +64,7 @@ async function DiscoveryHome({ currentUserId }: { currentUserId: string | null }
       </section>
 
       <section className="border-b border-border bg-secondary/10 px-4 py-5">
-        <div className="mb-3 flex items-center justify-between"><div><h2 className="flex items-center gap-2 font-serif text-base font-bold"><Users className="size-4 text-brand-green" /> People &amp; creators</h2><p className="text-xs text-muted-foreground">Discover people on WIGOD and follow the voices you want in your feed.</p></div><Link href="/explore?q=people" className="text-xs font-semibold text-brand-green">See all</Link></div>
+        <div className="mb-3 flex items-center justify-between"><div><h2 className="flex items-center gap-2 font-serif text-base font-bold"><Users className="size-4 text-brand-green" /> New voices on WIGOD</h2><p className="text-xs text-muted-foreground">Recently joined people appear here first so new accounts can find an audience quickly.</p></div><Link href="/explore?q=people" className="text-xs font-semibold text-brand-green">See all</Link></div>
         {people.length === 0 ? <div className="rounded-xl border border-dashed border-border bg-background px-4 py-6 text-center"><Users className="mx-auto mb-2 size-5 text-muted-foreground" /><p className="text-sm font-medium">No new people to suggest yet</p><p className="mt-1 text-xs text-muted-foreground">More creators will appear as people join WIGOD.</p></div> : <div className="grid gap-2 md:grid-cols-2">{people.map((profile) => <UserCard key={profile.id} profile={profile} currentUserId={currentUserId} isFollowing={followingSet.has(profile.id)} />)}</div>}
       </section>
 
