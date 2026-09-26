@@ -473,8 +473,9 @@ export async function getSuggestedProfiles(currentUserId: string | null, limit =
     .order("created_at", { ascending: false })
     .limit(Math.max(limit * 4, 24))
 
+  const hiddenIds = await hiddenAuthorIds(currentUserId)
   return ((data as Profile[] | null) ?? [])
-    .filter((profile) => profile.id !== currentUserId && !followedIds.has(profile.id))
+    .filter((profile) => profile.id !== currentUserId && !followedIds.has(profile.id) && !hiddenIds.has(profile.id))
     .slice(0, limit)
 }
 
@@ -500,8 +501,10 @@ export async function searchPosts(term: string, currentUserId: string | null): P
     .order("created_at", { ascending: false })
     .limit(30)
   const rows = (data as PostRow[] | null) ?? []
-  const enrichment = await enrichPosts(rows, currentUserId)
-  return rows.map((r) => toFeedPost(r, enrichment.get(r.id)!)).filter(Boolean)
+  const hiddenIds = await hiddenAuthorIds(currentUserId)
+  const visibleRows = rows.filter((r) => !hiddenIds.has(r.user_id))
+  const enrichment = await enrichPosts(visibleRows, currentUserId)
+  return visibleRows.map((r) => toFeedPost(r, enrichment.get(r.id)!)).filter(Boolean)
 }
 
 export async function getTrendingHashtags(limit = 6): Promise<{ tag: string; count: number }[]> {
