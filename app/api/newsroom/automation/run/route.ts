@@ -222,7 +222,8 @@ ${material}`)
       }).eq("id",story.id)
 
       const narrative=String(article.body_html||"").replace(/<p><strong>Africa &amp; Beyond — News \| Analysis \| Perspective<\/strong><\/p>\s*$/,"").trim()
-      const finalBody=(narrative+"\n<p><strong>Africa &amp; Beyond — News | Analysis | Perspective</strong></p>").trim()
+      const sourcesHtml=sourceBox(sourceRows)
+      const finalBody=(narrative+(sourcesHtml?"\n"+sourcesHtml:"")+"\n<p><strong>Africa & Beyond — News | Analysis | Perspective</strong></p>").trim()
       const quality=editorialQuality(narrative,material)
       const unsupportedClaims=Array.isArray(article.unsupported_claims) ? article.unsupported_claims.map((item:any)=>String(item||"").trim()).filter(Boolean) : []
       const evidenceBasis=Array.isArray(article.evidence_basis) ? article.evidence_basis.map((item:any)=>String(item||"").trim()).filter(Boolean) : []
@@ -247,11 +248,12 @@ ${material}`)
       }
       const {data:saved,error:saveError}=await db.from("newsroom_articles").upsert(record,{onConflict:"story_id"}).select("*").single()
       if(saveError)throw new Error(saveError.message)
+      await db.from("newsroom_stories").update({ai_draft:finalBody,updated_at:new Date().toISOString()}).eq("id",story.id)
       drafted++; articlesReady++
       await logRun(db,run.id,{story_id:story.id,step:"automated_review",message:`Article passed production checks: ${title}`,stories_drafted:drafted,articles_ready:articlesReady})
       if(!quality.ok){
         await db.from("newsroom_stories").update({status:"review",updated_at:new Date().toISOString()}).eq("id",story.id)
-        await db.from("newsroom_articles").update({editorial_notes:`Automated editorial quality gate: ${quality.reason}`,updated_at:new Date().toISOString()}).eq("id",saved.id)
+        await db.from("newsroom_articles").update({editorial_notes:`DECISION: REVIEW. ${quality.reason}`,updated_at:new Date().toISOString()}).eq("id",saved.id)
         await logRun(db,run.id,{story_id:story.id,step:"editorial_review",message:quality.reason,stories_drafted:drafted,articles_ready:articlesReady})
         continue
       }
@@ -297,6 +299,7 @@ ${material}`)
         await db.from("newsroom_articles").update({editorial_notes:(saved.editorial_notes||"")+" "+reviewReason,updated_at:new Date().toISOString()}).eq("id",saved.id)
         continue
       }
+      await db.from("newsroom_articles").update({editorial_notes:(saved.editorial_notes||"")+" DECISION: PASS. Evidence, temporal/entity verification and editorial quality gates passed.",updated_at:new Date().toISOString()}).eq("id",saved.id)
       await db.from("newsroom_stories").update({status:"approved",updated_at:new Date().toISOString()}).eq("id",story.id)
       await logRun(db,run.id,{story_id:story.id,step:"website_publish",message:`Publishing verified story to Africa & Beyond: ${title}`})
       const ghostPublished=await publishGhost({...saved,body_html:cleanText})
