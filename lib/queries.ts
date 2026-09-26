@@ -20,6 +20,8 @@ const EMPTY_PROFILE = (id: string): Profile => ({
   bio: null,
   avatar_url: null,
   created_at: new Date().toISOString(),
+  verification_type: null,
+  verified_at: null,
 })
 
 async function enrichPosts(postRows: PostRow[], currentUserId: string | null): Promise<Map<string, Enrichment>> {
