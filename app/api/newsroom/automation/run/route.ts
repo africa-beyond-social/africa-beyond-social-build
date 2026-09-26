@@ -74,9 +74,9 @@ async function callOpenAI(prompt:string) {
       additionalProperties:false,
       properties:{
         title:{type:"string"},dek:{type:"string"},body_html:{type:"string"},seo_title:{type:"string"},seo_description:{type:"string"},
-        category:{type:"string"},tags:{type:"array",items:{type:"string"}},live_summary:{type:"string"},live_watchpoints:{type:"array",items:{type:"string"}},editorial_state:{type:"string",enum:["ready","developing","editorial_review","hold"]},story_type:{type:"string"},current_role_status:{type:"string",enum:["verified_current","verified_former","not_established","not_applicable"]},verification_notes:{type:"array",items:{type:"string"}},requires_human_review:{type:"boolean"}
+        category:{type:"string"},tags:{type:"array",items:{type:"string"}},live_summary:{type:"string"},live_watchpoints:{type:"array",items:{type:"string"}},editorial_state:{type:"string",enum:["ready","developing","editorial_review","hold"]},story_type:{type:"string"},current_role_status:{type:"string",enum:["verified_current","verified_former","not_established","not_applicable"]},verification_notes:{type:"array",items:{type:"string"}},unsupported_claims:{type:"array",items:{type:"string"}},evidence_basis:{type:"array",items:{type:"string"}},requires_human_review:{type:"boolean"}
       },
-      required:["title","dek","body_html","seo_title","seo_description","category","tags","live_summary","live_watchpoints","editorial_state","story_type","current_role_status","verification_notes","requires_human_review"]
+      required:["title","dek","body_html","seo_title","seo_description","category","tags","live_summary","live_watchpoints","editorial_state","story_type","current_role_status","verification_notes","unsupported_claims","evidence_basis","requires_human_review"]
     }}}
   }),signal:controller.signal})
   } finally {
@@ -195,6 +195,9 @@ EXECUTION RULES FOR THIS STORY:
 - Answer the critical reader questions wherever the supplied evidence supports them: what, who, where, when, why, how, evidence, unknowns, significance and next steps.
 - Never fill missing information with generic prose.
 - Never invent quotes, numbers, dates, motives, context or outcomes.
+- Before returning the article, audit EVERY factual sentence against the supplied evidence and the current web research you performed. If a factual claim is not supported, place it in unsupported_claims and REMOVE it from body_html. Do not use plausible background knowledge as a substitute for evidence.
+- Do not add climate-change explanations, expert interpretations, causal explanations, predictions, government pledges, casualty figures, recovery claims or other contextual conclusions unless the supplied evidence or current web research explicitly supports them.
+- evidence_basis must list the concrete source names/URLs used to establish material facts, including current-role verification where applicable. unsupported_claims must be an empty array for an article that is eligible for automatic publication.
 - Use the source material and related evidence to produce an original report, not a paraphrase.
 - Keep the article body free of a source bibliography; provenance is retained in newsroom metadata.
 - Produce live_summary as 2-3 factual sentences and live_watchpoints as 3-6 concrete, story-specific points. Do not use generic placeholders.
@@ -221,6 +224,15 @@ ${material}`)
       const narrative=String(article.body_html||"").replace(/<p><strong>Africa &amp; Beyond — News \| Analysis \| Perspective<\/strong><\/p>\s*$/,"").trim()
       const finalBody=(narrative+"\n<p><strong>Africa &amp; Beyond — News | Analysis | Perspective</strong></p>").trim()
       const quality=editorialQuality(narrative,material)
+      const unsupportedClaims=Array.isArray(article.unsupported_claims) ? article.unsupported_claims.map((item:any)=>String(item||"").trim()).filter(Boolean) : []
+      const evidenceBasis=Array.isArray(article.evidence_basis) ? article.evidence_basis.map((item:any)=>String(item||"").trim()).filter(Boolean) : []
+      if(unsupportedClaims.length>0){
+        quality.ok=false
+        quality.reason=`AI evidence audit found ${unsupportedClaims.length} unsupported factual claim(s); routed to editorial review.`
+      } else if(evidenceBasis.length===0){
+        quality.ok=false
+        quality.reason="AI evidence audit did not identify the sources used to establish the article's material facts; routed to editorial review."
+      }
       const title=String(article.title||story.title).trim()
       const record={
         story_id:story.id,title,slug:slugify(title),dek:String(article.dek||"").trim(),body_html:finalBody,
@@ -251,6 +263,7 @@ ${material}`)
       const directSource=story.source_route==="source_inbox"
       const roleStatus=String(article.current_role_status||"not_established")
       const requiresHumanReview=Boolean(article.requires_human_review)
+      const evidenceAuditPassed=unsupportedClaims.length===0 && evidenceBasis.length>0
       const temporalRisk=Array.isArray(article.verification_notes) && article.verification_notes.some((note:any)=>/not established|not verified|unverified|unable to verify|cannot verify|cannot establish|unclear|undated|outdated|old screenshot|stale|conflicting|disputed|unknown current status|current status unknown|former role cannot be established/i.test(String(note||"")))
       // Source Inbox is never an automatic publication bypass. A screenshot, image or PDF
       // can be decoded and turned into a draft, but publication still requires the same
@@ -266,7 +279,7 @@ ${material}`)
         researchComplete &&
         (roleStatus==="verified_current" || roleStatus==="verified_former" || roleStatus==="not_applicable")
       )
-      const safeForAutoPublish=sourceInboxVerified &&
+      const safeForAutoPublish=quality.ok && evidenceAuditPassed && sourceInboxVerified &&
         (trustedPrimary || Number(story.verification_score||0)>=60) &&
         sourceSufficient &&
         (editorialState==="ready"||editorialState==="developing") &&
