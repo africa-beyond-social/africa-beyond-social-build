@@ -251,6 +251,62 @@ export async function toggleSave(postId: string): Promise<ActionResult> {
   return { ok: true }
 }
 
+export async function toggleMute(targetUserId: string): Promise<ActionResult> {
+  const userId = await getUserId()
+  if (!userId) return { ok: false, error: "You must be signed in." }
+  if (userId === targetUserId) return { ok: false, error: "You cannot mute yourself." }
+  const supabase = await createClient()
+  const { data: existing } = await supabase.from("user_mutes").select("muted_id").eq("muter_id", userId).eq("muted_id", targetUserId).maybeSingle()
+  const { error } = existing
+    ? await supabase.from("user_mutes").delete().eq("muter_id", userId).eq("muted_id", targetUserId)
+    : await supabase.from("user_mutes").insert({ muter_id: userId, muted_id: targetUserId })
+  if (error) return { ok: false, error: error.message }
+  revalidatePath("/", "layout")
+  return { ok: true }
+}
+
+export async function toggleBlock(targetUserId: string): Promise<ActionResult> {
+  const userId = await getUserId()
+  if (!userId) return { ok: false, error: "You must be signed in." }
+  if (userId === targetUserId) return { ok: false, error: "You cannot block yourself." }
+  const supabase = await createClient()
+  const { data: existing } = await supabase.from("user_blocks").select("blocked_id").eq("blocker_id", userId).eq("blocked_id", targetUserId).maybeSingle()
+  if (existing) {
+    const { error } = await supabase.from("user_blocks").delete().eq("blocker_id", userId).eq("blocked_id", targetUserId)
+    if (error) return { ok: false, error: error.message }
+  } else {
+    const { error } = await supabase.from("user_blocks").insert({ blocker_id: userId, blocked_id: targetUserId })
+    if (error) return { ok: false, error: error.message }
+    await supabase.from("follows").delete().or(`and(follower_id.eq.${userId},following_id.eq.${targetUserId}),and(follower_id.eq.${targetUserId},following_id.eq.${userId})`)
+  }
+  revalidatePath("/", "layout")
+  return { ok: true }
+}
+
+export async function reportUser(targetUserId: string, reason: string, details?: string): Promise<ActionResult> {
+  const userId = await getUserId()
+  if (!userId) return { ok: false, error: "You must be signed in." }
+  if (userId === targetUserId) return { ok: false, error: "You cannot report yourself." }
+  const allowed = ["spam", "harassment", "impersonation", "hate", "violence", "sexual", "scam", "other"]
+  if (!allowed.includes(reason)) return { ok: false, error: "Choose a valid report reason." }
+  const supabase = await createClient()
+  const { error } = await supabase.from("user_reports").insert({ reporter_id: userId, reported_user_id: targetUserId, reason, details: details?.trim().slice(0, 1000) || null })
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
+}
+
+export async function reportPost(postId: number, reason: string, details?: string): Promise<ActionResult> {
+  const userId = await getUserId()
+  if (!userId) return { ok: false, error: "You must be signed in." }
+  const allowed = ["spam", "harassment", "impersonation", "hate", "violence", "sexual", "scam", "other"]
+  if (!allowed.includes(reason)) return { ok: false, error: "Choose a valid report reason." }
+  const supabase = await createClient()
+  const { data: post } = await supabase.from("posts").select("user_id").eq("id", postId).maybeSingle()
+  const { error } = await supabase.from("user_reports").insert({ reporter_id: userId, reported_user_id: post?.user_id ?? null, post_id: postId, reason, details: details?.trim().slice(0, 1000) || null })
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
+}
+
 export async function toggleFollow(targetUserId: string): Promise<ActionResult> {
   const userId = await getUserId()
   if (!userId) return { ok: false, error: "You must be signed in." }
