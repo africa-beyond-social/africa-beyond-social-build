@@ -4,8 +4,8 @@ import { getSessionUser } from "@/lib/queries"
 
 export const maxDuration = 25
 
-const SOURCE_TIMEOUT_MS = 3500
-const SOURCE_BATCH_SIZE = 2
+const SOURCE_TIMEOUT_MS = 2500
+const SOURCE_BATCH_SIZE = 1
 const MAX_ITEMS_PER_SOURCE = 10
 const LOOKBACK_MS = 48 * 60 * 60 * 1000
 
@@ -136,9 +136,8 @@ export async function GET(request: Request) {
   const now = Date.now()
   const cutoff = now - LOOKBACK_MS
 
-  // Process only the least-recently checked sources on each run. This keeps the cron
-  // invocation safely below the platform runtime ceiling while rotating through the
-  // complete source list over successive five-minute runs.
+  // Process one least-recently checked source per run. This keeps ingestion comfortably
+  // below the platform runtime ceiling while rotating through the complete source list.
   const results = await Promise.allSettled((sources ?? []).map(async (source) => {
     const checkedAt = new Date().toISOString()
     const timer = withTimeout(SOURCE_TIMEOUT_MS)
@@ -257,6 +256,4 @@ export async function GET(request: Request) {
   })
 }
 
-// Phase 1 deployment trigger: keep source ingestion fixes on the production deployment path.
-// Production deployment trigger: corrected bounded ingestion is ready for the Pro deployment pipeline.
-// Force Vercel to pick up the corrected main-branch ingestion implementation.
+// Ingestion is deliberately bounded: one source and a short upstream timeout per invocation.
