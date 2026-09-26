@@ -20,6 +20,8 @@ import { Button } from "@/components/ui/button"
 import { relativeTime } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { VerificationBadge } from "@/components/verification-badge"
+import { AccountControls } from "@/components/account-controls"
+import { PostControls } from "@/components/post-controls"
 import { createClient } from "@/lib/supabase/client"
 import type { FeedPost } from "@/lib/types"
 
@@ -220,6 +222,13 @@ export function PostCard({
           </time>
           {post.updated_at && post.updated_at !== post.created_at && (
             <span className="shrink-0 text-xs text-muted-foreground">(edited)</span>
+          )}
+
+          {!isOwner && currentUserId && (
+            <div className="ml-auto flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              <PostControls postId={post.id} />
+              <AccountControls targetUserId={post.author.id} />
+            </div>
           )}
 
           {isOwner && (
