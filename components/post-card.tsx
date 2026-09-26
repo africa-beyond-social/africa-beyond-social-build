@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button"
 import { relativeTime } from "@/lib/format"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
 import type { FeedPost } from "@/lib/types"
 
 function formatCount(n: number) {
