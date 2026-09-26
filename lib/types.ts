@@ -33,6 +33,7 @@ export type FeedPost = {
   amplified_by_me: boolean
   // Present when this row appears in the feed because someone reposted it.
   amplified_by?: { id: string; display_name: string | null; username: string } | null
+  saved_by_me: boolean
 }
 
 export type NotificationType = "follow" | "like" | "reply" | "repost" | "message"
