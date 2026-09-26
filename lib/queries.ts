@@ -347,6 +347,95 @@ export async function getConnectionProfiles(userId: string, kind: "followers" | 
   return ids.map((id) => byId.get(id)).filter((profile): profile is Profile => Boolean(profile))
 }
 
+export type DiscoveryProfile = Profile & {
+  followers_count: number
+  mutual_count: number
+  recent_posts: number
+  discovery_reason: "mutual" | "new" | "active" | "verified"
+}
+
+export async function getDiscoveryEngine(currentUserId: string | null, limit = 6): Promise<{
+  mutual: DiscoveryProfile[]
+  newVoices: DiscoveryProfile[]
+  active: DiscoveryProfile[]
+  verified: DiscoveryProfile[]
+}> {
+  const supabase = await createClient()
+  const followedIds = new Set<string>()
+  if (currentUserId) {
+    const { data } = await supabase.from("follows").select("following_id").eq("follower_id", currentUserId)
+    for (const row of data ?? []) followedIds.add(row.following_id)
+  }
+
+  const candidateLimit = Math.max(limit * 10, 60)
+  const { data: profilesData } = await supabase
+    .from("profiles")
+    .select("id, username, display_name, bio, avatar_url, created_at, verification_type, verified_at")
+    .order("created_at", { ascending: false })
+    .limit(candidateLimit)
+
+  const candidates = ((profilesData as Profile[] | null) ?? [])
+    .filter((p) => p.id !== currentUserId && !followedIds.has(p.id))
+
+  if (!candidates.length) return { mutual: [], newVoices: [], active: [], verified: [] }
+
+  const candidateIds = candidates.map((p) => p.id)
+  const [{ data: inbound }, { data: candidatePosts }, { data: myFollowing }] = await Promise.all([
+    supabase.from("follows").select("follower_id, following_id").in("following_id", candidateIds),
+    supabase.from("posts").select("user_id, created_at").in("user_id", candidateIds).gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString()).limit(500),
+    currentUserId
+      ? supabase.from("follows").select("follower_id, following_id").eq("follower_id", currentUserId)
+      : Promise.resolve({ data: [] }),
+  ])
+
+  const followerCounts = new Map<string, number>()
+  for (const row of inbound ?? []) followerCounts.set(row.following_id, (followerCounts.get(row.following_id) ?? 0) + 1)
+
+  const recentPosts = new Map<string, number>()
+  for (const row of candidatePosts ?? []) recentPosts.set(row.user_id, (recentPosts.get(row.user_id) ?? 0) + 1)
+
+  const myFollowingIds = new Set((myFollowing ?? []).map((r) => r.following_id))
+  const mutualCounts = new Map<string, number>()
+  if (myFollowingIds.size) {
+    for (const row of inbound ?? []) {
+      if (myFollowingIds.has(row.follower_id)) mutualCounts.set(row.following_id, (mutualCounts.get(row.following_id) ?? 0) + 1)
+    }
+  }
+
+  const ageDays = (p: Profile) => Math.max(0, (Date.now() - new Date(p.created_at).getTime()) / 86400000)
+  const enriched: DiscoveryProfile[] = candidates.map((p) => ({
+    ...p,
+    followers_count: followerCounts.get(p.id) ?? 0,
+    mutual_count: mutualCounts.get(p.id) ?? 0,
+    recent_posts: recentPosts.get(p.id) ?? 0,
+    discovery_reason: "new",
+  }))
+
+  const byScore = (reason: DiscoveryProfile["discovery_reason"]) => [...enriched]
+    .map((p) => {
+      const mutual = p.mutual_count * 12
+      const active = Math.min(p.recent_posts, 8) * 4
+      const verified = p.verification_type ? 8 : 0
+      const freshness = Math.max(0, 14 - ageDays(p)) * 1.5
+      const base = reason === "mutual" ? mutual : reason === "active" ? active + mutual * 0.5 : reason === "verified" ? verified + active * 0.5 : freshness
+      return { p, score: base + Math.min(p.followers_count, 50) * 0.1 }
+    })
+    .sort((a, b) => b.score - a.score)
+    .map(({ p }) => ({ ...p, discovery_reason: reason }))
+
+  const unique = (items: DiscoveryProfile[]) => {
+    const seen = new Set<string>()
+    return items.filter((p) => !seen.has(p.id) && seen.add(p.id)).slice(0, limit)
+  }
+
+  return {
+    mutual: unique(byScore("mutual").filter((p) => p.mutual_count > 0)),
+    newVoices: unique(byScore("new")),
+    active: unique(byScore("active").filter((p) => p.recent_posts > 0)),
+    verified: unique(byScore("verified").filter((p) => Boolean(p.verification_type))),
+  }
+}
+
 /** People discovery: recent profiles, excluding the signed-in user and people already followed. */
 export async function getSuggestedProfiles(currentUserId: string | null, limit = 8): Promise<Profile[]> {
   const supabase = await createClient()
