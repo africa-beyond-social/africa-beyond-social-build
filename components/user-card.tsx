@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { UserAvatar } from "@/components/user-avatar"
 import { FollowButton } from "@/components/follow-button"
+import { VerificationBadge } from "@/components/verification-badge"
 import type { Profile } from "@/lib/types"
 
 export function UserCard({
