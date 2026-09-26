@@ -42,7 +42,7 @@ export function PostCard({
   const [likeCount, setLikeCount] = useState(post.like_count)
   const [amplified, setAmplifyed] = useState(post.amplified_by_me)
   const [amplifyCount, setAmplifyCount] = useState(post.amplify_count)
-  const [saved, setSaved] = useState(false)
+  const [saved, setSaved] = useState(post.saved_by_me)
   const [editing, setEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -102,7 +102,7 @@ export function PostCard({
       setSaved(!next)
       toast.error(res.error)
     } else {
-      toast.success(next ? "Saved to Memory." : "Removed from Memory.")
+      toast.success(next ? "Added to Memory." : "Removed from Memory.")
     }
   }
 
@@ -314,7 +314,7 @@ export function PostCard({
           <button
             onClick={onSave}
             className={cn("group flex items-center gap-1.5 text-sm transition-colors hover:text-brand-green", saved && "text-brand-green")}
-            aria-label={saved ? "Saved" : "Save"}
+            aria-label={saved ? "In Memory" : "Memory"}
             aria-pressed={saved}
           >
             <span className="flex size-8 items-center justify-center rounded-full transition-colors group-hover:bg-accent">
