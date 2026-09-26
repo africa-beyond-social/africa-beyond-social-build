@@ -113,7 +113,7 @@ function DiscoveryRail({
   return <div>
     <div className="mb-2 flex items-center gap-2">{icon}<h3 className="text-sm font-semibold">{title}</h3></div>
     <div className="grid gap-2 md:grid-cols-2">{items.map((profile) =>
-      <UserCard key={profile.id} profile={profile} currentUserId={currentUserId} isFollowing={followingSet.has(profile.id)} discoveryReason={reason} mutualCount={profile.mutual_count} />
+      <UserCard key={profile.id} profile={profile} currentUserId={currentUserId} isFollowing={followingSet.has(profile.id)} discoveryReason={reason} mutualCount={profile.mutual_count} followerCount={profile.followers_count} />
     )}</div>
   </div>
 }
