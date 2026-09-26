@@ -10,7 +10,7 @@ const links = [
   ["/", "Home", Home], ["/explore", "Explore", Compass], ["/news", "News", Newspaper],
   ["/media", "Media", PlaySquare], ["/community", "Community", Users], ["/live", "Live", Radio],
   ["/newsroom", "Newsroom", Newspaper], ["/knowledge", "Knowledge", Library],
-  ["/notifications", "Notifications", Bell], ["/messages", "Messages", Mail], ["/bookmarks", "Bookmarks", Bookmark],
+  ["/notifications", "Notifications", Bell], ["/messages", "Messages", Mail], ["/memory", "Memory", Bookmark],
 ] as const
 
 export function MobileHeader({ profile }: { profile: Profile | null }) {
