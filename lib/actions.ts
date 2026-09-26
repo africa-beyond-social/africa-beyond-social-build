@@ -306,7 +306,7 @@ export async function reportUser(targetUserId: string, reason: string, details?:
   return { ok: true }
 }
 
-export async function reportPost(postId: number, reason: string, details?: string): Promise<ActionResult> {
+export async function reportPost(postId: string, reason: string, details?: string): Promise<ActionResult> {
   const userId = await getUserId()
   if (!userId) return { ok: false, error: "You must be signed in." }
   const allowed = ["spam", "harassment", "impersonation", "hate", "violence", "sexual", "scam", "other"]
