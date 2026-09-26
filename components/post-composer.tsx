@@ -7,12 +7,11 @@ import { createPost } from "@/lib/actions"
 import { Button } from "@/components/ui/button"
 import { UserAvatar } from "@/components/user-avatar"
 import { cn } from "@/lib/utils"
-import { createClient } from "@/lib/supabase/client"
-import { ImagePlus, Video, X } from "lucide-react"
+import { Paperclip, X } from "lucide-react"
 import type { Profile } from "@/lib/types"
 
 const MAX_LEN = 280
-const MAX_VIDEO_SIZE = 50 * 1024 * 1024
+const MAX_FILE_SIZE = 50 * 1024 * 1024
 
 export function PostComposer({ profile, onPosted, autoFocus = false, placeholder = "What's happening across Africa and beyond?" }: {
   profile: Profile | null
@@ -23,17 +22,13 @@ export function PostComposer({ profile, onPosted, autoFocus = false, placeholder
   const router = useRouter()
   const [content, setContent] = useState("")
   const [loading, setLoading] = useState(false)
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [videoFile, setVideoFile] = useState<File | null>(null)
-  const [videoPreview, setVideoPreview] = useState<string | null>(null)
+  const [file, setFile] = useState<File | null>(null)
+  const [preview, setPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const videoInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const remaining = MAX_LEN - content.length
   const over = remaining < 0
-  const nearLimit = remaining <= 20
-  const canPost = (content.trim().length > 0 || imageFile !== null || videoFile !== null) && !over && !loading
+  const canPost = (content.trim().length > 0 || !!file) && !over && !loading
 
   function autoGrow() {
     const el = textareaRef.current
@@ -42,12 +37,20 @@ export function PostComposer({ profile, onPosted, autoFocus = false, placeholder
     el.style.height = Math.min(el.scrollHeight, 320) + "px"
   }
 
-  async function uploadMedia(file: File) {
-    const supabase = createClient()
-    const extension = file.name.split(".").pop()?.toLowerCase() || "bin"
+  function chooseFile(next: File | undefined) {
+    if (!next) return
+    if (next.size > MAX_FILE_SIZE) return toast.error("Files must be 50 MB or smaller.")
+    if (next.type.startsWith("image/") && next.size > 10 * 1024 * 1024) return toast.error("Images must be 10 MB or smaller.")
+    setFile(next)
+    setPreview(next.type.startsWith("image/") || next.type.startsWith("video/") ? URL.createObjectURL(next) : null)
+  }
+
+  async function uploadMedia(next: File) {
+    const supabase = (await import("@/lib/supabase/client")).createClient()
+    const extension = next.name.split(".").pop()?.toLowerCase() || "bin"
     const path = (profile?.id ?? "user") + "/" + crypto.randomUUID() + "." + extension
-    const { error } = await supabase.storage.from("post-media").upload(path, file, {
-      cacheControl: "3600", upsert: false, contentType: file.type,
+    const { error } = await supabase.storage.from("post-media").upload(path, next, {
+      cacheControl: "3600", upsert: false, contentType: next.type,
     })
     if (error) throw new Error(error.message)
     return supabase.storage.from("post-media").getPublicUrl(path).data.publicUrl
@@ -57,51 +60,24 @@ export function PostComposer({ profile, onPosted, autoFocus = false, placeholder
     if (!canPost) return
     setLoading(true)
     try {
-      const imageUrl = imageFile ? await uploadMedia(imageFile) : null
-      const videoUrl = videoFile ? await uploadMedia(videoFile) : null
-      const result = await createPost(content, imageUrl, videoUrl)
-      if (!result.ok) {
-        toast.error(result.error)
-        return
-      }
+      const attachment = file ? { url: await uploadMedia(file), type: file.type || "application/octet-stream", name: file.name } : undefined
+      const imageUrl = file?.type.startsWith("image/") ? attachment?.url : null
+      const videoUrl = file?.type.startsWith("video/") ? attachment?.url : null
+      const result = await createPost(content, imageUrl, videoUrl, attachment)
+      if (!result.ok) { toast.error(result.error); return }
       setContent("")
-      setImageFile(null)
-      setImagePreview(null)
-      setVideoFile(null)
-      setVideoPreview(null)
+      setFile(null)
+      setPreview(null)
       if (fileInputRef.current) fileInputRef.current.value = ""
-      if (videoInputRef.current) videoInputRef.current.value = ""
       if (textareaRef.current) textareaRef.current.style.height = "auto"
       router.refresh()
       toast.success("Your post is live.")
       onPosted?.()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Media upload failed.")
+      toast.error(error instanceof Error ? error.message : "File upload failed.")
     } finally {
       setLoading(false)
     }
-  }
-
-  function chooseImage(file: File | undefined) {
-    if (!file) return
-    if (!file.type.startsWith("image/")) return toast.error("Please choose an image file.")
-    if (file.size > 10 * 1024 * 1024) return toast.error("Images must be 10 MB or smaller.")
-    setImageFile(file)
-    setImagePreview(URL.createObjectURL(file))
-    setVideoFile(null)
-    setVideoPreview(null)
-    if (videoInputRef.current) videoInputRef.current.value = ""
-  }
-
-  function chooseVideo(file: File | undefined) {
-    if (!file) return
-    if (!file.type.startsWith("video/")) return toast.error("Please choose a video file.")
-    if (file.size > MAX_VIDEO_SIZE) return toast.error("Videos must be 50 MB or smaller.")
-    setVideoFile(file)
-    setVideoPreview(URL.createObjectURL(file))
-    setImageFile(null)
-    setImagePreview(null)
-    if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -116,26 +92,21 @@ export function PostComposer({ profile, onPosted, autoFocus = false, placeholder
       <UserAvatar displayName={profile?.display_name ?? null} username={profile?.username ?? "you"} avatarUrl={profile?.avatar_url ?? null} size="lg" className="size-10 shrink-0" />
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <textarea ref={textareaRef} value={content} autoFocus={autoFocus} onChange={(e) => { setContent(e.target.value); autoGrow() }} onKeyDown={onKeyDown} rows={2} placeholder={placeholder} className="w-full resize-none bg-transparent text-lg leading-relaxed text-foreground outline-none placeholder:text-muted-foreground" aria-label="Post content" />
-        {imagePreview && (
-          <div className="relative overflow-hidden rounded-2xl border border-border bg-secondary/30">
-            <img src={imagePreview} alt="Selected image preview" className="max-h-80 w-full object-contain" />
-            <button type="button" onClick={() => { setImageFile(null); setImagePreview(null); if (fileInputRef.current) fileInputRef.current.value = "" }} className="absolute right-2 top-2 rounded-full bg-background/90 p-1.5 shadow-sm" aria-label="Remove selected image"><X className="size-4" /></button>
-          </div>
-        )}
-        {videoPreview && (
-          <div className="relative overflow-hidden rounded-2xl border border-border bg-black">
-            <video src={videoPreview} controls playsInline className="max-h-96 w-full" />
-            <button type="button" onClick={() => { setVideoFile(null); setVideoPreview(null); if (videoInputRef.current) videoInputRef.current.value = "" }} className="absolute right-2 top-2 rounded-full bg-background/90 p-1.5 shadow-sm" aria-label="Remove selected video"><X className="size-4" /></button>
+        {file && (
+          <div className="relative overflow-hidden rounded-2xl border border-border bg-secondary/20">
+            {file.type.startsWith("image/") && preview ? <img src={preview} alt="Selected image preview" className="max-h-80 w-full object-contain" /> :
+             file.type.startsWith("video/") && preview ? <video src={preview} controls playsInline className="max-h-96 w-full" /> :
+             file.type.startsWith("audio/") ? <audio controls src={URL.createObjectURL(file)} className="w-full p-3" /> :
+             <div className="flex items-center gap-3 p-4 text-sm"><Paperclip className="size-5 text-brand-green" /><span className="truncate">{file.name}</span></div>}
+            <button type="button" onClick={() => { setFile(null); setPreview(null); if (fileInputRef.current) fileInputRef.current.value = "" }} className="absolute right-2 top-2 rounded-full bg-background/90 p-1.5 shadow-sm" aria-label="Remove selected file"><X className="size-4" /></button>
           </div>
         )}
         <div className="flex items-center justify-between border-t border-border pt-3">
-          <div className="flex items-center gap-1">
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => chooseImage(e.target.files?.[0])} />
-            <Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} disabled={loading || videoFile !== null} aria-label="Add photo"><ImagePlus className="size-5" /><span className="sr-only">Add photo</span></Button>
-            <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={(e) => chooseVideo(e.target.files?.[0])} />
-            <Button type="button" variant="ghost" size="sm" onClick={() => videoInputRef.current?.click()} disabled={loading || imageFile !== null} aria-label="Add video"><Video className="size-5" /><span className="sr-only">Add video</span></Button>
+          <div>
+            <input ref={fileInputRef} type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" className="hidden" onChange={(e) => chooseFile(e.target.files?.[0])} />
+            <Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} disabled={loading} aria-label="Add files"><Paperclip className="size-5" /><span className="sr-only">Add files</span></Button>
           </div>
-          <span className={cn("text-xs tabular-nums", over ? "font-semibold text-destructive" : nearLimit ? "text-brand-red" : "text-muted-foreground")} aria-live="polite">{remaining}</span>
+          <span className={cn("text-xs tabular-nums", over ? "font-semibold text-destructive" : remaining <= 20 ? "text-brand-red" : "text-muted-foreground")} aria-live="polite">{remaining}</span>
           <Button onClick={submit} disabled={!canPost} size="lg" className="rounded-full px-6">{loading ? "Posting…" : "Post"}</Button>
         </div>
       </div>
