@@ -79,7 +79,7 @@ async function enrichPosts(postRows: PostRow[], currentUserId: string | null): P
     if (currentUserId && r.user_id === currentUserId) repostedByMe.add(r.post_id)
   }
 
-  for (const row of visiblePostRows) {
+  for (const row of postRows) {
     result.set(row.id, {
       author: profileById.get(row.user_id) ?? EMPTY_PROFILE(row.user_id),
       like_count: likeCount.get(row.id) ?? 0,
