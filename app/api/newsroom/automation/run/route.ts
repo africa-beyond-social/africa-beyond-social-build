@@ -51,6 +51,15 @@ function ghostToken() {
   const signing=header+"."+payload
   return signing+"."+crypto.createHmac("sha256",Buffer.from(secret,"hex")).update(signing).digest("base64url")
 }
+function cleanPublishedBody(html:string) {
+  return cleanHtml(String(html||"")
+    .replace(/<div class="ab-sources-box">[\\s\\S]*?<\\/div>/gi,"")
+    .replace(/\\[([^\\]]+)\\]\\((?:https?:\\/\\/)[^)]+\\)/gi,"$1")
+    .replace(/<a\\b[^>]*>([\\s\\S]*?)<\\/a>/gi,"$1")
+    .replace(/https?:\\/\\/[^\\s<)]+/gi,"")
+    .replace(/\\s*\\(\\s*\\)\\s*/g," ")
+  )
+}
 function cleanHtml(html:string) {
   return html.replace(/<script[\s\S]*?<\/script>/gi,"").replace(/<style[\s\S]*?<\/style>/gi,"").replace(/\son[a-z]+\s*=\s*(["']).*?\1/gi,"")
 }
@@ -110,7 +119,7 @@ async function publishGhost(article:any) {
   if(!process.env.GHOST_ADMIN_API_KEY||!process.env.GHOST_ADMIN_API_URL) throw new Error("Ghost Admin API is not configured")
   const base=process.env.GHOST_ADMIN_API_URL.replace(/\/$/,"")
   const response=await fetch(base+"/ghost/api/admin/posts/?source=html",{method:"POST",headers:{"content-type":"application/json",authorization:"Ghost "+ghostToken()},body:JSON.stringify({posts:[{
-    title:article.title,slug:article.slug,html:cleanHtml(article.body_html),custom_excerpt:article.dek||undefined,
+    title:article.title,slug:article.slug,html:cleanPublishedBody(article.body_html),custom_excerpt:article.dek||undefined,
     meta_title:article.seo_title||undefined,meta_description:article.seo_description||undefined,status:"published",
     feature_image:article.featured_image_url||undefined
   }]})})
