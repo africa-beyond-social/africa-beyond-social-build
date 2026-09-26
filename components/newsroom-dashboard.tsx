@@ -72,6 +72,7 @@ export function NewsroomDashboard() {
   const latestRun = automationRuns[0]
   const healthySources = sourceHealth.filter((s) => !s.last_error && s.active !== false).length
   const failedSources = sourceHealth.filter((s) => Boolean(s.last_error)).length
+  const restrictedSources = sourceHealth.filter((s) => String(s.last_error || "").includes("403")).length
 
   async function loadNewsroom() {
     try {
@@ -300,7 +301,7 @@ export function NewsroomDashboard() {
           <div className="rounded-xl border border-border bg-background/70 p-3"><p className="text-[10px] font-semibold text-muted-foreground">LAST RUN</p><p className="mt-1 text-sm font-bold">{latestRun?.status === "completed" ? "Healthy" : latestRun?.status === "failed" ? "Failed" : "Running"}</p><p className="mt-1 text-[10px] text-muted-foreground">{latestRun?.completed_at ? new Date(latestRun.completed_at).toLocaleTimeString() : "Waiting"}</p></div>
           <div className="rounded-xl border border-border bg-background/70 p-3"><p className="text-[10px] font-semibold text-muted-foreground">VERIFIED</p><p className="mt-1 text-sm font-bold">{latestRun?.stories_verified ?? 0}</p><p className="mt-1 text-[10px] text-muted-foreground">latest cycle</p></div>
           <div className="rounded-xl border border-border bg-background/70 p-3"><p className="text-[10px] font-semibold text-muted-foreground">ARTICLES READY</p><p className="mt-1 text-sm font-bold">{latestRun?.articles_ready ?? 0}</p><p className="mt-1 text-[10px] text-muted-foreground">latest cycle</p></div>
-          <div className="rounded-xl border border-border bg-background/70 p-3"><p className="text-[10px] font-semibold text-muted-foreground">SOURCE HEALTH</p><p className="mt-1 text-sm font-bold">{healthySources}/{sourceHealth.length}</p><p className="mt-1 text-[10px] text-muted-foreground">{failedSources ? failedSources + " source errors" : "No source errors"}</p></div>
+          <div className="rounded-xl border border-border bg-background/70 p-3"><p className="text-[10px] font-semibold text-muted-foreground">SOURCE HEALTH</p><p className="mt-1 text-sm font-bold">{healthySources}/{sourceHealth.length}</p><p className="mt-1 text-[10px] text-muted-foreground">{failedSources ? failedSources + " source errors" + (restrictedSources ? " (" + restrictedSources + " restricted)" : "") : "No source errors"}</p></div>
         </div>
         <div className="mt-4 space-y-2">
           {automationRuns.slice(0, 5).map((run) => (
@@ -371,10 +372,10 @@ export function NewsroomDashboard() {
             <div key={source.id} className="rounded-xl border border-border px-3 py-2.5">
               <div className="flex items-center justify-between gap-2">
                 <span className="inline-flex min-w-0 items-center gap-1.5 text-xs font-medium">
-                  <span className={`size-2 rounded-full ${source.last_error ? "bg-brand-red" : "bg-brand-green"}`} />
+                  <span className={`size-2 rounded-full ${source.last_error ? (source.last_error.includes("403") ? "bg-brand-yellow" : "bg-brand-red") : "bg-brand-green"}`} />
                   <Globe2 className="size-3.5 shrink-0" /> <span className="truncate">{source.name}</span>
                 </span>
-                <span className="text-[10px] text-muted-foreground">{source.last_error ? "Error" : "Healthy"}</span>
+                <span className="text-[10px] text-muted-foreground">{source.last_fetch_mode === "google_news_fallback" ? "Healthy • fallback" : source.last_error?.includes("403") ? "Restricted • 403" : source.last_error ? "Error" : "Healthy"}</span>
               </div>
               <p className="mt-1 text-[10px] text-muted-foreground">
                 {source.last_checked_at ? `Last checked ${new Date(source.last_checked_at).toLocaleString()}` : "Not checked yet"}
