@@ -5,7 +5,7 @@ import { AFRICA_BEYOND_EDITORIAL_SPEC } from "@/lib/newsroom/editorial-spec"
 import { getSessionUser } from "@/lib/queries"
 
 export const maxDuration = 45
-const AI_TIMEOUT_MS = 12000
+const AI_TIMEOUT_MS = 28000
 
 function isAdmin(email?: string | null) {
   return Boolean(email && (process.env.LIVE_ADMIN_EMAILS || "").split(",").map(v => v.trim().toLowerCase()).includes(email.toLowerCase()))
