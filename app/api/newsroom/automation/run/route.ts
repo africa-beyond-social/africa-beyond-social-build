@@ -221,9 +221,9 @@ ${material}`)
         updated_at:new Date().toISOString()
       }).eq("id",story.id)
 
-      const narrative=String(article.body_html||"").replace(/<p><strong>Africa &amp; Beyond — News \| Analysis \| Perspective<\/strong><\/p>\s*$/,"").trim()
-      const sourcesHtml=sourceBox(sourceRows)
-      const finalBody=(narrative+(sourcesHtml?"\n"+sourcesHtml:"")+"\n<p><strong>Africa & Beyond — News | Analysis | Perspective</strong></p>").trim()
+      // Published stories are self-contained Africa & Beyond reports. Sources remain in newsroom metadata for verification/audit, but are never rendered publicly.
+      const narrative=String(article.body_html||"").replace(/<div class="ab-sources-box">[\\s\\S]*?<\\/div>/gi,"").replace(/<p><strong>Africa &amp; Beyond — News \\| Analysis \\| Perspective<\\/strong><\\/p>\\s*$/,"").trim()
+      const finalBody=(narrative+"\\n<p><strong>Africa & Beyond — News | Analysis | Perspective</strong></p>").trim()
       const quality=editorialQuality(narrative,material)
       const unsupportedClaims=Array.isArray(article.unsupported_claims) ? article.unsupported_claims.map((item:any)=>String(item||"").trim()).filter(Boolean) : []
       const evidenceBasis=Array.isArray(article.evidence_basis) ? article.evidence_basis.map((item:any)=>String(item||"").trim()).filter(Boolean) : []
