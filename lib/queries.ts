@@ -196,6 +196,28 @@ export async function getHomeFeed(userId: string): Promise<FeedPost[]> {
   return deduped.slice(0, 60)
 }
 
+
+export async function getFollowingFeed(userId: string): Promise<FeedPost[]> {
+  const supabase = await createClient()
+  const { data: follows } = await supabase.from("follows").select("following_id").eq("follower_id", userId)
+  const followingIds = Array.from(new Set((follows ?? []).map((f) => f.following_id)))
+  if (followingIds.length === 0) return []
+
+  const { data: posts } = await supabase
+    .from("posts")
+    .select("id, user_id, content, image_url, video_url, created_at, updated_at")
+    .in("user_id", followingIds)
+    .order("created_at", { ascending: false })
+    .limit(60)
+
+  const rows = (posts as PostRow[] | null) ?? []
+  const enrichment = await enrichPosts(rows, userId)
+  return rows.map((row) => {
+    const e = enrichment.get(row.id)
+    return e ? toFeedPost(row, e) : null
+  }).filter((item): item is FeedPost => Boolean(item))
+}
+
 export async function getRecentPosts(currentUserId: string | null, limit = 40): Promise<FeedPost[]> {
   const supabase = await createClient()
   const { data } = await supabase
