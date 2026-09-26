@@ -7,10 +7,6 @@
     {
       "path": "/api/newsroom/automation/run",
       "schedule": "2-59/5 * * * *"
-    },
-    {
-      "path": "/api/newsroom/social/publish",
-      "schedule": "4-59/5 * * * *"
     }
   ]
 }
