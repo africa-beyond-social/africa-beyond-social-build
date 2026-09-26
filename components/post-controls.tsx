@@ -8,7 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 
 const reasons = ["spam","harassment","impersonation","hate","violence","sexual","scam","other"]
 
-export function PostControls({ postId }: { postId: number }) {
+export function PostControls({ postId }: { postId: string }) {
   const [hidden, setHidden] = useState(false)
   async function report() {
     const choice = window.prompt("Report post:\n\n1. Spam\n2. Harassment\n3. Impersonation\n4. Hate\n5. Violence\n6. Sexual content\n7. Scam\n8. Other\n\nEnter a number:")
