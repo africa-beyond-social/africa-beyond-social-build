@@ -121,6 +121,7 @@ export function PostCard({
     const file = quoteFile
     let imageUrl: string | null = null
     let videoUrl: string | null = null
+    let attachment: { url: string; type: string; name?: string } | undefined
     if (file) {
       if (file.size > 50 * 1024 * 1024) { toast.error("Files must be 50 MB or smaller."); return }
       const supabase = createClient()
@@ -129,11 +130,11 @@ export function PostCard({
       const uploaded = await supabase.storage.from("post-media").upload(path, file, { cacheControl: "3600", upsert: false, contentType: file.type })
       if (uploaded.error) { toast.error(uploaded.error.message); return }
       const url = supabase.storage.from("post-media").getPublicUrl(path).data.publicUrl
+      attachment = { url, type: file.type || "application/octet-stream", name: file.name }
       if (file.type.startsWith("video/")) videoUrl = url
       else if (file.type.startsWith("image/")) imageUrl = url
-      else { toast.error("Quote attachments currently support images and video."); return }
     }
-    const res = await createPost(content, imageUrl, videoUrl)
+    const res = await createPost(content, imageUrl, videoUrl, attachment)
     if (!res.ok) { toast.error(res.error); return }
     setQuoteFile(null)
     if (quoteFileRef.current) quoteFileRef.current.value = ""
@@ -274,6 +275,19 @@ export function PostCard({
           </div>
         )}
 
+        {post.attachment_url && post.attachment_url !== post.image_url && post.attachment_url !== post.video_url && (
+          <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-secondary/20">
+            {post.attachment_type?.startsWith("audio/") ? (
+              <audio src={post.attachment_url} controls className="w-full p-3" />
+            ) : (
+              <a href={post.attachment_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="flex items-center gap-3 p-4 text-sm hover:bg-secondary">
+                <Paperclip className="size-5 shrink-0 text-brand-green" />
+                <span className="min-w-0 truncate font-medium">{post.attachment_name ?? "Open attachment"}</span>
+              </a>
+            )}
+          </div>
+        )}
+
         <div className="mt-2 flex max-w-md items-center justify-between text-muted-foreground">
           <button
             onClick={(e) => {
@@ -325,7 +339,7 @@ export function PostCard({
             <input
               ref={quoteFileRef}
               type="file"
-              accept="image/*,video/*"
+              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
               className="hidden"
               onChange={(e) => setQuoteFile(e.target.files?.[0] ?? null)}
             />
