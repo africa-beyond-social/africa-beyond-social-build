@@ -167,6 +167,23 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
           <div className="rounded-xl bg-background p-3"><p className="text-[10px] font-bold uppercase text-muted-foreground">Status</p><p className="mt-1 text-sm font-bold">{story.automated_review_ready ? "Review-ready" : "Needs checks"}</p></div>
         </div>
         {Array.isArray(story.editorial_watchpoints) && story.editorial_watchpoints.length > 0 && <div className="mt-4 rounded-xl border border-[#d4a017]/30 bg-[#d4a017]/5 p-3"><p className="text-xs font-bold">Editorial watchpoints</p><ul className="mt-2 space-y-1 text-xs text-muted-foreground">{story.editorial_watchpoints.map((item: string) => <li key={item}>• {item}</li>)}</ul></div>}
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          <div className="rounded-xl border border-brand-green/20 bg-background p-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-brand-green">Research & evidence audit</p>
+            <p className="mt-1 text-xs text-muted-foreground">Research status: <strong>{story.research_status || "not_started"}</strong> · Attempts: <strong>{story.research_attempts ?? 0}</strong></p>
+            <div className="mt-3 space-y-1.5 text-xs">
+              {(Array.isArray(story.evidence_basis) ? story.evidence_basis : []).map((item: string, i: number) => <p key={i}>• {item}</p>)}
+              {!Array.isArray(story.evidence_basis) || !story.evidence_basis.length ? <p className="text-muted-foreground">No evidence basis was recorded.</p> : null}
+            </div>
+          </div>
+          <div className="rounded-xl border border-[#d4a017]/30 bg-[#d4a017]/5 p-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider">Unsupported claims removed</p>
+            <div className="mt-2 space-y-1.5 text-xs">
+              {(Array.isArray(story.unsupported_claims) ? story.unsupported_claims : []).map((item: string, i: number) => <p key={i}>• {item}</p>)}
+              {!Array.isArray(story.unsupported_claims) || !story.unsupported_claims.length ? <p className="text-muted-foreground">No unsupported claims were reported by the audit.</p> : null}
+            </div>
+          </div>
+        </div>
         {intelligenceMessage && <p className="mt-3 text-xs text-muted-foreground">{intelligenceMessage}</p>}
       </div>
 
@@ -204,7 +221,13 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
               <div className="mt-4 space-y-3">
                 <input value={article.title || ""} onChange={(e) => setArticle((a: any) => ({ ...a, title: e.target.value }))} className="w-full rounded-xl border border-input bg-background p-3 text-sm font-semibold" />
                 <textarea value={article.dek || ""} onChange={(e) => setArticle((a: any) => ({ ...a, dek: e.target.value }))} placeholder="Article standfirst / dek" className="min-h-20 w-full rounded-xl border border-input bg-background p-3 text-sm" />
-                <textarea value={article.body_html || ""} onChange={(e) => setArticle((a: any) => ({ ...a, body_html: e.target.value }))} className="min-h-72 w-full rounded-xl border border-input bg-background p-3 font-mono text-xs leading-5" />
+                <textarea aria-label="Article HTML" value={article.body_html || ""} onChange={(e) => setArticle((a: any) => ({ ...a, body_html: e.target.value }))} className="min-h-72 w-full rounded-xl border border-input bg-background p-3 font-mono text-xs leading-5" />
+                <div className="rounded-xl border border-border bg-background p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Publication preview</p>
+                  <h3 className="mt-2 text-xl font-bold">{article.title}</h3>
+                  {article.dek && <p className="mt-2 text-sm text-muted-foreground">{article.dek}</p>}
+                  <div className="prose prose-sm mt-4 max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: article.body_html || "<p>No article body yet.</p>" }} />
+                </div>
                 {article.social_x || article.social_facebook || article.social_tiktok ? <div className="space-y-2 rounded-xl bg-secondary p-3 text-xs">
                   <p className="font-bold">Social distribution copy</p>
                   {article.social_x && <p><strong>X:</strong> {article.social_x}</p>}
