@@ -160,7 +160,7 @@ export async function getHomeFeed(userId: string): Promise<FeedPost[]> {
   const postRows = (posts as PostRow[] | null) ?? []
   const hiddenIds = await hiddenAuthorIds(userId)
   const visiblePostRows = postRows.filter((p) => !hiddenIds.has(p.user_id))
-  const repostRows = reposts ?? []
+  const repostRows = (reposts ?? []).filter((r) => !hiddenIds.has(r.user_id))
   const knownIds = new Set(postRows.map((p) => p.id))
   const missingIds = Array.from(new Set(repostRows.map((r) => r.post_id))).filter((id) => !knownIds.has(id))
 
