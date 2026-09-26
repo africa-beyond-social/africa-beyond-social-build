@@ -10,9 +10,11 @@ export function UserCard({
   isFollowing,
   discoveryReason,
   mutualCount,
+  followerCount,
 }: {
   discoveryReason?: "mutual" | "new" | "active" | "verified"
   mutualCount?: number
+  followerCount?: number
   profile: Profile
   currentUserId: string | null
   isFollowing: boolean
@@ -37,7 +39,7 @@ export function UserCard({
                 <span className="shrink-0 rounded-full bg-brand-green/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-brand-green">New</span>
               )}
             </p>
-            <p className="truncate text-sm text-muted-foreground">@{profile.username}</p>
+            <p className="truncate text-sm text-muted-foreground">@{profile.username}{typeof followerCount === "number" && <> · {followerCount} follower{followerCount === 1 ? "" : "s"}</>}</p>
           </Link>
           {currentUserId && currentUserId !== profile.id && (
             <FollowButton targetUserId={profile.id} initialFollowing={isFollowing} size="sm" />
