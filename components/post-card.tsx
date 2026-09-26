@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button"
 import { relativeTime } from "@/lib/format"
 import { cn } from "@/lib/utils"
+import { VerificationBadge } from "@/components/verification-badge"
 import { createClient } from "@/lib/supabase/client"
 import type { FeedPost } from "@/lib/types"
 
@@ -211,6 +212,7 @@ export function PostCard({
           >
             {post.author.display_name ?? post.author.username}
           </Link>
+          <VerificationBadge type={post.author.verification_type} size="xs" />
           <span className="truncate text-muted-foreground">@{post.author.username}</span>
           <span className="text-muted-foreground">·</span>
           <time className="shrink-0 text-muted-foreground" dateTime={post.created_at}>
