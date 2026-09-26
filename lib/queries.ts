@@ -31,7 +31,7 @@ async function enrichPosts(postRows: PostRow[], currentUserId: string | null): P
   const authorIds = Array.from(new Set(postRows.map((p) => p.user_id)))
 
   const [profilesRes, likesRes, commentsRes, repostsRes, savedRes] = await Promise.all([
-    supabase.from("profiles").select("id, username, display_name, bio, avatar_url, created_at").in("id", authorIds),
+    supabase.from("profiles").select("id, username, display_name, bio, avatar_url, created_at, verification_type, verified_at").in("id", authorIds),
     supabase.from("likes").select("post_id, user_id").in("post_id", postIds),
     supabase.from("comments").select("post_id").in("post_id", postIds),
     supabase.from("reposts").select("post_id, user_id").in("post_id", postIds),
@@ -113,7 +113,7 @@ export async function getCurrentProfile(): Promise<Profile | null> {
   if (!user) return null
   const { data } = await supabase
     .from("profiles")
-    .select("id, username, display_name, bio, avatar_url, created_at")
+    .select("id, username, display_name, bio, avatar_url, created_at, verification_type, verified_at")
     .eq("id", user.id)
     .maybeSingle()
   return (data as Profile | null) ?? null
@@ -158,7 +158,7 @@ export async function getHomeFeed(userId: string): Promise<FeedPost[]> {
   if (reposterIds.length > 0) {
     const { data } = await supabase
       .from("profiles")
-      .select("id, username, display_name, bio, avatar_url, created_at")
+      .select("id, username, display_name, bio, avatar_url, created_at, verification_type, verified_at")
       .in("id", reposterIds)
     for (const p of (data as Profile[] | null) ?? []) reposterProfiles.set(p.id, p)
   }
@@ -279,7 +279,7 @@ export async function getReplies(postId: string): Promise<Comment[]> {
   const authorIds = Array.from(new Set(rows.map((c) => c.user_id)))
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, username, display_name, bio, avatar_url, created_at")
+    .select("id, username, display_name, bio, avatar_url, created_at, verification_type, verified_at")
     .in("id", authorIds)
   const profileById = new Map<string, Profile>()
   for (const p of (profiles as Profile[] | null) ?? []) profileById.set(p.id, p)
@@ -294,7 +294,7 @@ export async function getProfileByUsername(username: string): Promise<Profile | 
   const supabase = await createClient()
   const { data } = await supabase
     .from("profiles")
-    .select("id, username, display_name, bio, avatar_url, created_at")
+    .select("id, username, display_name, bio, avatar_url, created_at, verification_type, verified_at")
     .ilike("username", username)
     .maybeSingle()
   return (data as Profile | null) ?? null
@@ -338,7 +338,7 @@ export async function getConnectionProfiles(userId: string, kind: "followers" | 
   if (ids.length === 0) return []
   const { data } = await supabase
     .from("profiles")
-    .select("id, username, display_name, bio, avatar_url, created_at")
+    .select("id, username, display_name, bio, avatar_url, created_at, verification_type, verified_at")
     .in("id", ids)
   const byId = new Map<string, Profile>()
   for (const profile of (data as Profile[] | null) ?? []) byId.set(profile.id, profile)
@@ -356,7 +356,7 @@ export async function getSuggestedProfiles(currentUserId: string | null, limit =
 
   const { data } = await supabase
     .from("profiles")
-    .select("id, username, display_name, bio, avatar_url, created_at")
+    .select("id, username, display_name, bio, avatar_url, created_at, verification_type, verified_at")
     .order("created_at", { ascending: false })
     .limit(Math.max(limit * 4, 24))
 
@@ -371,7 +371,7 @@ export async function searchProfiles(term: string): Promise<Profile[]> {
   const like = `%${term.trim()}%`
   const { data } = await supabase
     .from("profiles")
-    .select("id, username, display_name, bio, avatar_url, created_at")
+    .select("id, username, display_name, bio, avatar_url, created_at, verification_type, verified_at")
     .or(`username.ilike.${like},display_name.ilike.${like}`)
     .limit(20)
   return (data as Profile[] | null) ?? []
@@ -430,7 +430,7 @@ export async function getNotifications(userId: string): Promise<NotificationRow[
 
   const [{ data: actors }, { data: posts }] = await Promise.all([
     actorIds.length
-      ? supabase.from("profiles").select("id, username, display_name, bio, avatar_url, created_at").in("id", actorIds)
+      ? supabase.from("profiles").select("id, username, display_name, bio, avatar_url, created_at, verification_type, verified_at").in("id", actorIds)
       : Promise.resolve({ data: [] }),
     postIds.length
       ? supabase.from("posts").select("id, content").in("id", postIds)
