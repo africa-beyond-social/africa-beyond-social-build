@@ -70,6 +70,26 @@ function hasAny(text: string, terms: string[]) {
   return terms.some(term => value.includes(term.toLowerCase()))
 }
 
+function resolvePublisher(source: any, link: string, title: string) {
+  const host = (() => { try { return new URL(link).hostname.toLowerCase().replace(/^www\\./, "") } catch { return "" } })()
+  const aliases = Array.isArray(source.aliases) ? source.aliases.map((v: any) => String(v).toLowerCase()) : []
+  const haystack = (source.name + " " + aliases.join(" ")).toLowerCase()
+  const known: Array<[string,string,string]> = [
+    ["newsday.co.zw","NewsDay","Zimbabwe"],["zbc.co.zw","ZBC News","Zimbabwe"],["herald.co.zw","The Herald","Zimbabwe"],
+    ["newzimbabwe.com","NewZimbabwe","Zimbabwe"],["theindependent.co.zw","The Zimbabwe Independent","Zimbabwe"],["thestandard.co.zw","The Standard","Zimbabwe"],["zimlive.com","ZimLive","Zimbabwe"],
+    ["sabcnews.com","SABC News","South Africa"],["sabc.co.za","SABC News","South Africa"],["enca.com","eNCA","South Africa"],["news24.com","News24","South Africa"],
+    ["dailymaverick.co.za","Daily Maverick","South Africa"],["timeslive.co.za","TimesLIVE","South Africa"],["iol.co.za","IOL","South Africa"],["mg.co.za","Mail & Guardian","South Africa"],["citizen.co.za","The Citizen","South Africa"],["businesslive.co.za","Business Day","South Africa"]
+  ]
+  const match = known.find(([domain]) => host === domain || host.endsWith("." + domain))
+  if (match) return { publisherName: match[1], country: match[2] }
+  if (haystack.includes("newsday")) return { publisherName: "NewsDay", country: "Zimbabwe" }
+  if (haystack.includes("zbc")) return { publisherName: "ZBC News", country: "Zimbabwe" }
+  if (haystack.includes("herald")) return { publisherName: "The Herald", country: "Zimbabwe" }
+  if (haystack.includes("sabc")) return { publisherName: "SABC News", country: "South Africa" }
+  if (haystack.includes("enca")) return { publisherName: "eNCA", country: "South Africa" }
+  return { publisherName: source.publisher_name || source.name || "Unknown source", country: source.country || null }
+}
+
 function isRelevantItem(sourceName: string, title: string, summary: string) {
   const text = (title + " " + summary).toLowerCase()
   const name = sourceName.toLowerCase()
@@ -128,6 +148,7 @@ export async function GET(request: Request) {
     .eq("active", true)
     .in("source_type", ["rss", "google_news"])
     .eq("monitoring_enabled", true)
+    .order("priority", { ascending: false })
     .order("last_checked_at", { ascending: true, nullsFirst: true })
     .limit(SOURCE_BATCH_SIZE)
 
@@ -174,17 +195,22 @@ export async function GET(request: Request) {
           return new Date(item.publishedAt).getTime() >= cutoff
         })
 
-      const payload = rows.map((item) => ({
+      const payload = rows.map((item) => {
+        const publisher = resolvePublisher(source, item.link, item.title)
+        return {
         title: item.title,
         source_id: source.id,
-        source_name: source.name,
+        source_name: publisher.publisherName,
+        publisher_name: publisher.publisherName,
+        publisher_country: publisher.country,
         source_url: source.url,
         canonical_url: item.link,
         author: item.author,
         published_at: item.publishedAt,
         summary: item.summary,
         image_url: item.imageUrl,
-      }))
+        }
+      })
 
       let detected = 0
       if (payload.length) {
