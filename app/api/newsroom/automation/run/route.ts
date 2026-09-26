@@ -154,7 +154,7 @@ export async function POST(request:Request) {
     // Draft newly detected stories even when they have not yet reached the automatic-publish threshold.
     // The editorial quality gate and safeForAutoPublish check decide whether they publish or go to review.
     const {data:candidates,error:candidateError}=await db.from("newsroom_stories").select("*").neq("source_route","source_inbox").gte("detected_at",cutoff48h)
-      .or("and(ai_draft.is.null,status.eq.new),and(ai_draft.is.null,status.eq.draft),and(ai_draft.is.null,status.eq.review,research_status.eq.not_started)").order("automated_review_ready",{ascending:false}).order("published_at",{ascending:false,nullsFirst:false}).order("detected_at",{ascending:false}).limit(1)
+      .or("and(ai_draft.is.null,status.eq.new),and(ai_draft.is.null,status.eq.draft)").order("automated_review_ready",{ascending:false}).order("published_at",{ascending:false,nullsFirst:false}).order("detected_at",{ascending:false}).limit(1)
     if(candidateError)throw new Error(candidateError.message)
     let drafted=0,articlesReady=0,published=0
     // Process a small bounded batch per invocation so the queue clears faster without returning to long-running requests.
