@@ -93,16 +93,16 @@ export async function signUpAction(formData: FormData): Promise<ActionResult> {
   return { ok: true }
 }
 
-export async function createPost(content: string, imageUrl?: string | null, videoUrl?: string | null): Promise<ActionResult> {
+export async function createPost(content: string, imageUrl?: string | null, videoUrl?: string | null, attachment?: { url: string; type: string; name?: string }): Promise<ActionResult> {
   const trimmed = content.trim()
-  if (!trimmed && !imageUrl && !videoUrl) return { ok: false, error: "Post cannot be empty." }
+  if (!trimmed && !imageUrl && !videoUrl && !attachment) return { ok: false, error: "Post cannot be empty." }
   if (trimmed.length > MAX_LEN) return { ok: false, error: `Posts are limited to ${MAX_LEN} characters.` }
 
   const userId = await getUserId()
   if (!userId) return { ok: false, error: "You must be signed in." }
 
   const supabase = await createClient()
-  const { error } = await supabase.from("posts").insert({ user_id: userId, content: trimmed, image_url: imageUrl ?? null, video_url: videoUrl ?? null })
+  const { error } = await supabase.from("posts").insert({ user_id: userId, content: trimmed, image_url: imageUrl ?? null, video_url: videoUrl ?? null, attachment_url: attachment?.url ?? null, attachment_type: attachment?.type ?? null, attachment_name: attachment?.name ?? null })
   if (error) return { ok: false, error: error.message }
 
   revalidatePath("/")
