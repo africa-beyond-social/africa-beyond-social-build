@@ -21,15 +21,16 @@ async function notify(params: { userId: string; actorId: string; type: Notificat
   if (params.userId === params.actorId) return
   try {
     const supabase = await createClient()
-    await supabase.from("notifications").insert({
+    const { error } = await supabase.from("notifications").insert({
       user_id: params.userId,
       actor_id: params.actorId,
       type: params.type,
       post_id: params.postId ?? null,
       is_read: false,
     })
-  } catch {
-    // ignore
+    if (error) console.error("Notification insert failed", { type: params.type, postId: params.postId ?? null, error })
+  } catch (error) {
+    console.error("Notification insert threw", { type: params.type, postId: params.postId ?? null, error })
   }
 }
 
@@ -169,6 +170,7 @@ export async function toggleLike(postId: string): Promise<ActionResult> {
 
   revalidatePath("/")
   revalidatePath(`/post/${postId}`)
+  revalidatePath("/notifications")
   return { ok: true }
 }
 
@@ -196,6 +198,7 @@ export async function toggleAmplify(postId: string): Promise<ActionResult> {
 
   revalidatePath("/")
   revalidatePath(`/post/${postId}`)
+  revalidatePath("/notifications")
   return { ok: true }
 }
 
@@ -274,6 +277,7 @@ export async function toggleFollow(targetUserId: string): Promise<ActionResult> 
   }
 
   revalidatePath("/")
+  revalidatePath("/notifications")
   return { ok: true }
 }
 
