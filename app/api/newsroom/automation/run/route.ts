@@ -53,10 +53,10 @@ function ghostToken() {
 }
 function cleanPublishedBody(html:string) {
   let value=String(html||"");
-  value=value.replace(/<div class="ab-sources-box">[\\s\\S]*?<\\/div>/gi,"");
-  value=value.replace(/\\[([^\\]]+)\\]\\(https?:\\/\\/[^)]+\\)/gi,"$1");
-  value=value.replace(/<a[^>]*>([\\s\\S]*?)<\\/a>/gi,"$1");
-  value=value.replace(/https?:\\/\\/[^\\s<)]+/gi,"");
+  value=value.replace(/<div class="ab-sources-box">[\s\S]*?<\/div>/gi,"");
+  value=value.replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/gi,"$1");
+  value=value.replace(/<a[^>]*>([\s\S]*?)<\/a>/gi,"$1");
+  value=value.replace(/https?:\/\/[^\s<)]+/gi,"");
   return cleanHtml(value);
 }
 function cleanHtml(html:string) {
