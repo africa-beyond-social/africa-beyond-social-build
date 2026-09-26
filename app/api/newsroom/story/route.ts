@@ -39,11 +39,11 @@ export async function PATCH(request: Request) {
     if (Array.isArray(current.unsupported_claims) && current.unsupported_claims.length > 0) return NextResponse.json({ error: "Resolve unsupported claims before human verification" }, { status: 409 })
   }
   if (requested === "approved") {
-    if (current.status !== "review") return NextResponse.json({ error: "Only stories in review can be approved" }, { status: 409 })
+    if (current.status !== "review") return NextResponse.json({ error: "Only stories in editorial review can be approved" }, { status: 409 })
     if (!String(body.aiDraft ?? current.ai_draft ?? "").trim()) return NextResponse.json({ error: "A draft is required before approval" }, { status: 400 })
-    const finalConfidence = body.confidence ?? current.confidence
-    if (!["cross_checked","developing"].includes(finalConfidence)) return NextResponse.json({ error: "Story must be cross-checked or explicitly human-verified before approval" }, { status: 409 })
-    if (!String(body.verificationNotes ?? current.verification_notes ?? "").trim()) return NextResponse.json({ error: "Verification notes are required before approval" }, { status: 400 })
+    const verificationNote = String(body.verificationNotes ?? current.verification_notes ?? "").trim()
+    if (!body.humanVerified || verificationNote.length < 40) return NextResponse.json({ error: "Human editorial verification is required: record what you checked and why the story is publishable" }, { status: 400 })
+    if (Array.isArray(current.unsupported_claims) && current.unsupported_claims.length > 0) return NextResponse.json({ error: "Resolve unsupported claims before approval" }, { status: 409 })
   }
   const humanVerified = body.humanVerified === true
   const { data, error } = await db.from("newsroom_stories").update({
