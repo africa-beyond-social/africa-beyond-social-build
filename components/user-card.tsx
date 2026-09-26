@@ -26,8 +26,12 @@ export function UserCard({
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <Link href={`/profile/${profile.username}`} className="min-w-0">
-            <p className="truncate font-semibold leading-tight hover:underline">
-              {profile.display_name ?? profile.username}
+            <p className="flex min-w-0 items-center gap-1.5 truncate font-semibold leading-tight hover:underline">
+              <span className="truncate">{profile.display_name ?? profile.username}</span>
+              <VerificationBadge type={profile.verification_type} size="xs" />
+              {Date.now() - new Date(profile.created_at).getTime() < 14 * 24 * 60 * 60 * 1000 && (
+                <span className="shrink-0 rounded-full bg-brand-green/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-brand-green">New</span>
+              )}
             </p>
             <p className="truncate text-sm text-muted-foreground">@{profile.username}</p>
           </Link>
