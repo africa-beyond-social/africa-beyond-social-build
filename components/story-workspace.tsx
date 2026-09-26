@@ -138,14 +138,6 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
     setSaving(false)
   }
 
-  async function markHumanVerified() {
-    if (notes.trim().length < 40) {
-      setIntelligenceMessage("Add verification notes explaining what you checked before marking the story verified.")
-      return
-    }
-    await save("review", true)
-  }
-
   if (!story) return <div className="p-8 text-sm text-muted-foreground">Loading story workspace…</div>
 
   return (
@@ -284,10 +276,10 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
 
           <div className="rounded-2xl border border-border bg-card p-5">
             <h2 className="font-bold">Editorial Decision</h2>
-            <p className="mt-2 text-xs text-muted-foreground">Review the evidence, record what you verified, then mark the story verified. Approval unlocks website publication only after an explicit editorial verification decision.</p>
+            <p className="mt-2 text-xs text-muted-foreground">Review the evidence, edit the article, record what you verified, then approve. Approval is the explicit human editorial verification decision and unlocks website publication.</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <button disabled={saving} onClick={() => runVerify()} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Cross-check</button>
-              <button disabled={saving || story.status !== "review" || !draft.trim() || notes.trim().length < 40} onClick={markHumanVerified} title={notes.trim().length < 40 ? "Add verification notes first" : "Record the editor's verification decision"} className="rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Mark verified</button>
+              
               <button disabled={saving} onClick={() => save("draft")} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Save draft</button>
               <button disabled={saving} onClick={() => save("review")} className="rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white">Send to review</button>
               {story.status !== "review" && story.status !== "published" && <button disabled={saving} onClick={() => save("review")} className="rounded-full border border-brand-green/40 px-4 py-2 text-xs font-semibold text-brand-green">Open review</button>}
