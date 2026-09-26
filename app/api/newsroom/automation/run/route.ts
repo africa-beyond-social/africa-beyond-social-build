@@ -24,7 +24,7 @@ function isTrustedSource(story:any) {
     ? (title.match(/ - ([^-]+)$/)?.[1]||"")
     : ""
   const text=(source+" "+url+" "+publisher).toLowerCase()
-  const trusted=/(bbc(?: news)?|south african broadcasting corporation|sabc|zimbabwe broadcasting corporation|zbc(?: news)?|reuters|associated press|ap news|africanews|allafrica|al jazeera|the guardian|financial times|cnn|dw|deutsche welle|sky news|france 24|voice of america|voa|who|unhcr|imf|world bank|african development bank|afdb|united nations)/i.test(text)
+  const trusted=/(bbc(?: news)?|south african broadcasting corporation|sabc|zimbabwe broadcasting corporation|zbc(?: news)?|reuters|associated press|ap news|africanews|allafrica|al jazeera|the guardian|financial times|cnn|dw|deutsche welle|sky news|france 24|voice of america|voa|who|unhcr|imf|world bank|african development bank|afdb|united nations|newsday|the herald|sunday mail|newzimbabwe|new zimbabwe|daily maverick|mail & guardian|timeslive|times live|enca|rfi|premium times|punch|thisday|nation africa|daily nation|the east african|business day|citizen|iol)/i.test(text)
   return priority!=="archive" && trusted
 }
 function slugify(value:string) {
@@ -66,9 +66,9 @@ async function callOpenAI(prompt:string) {
   let response: Response
   try {
     response=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{"content-type":"application/json",authorization:`Bearer ${key}`},body:JSON.stringify({
-    model:process.env.OPENAI_MODEL||"gpt-4.1-mini",
+    model:process.env.NEWSROOM_RESEARCH_MODEL||process.env.OPENAI_MODEL||"gpt-5.6-luna",
     input:prompt,
-    temperature:0.2,
+    tools:[{type:"web_search"}],
     text:{format:{type:"json_schema",name:"africa_beyond_article",strict:true,schema:{
       type:"object",
       additionalProperties:false,
@@ -145,7 +145,9 @@ export async function POST(request:Request) {
     const cutoff48h=new Date(Date.now()-48*60*60*1000).toISOString();
     // Draft newly detected stories even when they have not yet reached the automatic-publish threshold.
     // The editorial quality gate and safeForAutoPublish check decide whether they publish or go to review.
-    const {data:candidates,error:candidateError}=await db.from("newsroom_stories").select("*").is("ai_draft",null).neq("source_route","source_inbox").in("status",["new","draft"]).gte("detected_at",cutoff48h).order("automated_review_ready",{ascending:false}).order("published_at",{ascending:false,nullsFirst:false}).order("detected_at",{ascending:false}).limit(2)
+    const {data:candidates,error:candidateError}=await db.from("newsroom_stories").select("*").neq("source_route","source_inbox").gte("detected_at",cutoff48h)
+      .or("status.in.(new,draft),and(status.eq.review,research_status.neq.complete)")
+      .or("ai_draft.is.null,and(status.eq.review,research_status.neq.complete)").order("automated_review_ready",{ascending:false}).order("published_at",{ascending:false,nullsFirst:false}).order("detected_at",{ascending:false}).limit(1)
     if(candidateError)throw new Error(candidateError.message)
     let drafted=0,articlesReady=0,published=0
     // Process a small bounded batch per invocation so the queue clears faster without returning to long-running requests.
@@ -173,6 +175,10 @@ ${AFRICA_BEYOND_EDITORIAL_SPEC}
 EXECUTION RULES FOR THIS STORY:
 - Apply the specification to the supplied evidence, not to assumptions.
 - The originating source is evidence, not a template. Reconstruct the story in Africa & Beyond's own structure and voice.
+- WEB RESEARCH IS MANDATORY for any material current-role, political leadership, office-holder, institutional leadership, date-sensitive or identity claim. Use the web search tool to check current authoritative reporting and primary/official sources before deciding the claim is established.
+- Prefer primary institutions and current official records for office/role status, then established professional newsrooms. Use the publication date of evidence, not merely the age of the original story.
+- Treat web research as verification evidence. Do not cite search-result snippets as if they were facts; use the underlying source information available through the search tool.
+- For reputable professional publishers, perform a concise verification pass rather than demanding unnecessary multi-source corroboration. One reputable current source can be sufficient when the claim is straightforward and internally consistent.
 - If the source is a submitted PNG/screenshot containing an official or public statement, turn the statement into a proper news report: identify who made the statement, what was said, when/where it was issued if visible, why it matters, what is confirmed versus merely claimed, and what remains unknown.
 - A statement must remain attributed. Never rewrite a person's statement as an independently established fact merely because it appears in an image.
 - If the submitted image contains a denial, allegation, political claim, announcement or reaction, report it as a statement/claim and preserve the distinction between the speaker's words and independently established facts.
@@ -206,6 +212,13 @@ ${material}`)
         await logRun(db,run.id,{story_id:story.id,step:"editorial_review",message:`AI drafting failed; routed to editorial review: ${message}`,stories_drafted:drafted,articles_ready:articlesReady,error:message})
         continue
       }
+      await db.from("newsroom_stories").update({
+        research_status:"complete",
+        research_attempts:Number(story.research_attempts||0)+1,
+        last_researched_at:new Date().toISOString(),
+        updated_at:new Date().toISOString()
+      }).eq("id",story.id)
+
       const narrative=String(article.body_html||"").replace(/<p><strong>Africa &amp; Beyond — News \| Analysis \| Perspective<\/strong><\/p>\s*$/,"").trim()
       const finalBody=(narrative+"\n<p><strong>Africa &amp; Beyond — News | Analysis | Perspective</strong></p>").trim()
       const quality=editorialQuality(narrative,material)
@@ -245,11 +258,13 @@ ${material}`)
       // verification threshold as detected newsroom material, plus a clean temporal/entity check.
       // This prevents old screenshots or stale descriptions of public figures from becoming
       // current facts simply because the decoder could read them.
+      const researchComplete=String(story.research_status||"not_started")==="complete"
       const sourceInboxVerified=!directSource || (
         (trustedPrimary || Number(story.verification_score||0)>=60) &&
         sourceSufficient &&
         !requiresHumanReview &&
         !temporalRisk &&
+        researchComplete &&
         (roleStatus==="verified_current" || roleStatus==="verified_former" || roleStatus==="not_applicable")
       )
       const safeForAutoPublish=sourceInboxVerified &&
