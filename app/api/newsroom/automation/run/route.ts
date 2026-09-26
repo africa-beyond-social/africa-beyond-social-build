@@ -52,13 +52,12 @@ function ghostToken() {
   return signing+"."+crypto.createHmac("sha256",Buffer.from(secret,"hex")).update(signing).digest("base64url")
 }
 function cleanPublishedBody(html:string) {
-  return cleanHtml(String(html||"")
-    .replace(/<div class="ab-sources-box">[\\s\\S]*?<\\/div>/gi,"")
-    .replace(/\\[([^\\]]+)\\]\\((?:https?:\\/\\/)[^)]+\\)/gi,"$1")
-    .replace(/<a\\b[^>]*>([\\s\\S]*?)<\\/a>/gi,"$1")
-    .replace(/https?:\\/\\/[^\\s<)]+/gi,"")
-    .replace(/\\s*\\(\\s*\\)\\s*/g," ")
-  )
+  let value=String(html||"");
+  value=value.replace(/<div class="ab-sources-box">[\\s\\S]*?<\\/div>/gi,"");
+  value=value.replace(/\\[([^\\]]+)\\]\\(https?:\\/\\/[^)]+\\)/gi,"$1");
+  value=value.replace(/<a[^>]*>([\\s\\S]*?)<\\/a>/gi,"$1");
+  value=value.replace(/https?:\\/\\/[^\\s<)]+/gi,"");
+  return cleanHtml(value);
 }
 function cleanHtml(html:string) {
   return html.replace(/<script[\s\S]*?<\/script>/gi,"").replace(/<style[\s\S]*?<\/style>/gi,"").replace(/\son[a-z]+\s*=\s*(["']).*?\1/gi,"")
