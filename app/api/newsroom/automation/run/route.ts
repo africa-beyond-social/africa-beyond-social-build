@@ -221,10 +221,8 @@ ${material}`)
         updated_at:new Date().toISOString()
       }).eq("id",story.id)
 
-      const narrative=String(article.body_html||"").replace(/<p><strong>Africa &amp; Beyond — News \\| Analysis \\| Perspective<\\/strong><\\/p>\\s*$/, "").trim()
-      // Sources remain internal newsroom evidence and are never rendered in the public article.
-      const finalBody=(narrative+"\\n<p><strong>Africa & Beyond — News | Analysis | Perspective</strong></p>").trim()
-      const quality=editorialQuality(narrative,material)
+      const narrative=String(article.body_html||"").replace(/<p><strong>Africa &amp; Beyond — News \| Analysis \| Perspective<\/strong><\/p>\s*$/,"").trim()
+      // Sources are retained internally for verification/audit and are never rendered in the public article.\n      const finalBody=(narrative+"\\n<p><strong>Africa & Beyond — News | Analysis | Perspective</strong></p>").trim()\n      const quality=editorialQuality(narrative,material)
       const unsupportedClaims=Array.isArray(article.unsupported_claims) ? article.unsupported_claims.map((item:any)=>String(item||"").trim()).filter(Boolean) : []
       const evidenceBasis=Array.isArray(article.evidence_basis) ? article.evidence_basis.map((item:any)=>String(item||"").trim()).filter(Boolean) : []
       if(unsupportedClaims.length>0){
