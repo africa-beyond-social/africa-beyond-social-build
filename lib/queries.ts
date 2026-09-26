@@ -24,6 +24,22 @@ const EMPTY_PROFILE = (id: string): Profile => ({
   verified_at: null,
 })
 
+async function hiddenAuthorIds(currentUserId: string | null): Promise<Set<string>> {
+  const hidden = new Set<string>()
+  if (!currentUserId) return hidden
+  const supabase = await createClient()
+  const [{ data: blocks }, { data: mutes }] = await Promise.all([
+    supabase.from("user_blocks").select("blocker_id, blocked_id").or(`blocker_id.eq.${currentUserId},blocked_id.eq.${currentUserId}`),
+    supabase.from("user_mutes").select("muted_id").eq("muter_id", currentUserId),
+  ])
+  for (const row of blocks ?? []) {
+    if (row.blocker_id === currentUserId) hidden.add(row.blocked_id)
+    else hidden.add(row.blocker_id)
+  }
+  for (const row of mutes ?? []) hidden.add(row.muted_id)
+  return hidden
+}
+
 async function enrichPosts(postRows: PostRow[], currentUserId: string | null): Promise<Map<string, Enrichment>> {
   const result = new Map<string, Enrichment>()
   if (postRows.length === 0) return result
@@ -63,7 +79,7 @@ async function enrichPosts(postRows: PostRow[], currentUserId: string | null): P
     if (currentUserId && r.user_id === currentUserId) repostedByMe.add(r.post_id)
   }
 
-  for (const row of postRows) {
+  for (const row of visiblePostRows) {
     result.set(row.id, {
       author: profileById.get(row.user_id) ?? EMPTY_PROFILE(row.user_id),
       like_count: likeCount.get(row.id) ?? 0,
@@ -142,6 +158,8 @@ export async function getHomeFeed(userId: string): Promise<FeedPost[]> {
   ])
 
   const postRows = (posts as PostRow[] | null) ?? []
+  const hiddenIds = await hiddenAuthorIds(userId)
+  const visiblePostRows = postRows.filter((p) => !hiddenIds.has(p.user_id))
   const repostRows = reposts ?? []
   const knownIds = new Set(postRows.map((p) => p.id))
   const missingIds = Array.from(new Set(repostRows.map((r) => r.post_id))).filter((id) => !knownIds.has(id))
@@ -165,7 +183,7 @@ export async function getHomeFeed(userId: string): Promise<FeedPost[]> {
     for (const p of (data as Profile[] | null) ?? []) reposterProfiles.set(p.id, p)
   }
 
-  const allRows = [...postRows, ...extraPosts]
+  const allRows = [...visiblePostRows, ...extraPosts.filter((p) => !hiddenIds.has(p.user_id))]
   const enrichment = await enrichPosts(allRows, userId)
   const rowById = new Map(allRows.map((r) => [r.id, r]))
 
@@ -222,8 +240,10 @@ export async function getFollowingFeed(userId: string): Promise<FeedPost[]> {
     .limit(60)
 
   const rows = (posts as PostRow[] | null) ?? []
-  const enrichment = await enrichPosts(rows, userId)
-  return rows.map((row) => {
+  const hiddenIds = await hiddenAuthorIds(userId)
+  const visibleRows = rows.filter((r) => !hiddenIds.has(r.user_id))
+  const enrichment = await enrichPosts(visibleRows, userId)
+  return visibleRows.map((row) => {
     const e = enrichment.get(row.id)
     return e ? toFeedPost(row, e) : null
   }).filter((item): item is FeedPost => Boolean(item))
@@ -237,8 +257,10 @@ export async function getRecentPosts(currentUserId: string | null, limit = 40): 
     .order("created_at", { ascending: false })
     .limit(limit)
   const rows = (data as PostRow[] | null) ?? []
-  const enrichment = await enrichPosts(rows, currentUserId)
-  return rows.map((r) => toFeedPost(r, enrichment.get(r.id)!)).filter(Boolean)
+  const hiddenIds = await hiddenAuthorIds(currentUserId)
+  const visibleRows = rows.filter((r) => !hiddenIds.has(r.user_id))
+  const enrichment = await enrichPosts(visibleRows, currentUserId)
+  return visibleRows.map((r) => toFeedPost(r, enrichment.get(r.id)!)).filter(Boolean)
 }
 
 export async function getPostsByUser(userId: string, currentUserId: string | null): Promise<FeedPost[]> {
