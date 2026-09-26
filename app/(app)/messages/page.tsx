@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
-import { getSessionUser, searchProfiles } from "@/lib/queries"
+import { getFollowStats, getSessionUser, searchProfiles } from "@/lib/queries"
 import { Check, CheckCheck, MessageCircle, User } from "lucide-react"
 import { MessageComposer } from "@/components/message-composer"
 import { MessageAttachment } from "@/components/message-attachment"
@@ -10,10 +10,11 @@ import { IncomingCallListener } from "@/components/incoming-call-listener"
 import { MessageAlertListener } from "@/components/message-alert-listener"
 import { MessageAlertSettings } from "@/components/message-alert-settings"
 import { MessageReceipts } from "@/components/message-receipts"
+import { VerificationBadge } from "@/components/verification-badge"
 
 type MessageRow={id:string;sender_id:string;recipient_id:string;content:string;created_at:string;read_at:string|null;delivered_at:string|null;attachment_id:string|null}
 type AttachmentRow={id:string;message_id:string;file_name:string;mime_type:string;file_size:number}
-type ProfileRow={id:string;username:string;display_name:string|null;avatar_url:string|null}
+type ProfileRow={id:string;username:string;display_name:string|null;avatar_url:string|null;verification_type:"wigod_staff"|"wigod_official"|"creator"|"organization"|null;verified_at:string|null}
 
 export default async function MessagesPage({searchParams}:{searchParams:Promise<{with?:string;q?:string}>}) {
  const user=await getSessionUser(); if(!user) redirect("/auth/login")
@@ -26,19 +27,39 @@ export default async function MessagesPage({searchParams}:{searchParams:Promise<
  const {data:attachments}=attachmentIds.length?await supabase.from("message_attachments").select("id,message_id,file_name,mime_type,file_size").in("id",attachmentIds):{data:[] as AttachmentRow[]}
  const attachmentByMessage=new Map<string,AttachmentRow>(); for(const a of (attachments as AttachmentRow[]|null)??[]) attachmentByMessage.set(a.message_id,a)
  const ids=Array.from(new Set(messages.map(m=>m.sender_id===user.id?m.recipient_id:m.sender_id)))
- const {data:ps}=ids.length?await supabase.from("profiles").select("id,username,display_name,avatar_url").in("id",ids):{data:[] as ProfileRow[]}
+ const {data:ps}=ids.length?await supabase.from("profiles").select("id,username,display_name,avatar_url,verification_type,verified_at").in("id",ids):{data:[] as ProfileRow[]}
  const byId=new Map<string,ProfileRow>(); for(const p of (ps as ProfileRow[]|null)??[]) byId.set(p.id,p)
  const conversations=new Map<string,MessageRow[]>()
  for(const m of [...messages].reverse()){const id=m.sender_id===user.id?m.recipient_id:m.sender_id;const list=conversations.get(id)??[];list.push(m);conversations.set(id,list)}
  let selected:ProfileRow|undefined=params.with?Array.from(byId.values()).find(p=>p.username.toLowerCase()===params.with!.toLowerCase()):undefined
- if(params.with&&!selected){const {data}=await supabase.from("profiles").select("id,username,display_name,avatar_url").ilike("username",params.with).maybeSingle();selected=(data as ProfileRow|null)??undefined}
+ if(params.with&&!selected){const {data}=await supabase.from("profiles").select("id,username,display_name,avatar_url,verification_type,verified_at").ilike("username",params.with).maybeSingle();selected=(data as ProfileRow|null)??undefined}
  const selectedMessages=selected?conversations.get(selected.id)??[]:[]
+ const selectedStats=selected?await getFollowStats(selected.id,user.id):null
  return <div className="mx-auto w-full max-w-3xl">
   <header className="sticky top-0 z-10 border-b border-border bg-background/95 px-4 py-4 backdrop-blur"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-3"><MessageCircle className="size-6 text-brand-green"/><div><h1 className="text-xl font-bold">Messages</h1><p className="text-sm text-muted-foreground">Private conversations on WIGOD.</p></div></div><MessageAlertSettings/></div><form action="/messages" method="get" className="mt-4 flex gap-2"><input name="q" defaultValue={searchTerm} placeholder="Find someone to message..." className="min-w-0 flex-1 rounded-full border border-border bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-green"/><button type="submit" className="rounded-full bg-brand-green px-4 py-2 text-sm font-semibold text-white">Search</button></form></header>
   {searchTerm&&!selected?<section className="divide-y divide-border border-b border-border">{searchResults.length?searchResults.map(p=><Link key={p.id} href={`/messages?with=${encodeURIComponent(p.username)}`} className="flex items-center gap-3 px-4 py-4 hover:bg-secondary/50"><div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary"><User className="size-5 text-muted-foreground"/></div><div><div className="font-semibold">{p.display_name??p.username}</div><div className="text-sm text-muted-foreground">@{p.username}</div></div></Link>):<div className="px-4 py-6 text-sm text-muted-foreground">No people found for “{searchTerm}”.</div>}</section>:null}
   <MessageAlertListener userId={user.id}/>
   {selected?<section className="p-4">
-   <MessageReceipts otherUserId={selected.id}/><div className="mb-4 flex items-center gap-3 rounded-xl border border-border p-3"><div className="flex size-10 items-center justify-center rounded-full bg-secondary"><User className="size-5 text-muted-foreground"/></div><div><div className="font-semibold">{selected.display_name??selected.username}</div><div className="text-sm text-muted-foreground">@{selected.username}</div></div><CallButton recipientId={selected.id} currentUserId={user.id}/></div>
+   <MessageReceipts otherUserId={selected.id}/><div className="mb-4 rounded-2xl border border-border p-3">
+    <div className="flex items-center gap-3">
+      <Link href={`/profile/${selected.username}`} className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary">
+        <User className="size-5 text-muted-foreground"/>
+      </Link>
+      <div className="min-w-0 flex-1">
+        <Link href={`/profile/${selected.username}`} className="flex items-center gap-1.5 font-semibold hover:underline">
+          <span className="truncate">{selected.display_name??selected.username}</span>
+          <VerificationBadge type={selected.verification_type} size="xs" />
+        </Link>
+        <div className="text-sm text-muted-foreground">@{selected.username}</div>
+        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <Link href={`/profile/${selected.username}/followers`} className="hover:text-foreground"><strong className="text-foreground">{selectedStats?.followers ?? 0}</strong> followers</Link>
+          <Link href={`/profile/${selected.username}/following`} className="hover:text-foreground"><strong className="text-foreground">{selectedStats?.following ?? 0}</strong> following</Link>
+        </div>
+      </div>
+      <CallButton recipientId={selected.id} currentUserId={user.id}/>
+    </div>
+    <Link href={`/profile/${selected.username}`} className="mt-3 inline-flex rounded-full border border-border px-3 py-1.5 text-xs font-semibold hover:bg-secondary">View profile</Link>
+   </div>
    <div className="space-y-2">{selectedMessages.map(m=><div key={m.id} className={`flex ${m.sender_id===user.id?"justify-end":"justify-start"}`}><div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${m.sender_id===user.id?"bg-brand-green text-white":"bg-secondary"}`}>{m.attachment_id?<><p className="mb-1 text-xs opacity-70">Shared file</p><div><MessageAttachment id={m.attachment_id} fileName={attachmentByMessage.get(m.id)?.file_name??m.content} mimeType={attachmentByMessage.get(m.id)?.mime_type??"application/octet-stream"}/></div></>:<p className="whitespace-pre-wrap">{m.content}</p>}<div className="mt-1 flex items-center justify-end gap-1 text-[0.7rem] opacity-70"><time>{new Date(m.created_at).toLocaleString()}</time>{m.sender_id===user.id&&(m.read_at?<CheckCheck className="size-3.5 text-green-500" title="Read"/>:m.delivered_at?<CheckCheck className="size-3.5" title="Delivered"/>:<Check className="size-3.5" title="Sent"/>)}</div></div></div>)}</div>
    <div className="mt-4"><Link href="/messages" className="text-sm text-muted-foreground hover:underline">← Back to messages</Link></div><MessageComposer recipientId={selected.id}/>
   </section>:<section className="divide-y divide-border">
