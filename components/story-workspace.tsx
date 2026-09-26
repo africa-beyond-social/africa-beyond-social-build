@@ -120,18 +120,28 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
     setArticleBusy(false)
   }
 
-  async function save(status?: string) {
+  async function save(status?: string, humanVerified = false) {
     setSaving(true)
     const response = await fetch("/api/newsroom/story", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ id: storyId, verificationNotes: notes, aiDraft: draft, status }),
+      body: JSON.stringify({ id: storyId, verificationNotes: notes, aiDraft: draft, status, humanVerified }),
     })
+    const data = await response.json().catch(() => ({}))
     if (response.ok) {
-      const data = await response.json()
       setStory(data.story)
+    } else if (data.error) {
+      setIntelligenceMessage(data.error)
     }
     setSaving(false)
+  }
+
+  async function markHumanVerified() {
+    if (notes.trim().length < 40) {
+      setIntelligenceMessage("Add verification notes explaining what you checked before marking the story verified.")
+      return
+    }
+    await save("review", true)
   }
 
   if (!story) return <div className="p-8 text-sm text-muted-foreground">Loading story workspace…</div>
@@ -257,7 +267,7 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
                 <div className="flex flex-wrap gap-2">
                   <button disabled={articleBusy} onClick={saveArticle} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Save article</button>
                   {article.website_status !== "published" && story.status === "approved" && <button disabled={articleBusy} onClick={publishWebsite} className="rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white">{articleBusy ? "Publishing…" : "Publish to Africa & Beyond"}</button>}
-                  {article.website_status !== "published" && story.status === "review" && <button disabled={saving || articleBusy || story.confidence === "unverified" || !draft.trim()} onClick={() => save("approved")} title={story.confidence === "unverified" ? "Cross-check the story before approval" : !draft.trim() ? "Generate or enter the article draft before approval" : "Approve this story for website publication"} className="rounded-full bg-brand-red px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Approve for publication</button>}
+                  {article.website_status !== "published" && story.status === "review" && <button disabled={saving || articleBusy || !["cross_checked","developing"].includes(String(story.confidence)) || !draft.trim() || notes.trim().length < 40} onClick={() => save("approved")} title={!["cross_checked","developing"].includes(String(story.confidence)) ? "Cross-check the story or mark it verified first" : notes.trim().length < 40 ? "Add verification notes before approval" : !draft.trim() ? "Generate or enter the article draft before approval" : "Approve this story for website publication"} className="rounded-full bg-brand-red px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Approve for publication</button>}
                   {article.website_url && <a href={article.website_url} target="_blank" rel="noreferrer" className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Open published article</a>}
                   <button disabled={socialBusy} onClick={async () => {
                     setSocialBusy(true)
@@ -272,14 +282,15 @@ export function StoryWorkspace({ storyId, onClose }: Props) {
 
           <div className="rounded-2xl border border-border bg-card p-5">
             <h2 className="font-bold">Editorial Decision</h2>
-            <p className="mt-2 text-xs text-muted-foreground">Review the source, verification evidence and article before approving or holding it. Approval unlocks website publication.</p>
+            <p className="mt-2 text-xs text-muted-foreground">Review the evidence, record what you verified, then mark the story verified. Approval unlocks website publication only after an explicit editorial verification decision.</p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <button disabled={saving} onClick={() => save("verifying")} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Verify</button>
+              <button disabled={saving} onClick={() => runVerify()} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Cross-check</button>
+              <button disabled={saving || story.status !== "review" || !draft.trim() || notes.trim().length < 40} onClick={markHumanVerified} title={notes.trim().length < 40 ? "Add verification notes first" : "Record the editor's verification decision"} className="rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Mark verified</button>
               <button disabled={saving} onClick={() => save("draft")} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Save draft</button>
               <button disabled={saving} onClick={() => save("review")} className="rounded-full bg-brand-green px-4 py-2 text-xs font-semibold text-white">Send to review</button>
               {story.status !== "review" && story.status !== "published" && <button disabled={saving} onClick={() => save("review")} className="rounded-full border border-brand-green/40 px-4 py-2 text-xs font-semibold text-brand-green">Open review</button>}
               <button disabled={saving} onClick={() => save("held")} className="rounded-full border border-border px-4 py-2 text-xs font-semibold">Hold</button>
-              <button disabled={saving || story.status !== "review" || story.confidence === "unverified" || !draft.trim()} onClick={() => save("approved")} title={story.status !== "review" ? "Send the story to review first" : story.confidence === "unverified" ? "Cross-check the story before approval" : !draft.trim() ? "Create or enter a draft before approval" : ""} className="rounded-full bg-brand-red px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Approve</button>
+              <button disabled={saving || story.status !== "review" || !["cross_checked","developing"].includes(String(story.confidence)) || !draft.trim() || notes.trim().length < 40} onClick={() => save("approved")} title={story.status !== "review" ? "Send the story to review first" : !["cross_checked","developing"].includes(String(story.confidence)) ? "Cross-check the story or mark it verified first" : !draft.trim() ? "Create or enter a draft before approval" : notes.trim().length < 40 ? "Add verification notes before approval" : ""} className="rounded-full bg-brand-red px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Approve</button>
 
             </div>
           </div>
