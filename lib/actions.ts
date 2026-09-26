@@ -199,16 +199,27 @@ export async function toggleAmplify(postId: string): Promise<ActionResult> {
   return { ok: true }
 }
 
-export async function createReply(postId: string, content: string): Promise<ActionResult> {
+export async function createReply(
+  postId: string,
+  content: string,
+  attachment?: { url: string; type: string; name?: string },
+): Promise<ActionResult> {
   const trimmed = content.trim()
-  if (!trimmed) return { ok: false, error: "Reply cannot be empty." }
+  if (!trimmed && !attachment) return { ok: false, error: "Reply cannot be empty." }
   if (trimmed.length > MAX_LEN) return { ok: false, error: `Replies are limited to ${MAX_LEN} characters.` }
 
   const userId = await getUserId()
   if (!userId) return { ok: false, error: "You must be signed in." }
 
   const supabase = await createClient()
-  const { error } = await supabase.from("comments").insert({ post_id: postId, user_id: userId, content: trimmed })
+  const { error } = await supabase.from("comments").insert({
+    post_id: postId,
+    user_id: userId,
+    content: trimmed,
+    attachment_url: attachment?.url ?? null,
+    attachment_type: attachment?.type ?? null,
+    attachment_name: attachment?.name ?? null,
+  })
   if (error) return { ok: false, error: error.message }
 
   const { data: post } = await supabase.from("posts").select("user_id").eq("id", postId).maybeSingle()
