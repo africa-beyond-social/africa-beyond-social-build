@@ -25,22 +25,33 @@ export async function PATCH(request: Request) {
   const id = String(body.id || "")
   if (!id) return NextResponse.json({ error: "Story id is required" }, { status: 400 })
   const db = createAdminClient()
-  const { data: current, error: currentError } = await db.from("newsroom_stories").select("id,status,confidence,ai_draft,verification_notes").eq("id", id).single()
+  const { data: current, error: currentError } = await db.from("newsroom_stories").select("id,status,confidence,ai_draft,verification_notes,evidence_basis,unsupported_claims,current_role_status").eq("id", id).single()
   if (currentError || !current) return NextResponse.json({ error: currentError?.message || "Story not found" }, { status: 404 })
   const requested = body.status ? String(body.status) : current.status
   const allowed = new Set(["new","verifying","draft","review","held","approved","rejected","published"])
   if (!allowed.has(requested)) return NextResponse.json({ error: "Invalid newsroom status" }, { status: 400 })
   if (requested === "review" && !String(body.aiDraft ?? current.ai_draft ?? "").trim()) return NextResponse.json({ error: "An AI/editorial draft is required before review" }, { status: 400 })
+  if (body.humanVerified === true) {
+    if (!["review","verifying"].includes(current.status)) return NextResponse.json({ error: "Only stories in editorial review can be human-verified" }, { status: 409 })
+    if (!String(body.aiDraft ?? current.ai_draft ?? "").trim()) return NextResponse.json({ error: "A draft is required before human verification" }, { status: 400 })
+    const verificationNote = String(body.verificationNotes ?? current.verification_notes ?? "").trim()
+    if (verificationNote.length < 40) return NextResponse.json({ error: "Record at least 40 characters explaining what the editor verified and what evidence was checked" }, { status: 400 })
+    if (Array.isArray(current.unsupported_claims) && current.unsupported_claims.length > 0) return NextResponse.json({ error: "Resolve unsupported claims before human verification" }, { status: 409 })
+  }
   if (requested === "approved") {
     if (current.status !== "review") return NextResponse.json({ error: "Only stories in review can be approved" }, { status: 409 })
     if (!String(body.aiDraft ?? current.ai_draft ?? "").trim()) return NextResponse.json({ error: "A draft is required before approval" }, { status: 400 })
-    if ((body.confidence ?? current.confidence) === "unverified") return NextResponse.json({ error: "Story remains unverified; cross-check it before approval" }, { status: 409 })
+    const finalConfidence = body.confidence ?? current.confidence
+    if (!["cross_checked","developing"].includes(finalConfidence)) return NextResponse.json({ error: "Story must be cross-checked or explicitly human-verified before approval" }, { status: 409 })
+    if (!String(body.verificationNotes ?? current.verification_notes ?? "").trim()) return NextResponse.json({ error: "Verification notes are required before approval" }, { status: 400 })
   }
+  const humanVerified = body.humanVerified === true
   const { data, error } = await db.from("newsroom_stories").update({
     verification_notes: body.verificationNotes ?? current.verification_notes ?? null,
     ai_draft: body.aiDraft ?? current.ai_draft ?? null,
     status: requested,
-    confidence: body.confidence ?? undefined,
+    confidence: humanVerified ? "cross_checked" : (body.confidence ?? undefined),
+    editorial_route: humanVerified ? "human_verified" : undefined,
     updated_at: new Date().toISOString(),
   }).eq("id", id).select("*").single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
