@@ -228,7 +228,7 @@ export async function getRecentPosts(currentUserId: string | null, limit = 40): 
   const supabase = await createClient()
   const { data } = await supabase
     .from("posts")
-    .select("id, user_id, content, image_url, created_at, updated_at")
+    .select("id, user_id, content, image_url, video_url, created_at, updated_at")
     .order("created_at", { ascending: false })
     .limit(limit)
   const rows = (data as PostRow[] | null) ?? []
