@@ -173,7 +173,7 @@ export async function POST(req: Request) {
     if (sessionError) return responseError("Could not check call permissions.", 500)
     if (!session) return responseError("Call not found.", 404)
     if (!isParticipant(session, user.id)) return responseError("You are not a participant in this call.", 403)
-    if (["rejected", "ended", "missed"].includes(session.status)) {
+    if (["rejected", "ended", "missed"].includes(session.status) && kind !== "hangup") {
       return responseError("This call has already ended.", 409)
     }
     if (kind === "offer" && user.id !== session.caller_id) {
