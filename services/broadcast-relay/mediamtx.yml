@@ -1,0 +1,39 @@
+# WIGOD Pilot Broadcast Relay
+# MediaMTX accepts the browser WebRTC/WHIP publish and exposes the stream
+# internally over RTSP. FFmpeg then normalizes the media for YouTube RTMPS.
+#
+# TLS is expected to terminate at the public reverse proxy. MediaMTX receives
+# the proxied WHIP request over the private/local HTTP listener.
+#
+# Configure YOUTUBE_RTMPS_URL in the relay container environment.
+# Example shape:
+# rtmps://<youtube-ingest-host>/<application>/<stream-key>
+
+logLevel: info
+
+webrtc: true
+webrtcAddress: :8889
+webrtcEncryption: false
+webrtcAllowOrigins: ["*"]
+webrtcLocalUDPAddress: :8189
+webrtcLocalTCPAddress: :8190
+
+rtsp: true
+rtspAddress: :8554
+rtspTransports: [tcp]
+
+hls: false
+rtmp: false
+
+paths:
+  wigod-pilot:
+    source: publisher
+    runOnAvailable: >
+      ffmpeg -hide_banner -loglevel warning
+      -i rtsp://127.0.0.1:$RTSP_PORT/$MTX_PATH
+      -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p
+      -r 30 -g 60 -keyint_min 60
+      -b:v 10M -maxrate 10M -bufsize 20M
+      -c:a aac -b:a 128k -ar 48000 -ac 2
+      -f flv "$YOUTUBE_RTMPS_URL"
+    runOnAvailableRestart: yes
