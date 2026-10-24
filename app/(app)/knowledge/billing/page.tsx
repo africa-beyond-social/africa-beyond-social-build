@@ -30,7 +30,7 @@ export default function EducationBillingPage() {
               <div className="mt-5 flex items-baseline gap-1"><span className="text-4xl font-bold tracking-tight">{plan.price}</span><span className="text-sm text-muted-foreground">/ month</span></div>
               <p className="mt-3 min-h-12 text-sm text-muted-foreground">{plan.description}</p>
               <ul className="mt-5 flex-1 space-y-3">{plan.features.map((feature) => <li key={feature} className="flex items-start gap-2 text-sm"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /><span>{feature}</span></li>)}</ul>
-              <Link href="/knowledge" className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90">Explore Education Hub <ArrowRight className="h-4 w-4" /></Link>
+              <Link href="/education/register?role=student" className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90">Register for free trial <ArrowRight className="h-4 w-4" /></Link>
             </section>
           )
         })}
@@ -39,7 +39,7 @@ export default function EducationBillingPage() {
         <div className="rounded-2xl border p-5"><div className="flex items-center gap-2 font-semibold"><ShieldCheck className="h-5 w-5 text-emerald-600" /> Clear and secure billing</div><p className="mt-2 text-sm text-muted-foreground">Paid access will only activate after the payment provider confirms a transaction securely. No annual plan is offered at launch.</p></div>
         <div className="rounded-2xl border p-5"><div className="flex items-center gap-2 font-semibold"><BookOpen className="h-5 w-5 text-emerald-600" /> Help support education</div><p className="mt-2 text-sm text-muted-foreground">Subscriptions help fund the ongoing development and operation of WIGOD Education Hub. Sponsored access can be added for learners who need support.</p></div>
       </div>
-      <p className="mx-auto mt-8 max-w-3xl text-center text-xs text-muted-foreground">Trial activation and checkout will be enabled after the payment provider is configured and the subscription database migration is applied. Prices are in US dollars.</p>
+      <p className="mx-auto mt-8 max-w-3xl text-center text-xs text-muted-foreground">Student and teacher registration are available through the Education Hub access portal. Trial activation and checkout will be enabled after the payment provider is configured and the subscription database migration is applied. Prices are in US dollars.</p>
     </div>
   )
 }
