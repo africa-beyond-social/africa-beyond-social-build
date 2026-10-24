@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { ArrowLeft, ArrowRight, BookOpen, Brain, ChevronDown, Download, FileText, GraduationCap, History, Library, Mic, Plus, Search, Sparkles, Upload, CheckCircle2, RefreshCw, Trash2, AlertTriangle } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 
 const primarySubjects = ["Mathematics","English","Shona","Physical Education & Arts","Science & Technology","Social Science"]
 const secondarySubjects = ["Commerce","Mathematics","English","Science","Shona","Accounting","Geography","Religious Education","Heritage Studies"]
@@ -273,24 +274,55 @@ export default function KnowledgeHubPage() {
   async function uploadMaterial() {
     const file = selectedFile || fileInputRef.current?.files?.[0]
     if (!file) { setError("Choose a document first."); return }
+    const MAX_UPLOAD_BYTES = 50 * 1024 * 1024
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setError("This file is over the 50 MB limit. Please use a smaller PDF or split it into parts.")
+      return
+    }
     setUploading(true); setError(""); setAdded(false)
+    let uploadedPath: string | null = null
     try {
-      const form = new FormData()
-      form.append("file", file)
-      form.append("level", level)
-      form.append("grade", grade)
-      form.append("subject", subject)
-      form.append("title", fileName || file.name)
-      const response = await fetch("/api/knowledge/documents", { method: "POST", body: form })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.error || "Upload failed")
+      const supabase = createClient()
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) throw new Error("Your session has expired. Please sign in again.")
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_")
+      uploadedPath = `${user.id}/${crypto.randomUUID()}-${safeName}`
+      const { error: storageError } = await supabase.storage.from("wigod-knowledge").upload(uploadedPath, file, {
+        contentType: file.type || "application/octet-stream",
+        upsert: false,
+      })
+      if (storageError) throw new Error(storageError.message.includes("exceeded the maximum allowed size")
+        ? "Storage rejected this file size. Please check the WIGOD Knowledge bucket's 50 MB file limit."
+        : `File upload failed: ${storageError.message}`)
+      const response = await fetch("/api/knowledge/documents/register", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          storagePath: uploadedPath,
+          name: file.name,
+          size: file.size,
+          mimeType: file.type,
+          level,
+          grade,
+          subject,
+          title: fileName || file.name,
+        }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || `Could not save document details (HTTP ${response.status}).`)
       setAdded(true)
       setError("")
       setFileName(result.document?.title || file.name)
       setSelectedFile(null)
       if (fileInputRef.current) fileInputRef.current.value = ""
       await loadDocuments()
-    } catch (e) { setError(e instanceof Error ? e.message : "Upload failed") } finally { setUploading(false) }
+    } catch (e) {
+      if (uploadedPath) {
+        const supabase = createClient()
+        await supabase.storage.from("wigod-knowledge").remove([uploadedPath]).catch(() => {})
+      }
+      setError(e instanceof Error ? e.message : "Upload failed. Please try again.")
+    } finally { setUploading(false) }
   }
 
   function changeLevel(next: EducationLevel) {
