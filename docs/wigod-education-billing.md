@@ -10,7 +10,10 @@
 ## Included in this branch
 - Supabase schema for active plans, user subscriptions, and payment transaction records.
 - Row-level security policies allowing users to read active plans and only their own subscription/payment history.
-- Authenticated Education Hub billing/pricing page at `/knowledge/billing`.
+- Education Hub access landing at `/education` with separate student and teacher paths.
+- Student and teacher registration at `/education/register`, including role metadata and a pending-verification marker for teacher accounts.
+- Role-specific login at `/education/login`.
+- Monthly pricing page at `/knowledge/billing`.
 - No browser-side write access to subscription or payment status.
 
 ## Required before accepting real payments
