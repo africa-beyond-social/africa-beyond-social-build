@@ -1,16 +1,19 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { ArrowLeft, BookOpen } from "lucide-react"
 
 export default function EducationLoginPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const initialRole = searchParams.get("role") === "teacher" ? "teacher" : "student"
-  const [role, setRole] = useState<"student" | "teacher">(initialRole)
+  const [role, setRole] = useState<"student" | "teacher">("student")
+
+  useEffect(() => {
+    const roleParam = new URLSearchParams(window.location.search).get("role")
+    if (roleParam === "teacher") setRole("teacher")
+  }, [])
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
